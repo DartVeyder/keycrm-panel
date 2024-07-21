@@ -91,7 +91,8 @@ class Kasta
         $data =  [
             'items' =>  $items
         ];
-
+        $text = date("Y-m-d H:i:s"). " update price  "  ;
+        $this->saveLog($text , 'logs/cron.txt');
         return $this->request('/products/update-price', 'POST',$data );
 
     }
@@ -101,6 +102,8 @@ class Kasta
         $data =  [
             'items' =>  $items
         ];
+        $text = date("Y-m-d H:i:s"). " update stock  "  ;
+        $this->saveLog($text , 'logs/cron.txt');
        return $this->request('/products/update-stock', 'POST',$data );
 
     }
