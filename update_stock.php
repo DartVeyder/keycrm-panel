@@ -14,10 +14,13 @@ $products = $keyCrm->products();
 $kasta->listBarcodes();
 
 $inBarcodes = $kasta->listBarcodes();
-$items = $kasta->formatDataStock($products,$inBarcodes);
 
+$items = $kasta->formatDataStock($products,$inBarcodes);
 $kasta->updateStock( $items );
 
 $items = $kasta->formatDataPrice($products,$inBarcodes);
 $kasta->updatePrice($items);
-dd($items);
+
+$text = date("Y-m-d H:i:s"). " start cron items:"  . count($items) ;
+$kasta->saveLog($text , 'logs/cron.txt');
+echo  $text;

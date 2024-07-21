@@ -80,6 +80,12 @@ class Kasta
         return array_values($data); // Для перезапису індексів масиву
     }
 
+    public function saveLog($text, $path){
+        $file = fopen( $path, 'a+');
+        fwrite($file, $text . "\n");
+        fclose($file);
+    }
+
     public function updatePrice($items)
     {
         $data =  [
