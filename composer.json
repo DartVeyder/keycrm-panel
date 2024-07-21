@@ -1,0 +1,7 @@
+{
+    "require": {
+        "guzzlehttp/guzzle": "^7.9",
+        "larapack/dd": "^1.1",
+        "shuchkin/simplexlsx": "^1.1"
+    }
+}
