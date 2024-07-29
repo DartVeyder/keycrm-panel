@@ -20,7 +20,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary">Upload</button>
             </form>
-            <span>Скачати: </span>  <a href="xlsx/discounts.xlsx">discounts.xlsx</a> <br>
+            <span>Скачати: </span>  <a href="xlsx/discounts.xlsx?<?php echo time(); ?>" >discounts.xlsx</a> <br>
             <span>Скачати: </span>  <a href="example.xlsx">Шаблон</a> <br>
         </div>
     </div>
