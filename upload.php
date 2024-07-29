@@ -1,4 +1,7 @@
 <?php
+
+use Shuchkin\SimpleXLSX;
+require_once('vendor/autoload.php');
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['file']['tmp_name'];
@@ -20,6 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
                 echo "File is successfully uploaded as discounts.xlsx.";
+                if ( $xlsx = SimpleXLSX::parse($dest_path) ) {
+                    echo $xlsx->toHTMLEx();
+                }
             } else {
                 echo "There was an error moving the uploaded file.";
             }

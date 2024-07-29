@@ -71,7 +71,7 @@ class Kasta
                 return [
                     'barcode' => $product['sku'],
                     'old_price' => $product['price'],
-                    'new_price' => $this->calculateDiscountPrice($product['price'], $discounts[$product['sku']]) ,
+                    'new_price' => $this->calculateDiscountPrice($product['price'], @$discounts[$product['sku']]) ,
                 ];
             }
             return null;
