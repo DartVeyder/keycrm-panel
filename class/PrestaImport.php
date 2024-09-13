@@ -10,8 +10,8 @@ class PrestaImport
 
     public  function generateData(){
         $data = [];
-      //  $offers = $this->keyCrm->product('[product_id]=1602');
-        $offers = $this->keyCrm->products();
+       // $offers = $this->keyCrm->product('[product_id]=1856');
+       $offers = $this->keyCrm->products();
 
         foreach ($offers as $offer){
             $product = $offer['product'];
@@ -38,7 +38,6 @@ class PrestaImport
 
 
         }
-
         return $data;
     }
 
@@ -92,12 +91,12 @@ class PrestaImport
 
         return $prefix;
     }
-    public function generateXLS($data, $filename = 'output.xlsx') {
-        if(!$data){
-            die('None data');
-        }
+    public function generateXLS($data, $filename = 'uploads/output.xlsx') {
+//        if(!$data){
+//            die('None data');
+//        }
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color'];
+        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main category'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -114,7 +113,8 @@ class PrestaImport
                     $item['price'],
                     $item['quantity'],
                     $item['size'],
-                    $item['color']
+                    $item['color'],
+                    'Twice'
                 ]  ;
             }
         }
