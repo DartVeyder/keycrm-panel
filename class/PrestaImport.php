@@ -162,4 +162,10 @@ class PrestaImport
 
         echo "CSV file '$filename' has been created successfully!";
     }
+
+    public function saveLog($text, $path){
+        $file = fopen( $path, 'a+');
+        fwrite($file, $text . "\n");
+        fclose($file);
+    }
 }
