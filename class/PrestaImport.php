@@ -96,7 +96,7 @@ class PrestaImport
             die('None data');
         }
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Image'];
+        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -115,6 +115,7 @@ class PrestaImport
                     $item['size'],
                     $item['color'],
                     'Twice',
+                    '',
                     $item['image'],
                 ]  ;
             }
