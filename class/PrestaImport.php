@@ -28,7 +28,7 @@ class PrestaImport
                 $data[$offer['product_id']][$offer['id']]['description'] = $product['description'];
                 $data[$offer['product_id']][$offer['id']]['images'] = implode(',',$product['attachments_data'] );
             }
-            $data[$offer['product_id']][$offer['id']]['name'] = $product['name'] . ' test';
+            $data[$offer['product_id']][$offer['id']]['name'] = $product['name'] ;
             $data[$offer['product_id']][$offer['id']]['sku'] = $offer['sku'];
             $data[$offer['product_id']][$offer['id']]['image'] = $offer['thumbnail_url'];
             $data[$offer['product_id']][$offer['id']]['price'] = $offer['price'];
@@ -96,7 +96,7 @@ class PrestaImport
             die('None data');
         }
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main category'];
+        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main category', 'Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -114,7 +114,8 @@ class PrestaImport
                     $item['quantity'],
                     $item['size'],
                     $item['color'],
-                    'Twice'
+                    'Twice',
+                    $item['image'],
                 ]  ;
             }
         }
@@ -122,6 +123,7 @@ class PrestaImport
 
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
+
     }
 
 
