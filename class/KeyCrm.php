@@ -5,9 +5,14 @@ use GuzzleHttp\Client;
 class KeyCrm
 {
     public  function products(){
-        $offers =   $this->request('/offers?limit=100000000');
+        $offers =   $this->request('/offers?limit=100000000&include=product');
         return $offers['data'];
 
+    }
+
+    public  function  product($filter){
+        $offers =   $this->request('/offers?limit=100000000&include=product&filter'.$filter);
+        return $offers['data'];
     }
 
     private function request($endpoint){

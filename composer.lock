@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "583e062a63b7f2b300d80d9fee867265",
+    "content-hash": "6409b3dcb5a0a6d3ff7712998362aadd",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -628,6 +628,59 @@
                 "source": "https://github.com/shuchkin/simplexlsx/tree/1.1.11"
             },
             "time": "2024-07-06T17:18:59+00:00"
+        },
+        {
+            "name": "shuchkin/simplexlsxgen",
+            "version": "1.4.12",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/shuchkin/simplexlsxgen.git",
+                "reference": "4dffbd72ffaaa57022a50d770f30fa1efe3500a0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/shuchkin/simplexlsxgen/zipball/4dffbd72ffaaa57022a50d770f30fa1efe3500a0",
+                "reference": "4dffbd72ffaaa57022a50d770f30fa1efe3500a0",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "ext-zlib": "*",
+                "php": ">=5.4"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/SimpleXLSXGen.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Sergey Shuchkin (SMSPILOT)",
+                    "email": "sergey.shuchkin@gmail.com",
+                    "homepage": "https://shuchkin.ru/"
+                }
+            ],
+            "description": "Export data to Excel XLSx file. PHP XLSX generator.",
+            "homepage": "https://github.com/shuchkin/simplexlsxgen",
+            "keywords": [
+                "backend",
+                "creator",
+                "excel",
+                "generator",
+                "php",
+                "writer",
+                "xlsx"
+            ],
+            "support": {
+                "issues": "https://github.com/shuchkin/simplexlsxgen/issues",
+                "source": "https://github.com/shuchkin/simplexlsxgen/tree/1.4.12"
+            },
+            "time": "2024-07-28T10:07:02+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",

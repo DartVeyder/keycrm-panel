@@ -26,6 +26,7 @@
       <path value="$PROJECT_DIR$/vendor/larapack/dd" />
       <path value="$PROJECT_DIR$/vendor/symfony/var-dumper" />
       <path value="$PROJECT_DIR$/vendor/shuchkin/simplexlsx" />
+      <path value="$PROJECT_DIR$/vendor/shuchkin/simplexlsxgen" />
     </include_path>
   </component>
   <component name="PhpStanOptionsConfiguration">
