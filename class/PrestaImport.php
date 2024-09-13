@@ -92,9 +92,9 @@ class PrestaImport
         return $prefix;
     }
     public function generateXLS($data, $filename = 'uploads/output.xlsx') {
-//        if(!$data){
-//            die('None data');
-//        }
+        if(!$data){
+            die('None data');
+        }
         $rows = [];
         $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main category'];
 
