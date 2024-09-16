@@ -132,7 +132,7 @@ class PrestaImport
         $listProductsShortDescription = $this->keyCrm->listProductsShortDescription('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Short description ', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID', 'Description', 'Short description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -163,7 +163,6 @@ class PrestaImport
         $xlsx->saveAs($filename);
 
         echo SimpleXLSX::parse($filename)->toHTML();
-        dd(  $rows);
     }
 
     public function startImport(){
