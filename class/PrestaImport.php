@@ -8,6 +8,7 @@ require_once ('class/KeyCrm.php');
 class PrestaImport
 {
     private $keyCrm;
+    private $productIds = [];
     public function __construct()
     {
         $this->keyCrm = new KeyCrm();
@@ -15,8 +16,8 @@ class PrestaImport
 
     public  function generateData(){
         $data = [];
-        //$offers = $this->keyCrm->product('[product_id]=1889');
-
+      //   $offers = $this->keyCrm->product('[product_id]=1891');
+   // dd( $offers);
        $offers = $this->keyCrm->products();
 
         foreach ($offers as $offer){
@@ -31,6 +32,10 @@ class PrestaImport
 
             if ( strpos($offer['sku'], '_') !== false) {
                 continue;
+            }
+
+            if(!in_array($offer['product_id'], $this->productIds)){
+                $this->productIds[] = $offer['product_id'];
             }
 
             if( !$data[$offer['product_id']]){
@@ -49,6 +54,7 @@ class PrestaImport
             $data[$offer['product_id']][$offer['id']]= array_merge($data[$offer['product_id']][$offer['id']], $this->getProperties($offer['properties'] ));
 
         }
+
 
 
         return $data;
@@ -123,16 +129,20 @@ class PrestaImport
         if(!$data){
             die('None data');
         }
+        $listProductsShortDescription = $this->keyCrm->listProductsShortDescription('filter[product_id]=' . implode(',', $this->productIds));
+
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID', 'Short description ', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
             $parentSku =  $this->findCommonPartInSKU(array_column($items, 'sku'));
+
             foreach ($items as $id => $item) {
                 $rows[] =  [
                     $parentId,
                     $id,
+                    isset($listProductsShortDescription[$parentId]) ? trim($listProductsShortDescription[$parentId]) : '',
                     isset($item['description']) ? trim($item['description']) : '',
                     isset($item['images']) ? $item['images'] : '',
                     $item['name'],
@@ -149,11 +159,11 @@ class PrestaImport
             }
         }
 
-
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
 
         echo SimpleXLSX::parse($filename)->toHTML();
+        dd(  $rows);
     }
 
     public function startImport(){

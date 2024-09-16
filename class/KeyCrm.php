@@ -6,9 +6,26 @@ class KeyCrm
 {
     public  function products(){
         $offers =   $this->request('/offers?limit=100000000&include=product');
+//        $products =   $this->request('/products?limit=100000000&include=custom_fields&filter[product_id]=1891');
+//        dd( $products);
         return $offers['data'];
-
     }
+
+    public function listProductsShortDescription($filter = ''){
+        $data = [];
+        $products =  $this->request('/products?limit=100000000&include=custom_fields&'.$filter);
+        $products = array_column( $products['data'], 'custom_fields', 'id');
+        foreach ($products as $id => $product){
+            foreach ($product as  $customField){
+                if(isset($customField['name'] ) && $customField['name'] == 'сео опис товару'){
+                    $data[$id] = $customField['value'];
+                }
+            }
+        }
+
+        return  $data ;
+    }
+
 
     public  function  product($filter){
         $offers =   $this->request('/offers?limit=100000000&include=product&filter'.$filter);
