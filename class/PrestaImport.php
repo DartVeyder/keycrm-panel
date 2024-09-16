@@ -15,13 +15,17 @@ class PrestaImport
 
     public  function generateData(){
         $data = [];
-       // $offers = $this->keyCrm->product('[product_id]=1856');
+        //$offers = $this->keyCrm->product('[product_id]=1889');
+
        $offers = $this->keyCrm->products();
 
         foreach ($offers as $offer){
             $product = $offer['product'];
-
             if( $offer['product_id']  <= 1887 ){
+                continue;
+            }
+
+            if(empty( $product['name'])){
                 continue;
             }
 
@@ -38,11 +42,30 @@ class PrestaImport
             $data[$offer['product_id']][$offer['id']]['image'] = $offer['thumbnail_url'];
             $data[$offer['product_id']][$offer['id']]['price'] = $offer['price'];
             $data[$offer['product_id']][$offer['id']]['quantity'] = $offer['quantity'];
-            $data[$offer['product_id']][$offer['id']]['size'] =  mb_strtoupper($offer['properties'][1]['value']);
-            $data[$offer['product_id']][$offer['id']]['color'] = $offer['properties'][0]['value'];
 
+            //$data[$offer['product_id']][$offer['id']]['size'] =  mb_strtoupper($offer['properties'][1]['value']);
+            //$data[$offer['product_id']][$offer['id']]['color'] = $offer['properties'][0]['value'];
+
+            $data[$offer['product_id']][$offer['id']]= array_merge($data[$offer['product_id']][$offer['id']], $this->getProperties($offer['properties'] ));
 
         }
+
+
+        return $data;
+    }
+
+    private  function getProperties($properties){
+        $data = [];
+        foreach ($properties as $property){
+            if( $property['name'] == 'Колір'){
+                $data['size'] = $property['value'];
+            }
+
+            if( $property['name'] == 'Розмір'){
+                $data['color'] = mb_strtoupper($property['value']);
+            }
+        }
+
         return $data;
     }
 
