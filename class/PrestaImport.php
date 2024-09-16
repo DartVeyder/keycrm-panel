@@ -1,4 +1,9 @@
 <?php
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use Shuchkin\SimpleXLSX;
+
 require_once ('class/KeyCrm.php');
 class PrestaImport
 {
@@ -125,6 +130,33 @@ class PrestaImport
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
 
+        echo SimpleXLSX::parse($filename)->toHTML();
+    }
+
+    public function startImport(){
+        try {
+            $client = new Client();
+            $response = $client->get('https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport', [
+                'query' => [
+                    'settings' => 6,
+                    'id_shop_group' => 1,
+                    'id_shop' => 1,
+                    'secure_key' => '30aa0bdb68fa671e64a2ba3a4016aec0',
+                    'action' => 'importProducts',
+                ]
+            ]);
+
+            // Виводимо статус-код відповіді
+            echo 'Status Code: ' . $response->getStatusCode() . "\n";
+
+            // Виводимо тіло відповіді
+            echo 'Response Body: ' . $response->getBody();
+            return  $response->getBody();
+        } catch (RequestException $e) {
+            // Обробляємо можливі помилки запиту
+            echo 'Request failed: ' . $e->getMessage();
+            return $e->getMessage();
+        }
     }
 
 
