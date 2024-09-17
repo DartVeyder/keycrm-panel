@@ -129,23 +129,29 @@ class PrestaImport
         if(!$data){
             die('None data');
         }
-        $listProductsShortDescription = $this->keyCrm->listProductsShortDescription('filter[product_id]=' . implode(',', $this->productIds));
+        $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Short description', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID', 'Product name', 'Short description', 'Description', 'Images', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
-            $parentSku =  $this->findCommonPartInSKU(array_column($items, 'sku'));
 
             foreach ($items as $id => $item) {
+                $shortDescription =  $listProductsCustomFields[$parentId]['shortDescription'];
+                $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
+
+                if(!$parentSku){
+                    $parentSku = $parentId;
+                }
+
                 $rows[] =  [
                     $parentId,
                     $id,
-                    isset($listProductsShortDescription[$parentId]) ? trim($listProductsShortDescription[$parentId]) : '',
+                    $item['name'],
+                    isset(  $shortDescription) ? trim(  $shortDescription) : '',
                     isset($item['description']) ? trim($item['description']) : '',
                     isset($item['images']) ? $item['images'] : '',
-                    $item['name'],
                     $item['sku'],
                     $parentSku,
                     $item['price'],
