@@ -64,11 +64,11 @@ class PrestaImport
         $data = [];
         foreach ($properties as $property){
             if( $property['name'] == 'Колір'){
-                $data['size'] = $property['value'];
+                $data['color'] = $property['value'];
             }
 
             if( $property['name'] == 'Розмір'){
-                $data['color'] = mb_strtoupper($property['value']);
+                $data['size'] = mb_strtoupper($property['value']);
             }
         }
 
