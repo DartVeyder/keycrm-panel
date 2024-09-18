@@ -39,7 +39,7 @@ class Kasta
             if (in_array($product['sku'], $inBarcodes)) {
                 return [
                     'barcode' => $product['sku'],
-                    'stock' => $product['quantity']
+                    'stock' => $product['quantity'] - $product['in_reserve']
                 ];
             }
             return null;

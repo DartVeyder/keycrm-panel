@@ -142,7 +142,7 @@ class PrestaImport
                 $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
 
                 if(!$parentSku){
-                    $parentSku = $parentId;
+                    continue;
                 }
 
                 $rows[] =  [
