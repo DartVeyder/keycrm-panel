@@ -63,11 +63,11 @@ class PrestaImport
     private  function getProperties($properties){
         $data = [];
         foreach ($properties as $property){
-            if( $property['name'] == 'Колір'){
+            if( mb_strtolower( $property['name']) == 'колір'){
                 $data['color'] = $property['value'];
             }
 
-            if( $property['name'] == 'Розмір'){
+            if( mb_strtolower( $property['name']) == 'розмір'){
                 $data['size'] = mb_strtoupper($property['value']);
             }
         }
@@ -132,7 +132,7 @@ class PrestaImport
         $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Product name', 'Short description', 'Description', 'Images', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -148,16 +148,17 @@ class PrestaImport
                 $rows[] =  [
                     $parentId,
                     $id,
-                    $item['name'],
-                    isset(  $shortDescription) ? trim(  $shortDescription) : '',
-                    isset($item['description']) ? trim($item['description']) : '',
-                    isset($item['images']) ? $item['images'] : '',
                     $item['sku'],
                     $parentSku,
                     $item['price'],
                     $item['quantity'],
                     $item['size'],
                     $item['color'],
+                    $item['name'],
+                    isset(  $shortDescription) ? trim(  $shortDescription) : '',
+                    isset($item['description']) ? trim($item['description']) : '',
+                    isset($item['images']) ? $item['images'] : '',
+
                     'Twice',
                     '',
                     $item['image'],
