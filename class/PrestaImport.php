@@ -172,6 +172,29 @@ class PrestaImport
         echo SimpleXLSX::parse($filename)->toHTML();
     }
 
+    public function logError(){
+        $url = 'https://twice.com.ua/module/simpleimportproduct/ProductsImportAjax?file_name=error_logs.csv&action=downloadErrorLog&token=c986873aca340e47ec2c04c3f2efa2c9&ajax=1';
+        $client = new Client();
+        try {
+            // Виконати запит до URL
+            $response = $client->request('GET', $url);
+
+            // Перевірити статус код відповіді
+            if ($response->getStatusCode() === 200) {
+                // Отримати вміст файлу
+                $fileContent = $response->getBody()->getContents();
+
+                // Вивести вміст
+                echo "<h3>Помилки</h3>";
+                echo nl2br($fileContent);
+            } else {
+                echo "Не вдалося завантажити файл. Статус код: " . $response->getStatusCode();
+            }
+        } catch (\Exception $e) {
+            echo "Сталася помилка: " . $e->getMessage();
+        }
+    }
+
     public function startImport(){
         try {
             $client = new Client();
