@@ -46,7 +46,7 @@ class PrestaImport
             $data[$offer['product_id']][$offer['id']]['sku'] = $offer['sku'];
             $data[$offer['product_id']][$offer['id']]['image'] = $offer['thumbnail_url'];
             $data[$offer['product_id']][$offer['id']]['price'] = $offer['price'];
-            $data[$offer['product_id']][$offer['id']]['quantity'] = $offer['quantity'];
+            $data[$offer['product_id']][$offer['id']]['quantity'] = $offer['quantity'] - $offer['reserve'];
 
             //$data[$offer['product_id']][$offer['id']]['size'] =  mb_strtoupper($offer['properties'][1]['value']);
             //$data[$offer['product_id']][$offer['id']]['color'] = $offer['properties'][0]['value'];
