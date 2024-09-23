@@ -25,12 +25,23 @@ class Kasta
 
     public function listBarcodes()
     {
+        $data = [];
         $products =  $this->products();
-        $barcodes =  array_column($products, "barcode" );
+        foreach ($products  as $product){
+            if(isset($product['barcode'][0])){
+                $data[] = $product['barcode'][0];
+            }else{
+                $data[] = $product['code'];
+            }
+        }
+        return $data;
 
-        return array_filter(array_map(function($item) {
-            return isset($item[0]) ? $item[0] : null;
-        }, $barcodes));
+//
+//        $barcodes =  array_column($products, "barcode" );
+//
+//        return array_filter(array_map(function($item) {
+//            return isset($item[0]) ? $item[0] : null;
+//        }, $barcodes));
 
     }
     public function formatDataStock($products, $inBarcodes) {
