@@ -106,7 +106,6 @@ class Intertop
                 ],
             ]);
 
-            // Check if the response is successful.
             if ($data['code'] !== 200 || $data['status'] !== 'success') {
                 // Handle error appropriately (logging, throwing exception, etc.)
                 break;
