@@ -8,6 +8,9 @@ require_once ('class/PrestaImport.php');
 $prestaImport = new PrestaImport();
 
 $text = date("Y-m-d H:i:s"). " start cron "  ;
-$prestaImport->saveLog($text , 'logs/cron-import.txt');
+
 
 $prestaImport->generateXLS($prestaImport->generateData());
+$startImport = $prestaImport->startImport();
+
+$prestaImport->saveLog($text . " " . $startImport , 'logs/cron-import.txt');

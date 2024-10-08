@@ -1,8 +1,14 @@
 <?php
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use Shuchkin\SimpleXLSX;
+
 require_once ('class/KeyCrm.php');
 class PrestaImport
 {
     private $keyCrm;
+    private $productIds = [];
     public function __construct()
     {
         $this->keyCrm = new KeyCrm();
@@ -10,18 +16,26 @@ class PrestaImport
 
     public  function generateData(){
         $data = [];
-       // $offers = $this->keyCrm->product('[product_id]=1856');
+      //   $offers = $this->keyCrm->product('[product_id]=1891');
+   // dd( $offers);
        $offers = $this->keyCrm->products();
 
         foreach ($offers as $offer){
             $product = $offer['product'];
-
             if( $offer['product_id']  <= 1887 ){
+                continue;
+            }
+
+            if(empty( $product['name'])){
                 continue;
             }
 
             if ( strpos($offer['sku'], '_') !== false) {
                 continue;
+            }
+
+            if(!in_array($offer['product_id'], $this->productIds)){
+                $this->productIds[] = $offer['product_id'];
             }
 
             if( !$data[$offer['product_id']]){
@@ -32,12 +46,32 @@ class PrestaImport
             $data[$offer['product_id']][$offer['id']]['sku'] = $offer['sku'];
             $data[$offer['product_id']][$offer['id']]['image'] = $offer['thumbnail_url'];
             $data[$offer['product_id']][$offer['id']]['price'] = $offer['price'];
-            $data[$offer['product_id']][$offer['id']]['quantity'] = $offer['quantity'];
-            $data[$offer['product_id']][$offer['id']]['size'] =  mb_strtoupper($offer['properties'][1]['value']);
-            $data[$offer['product_id']][$offer['id']]['color'] = $offer['properties'][0]['value'];
+            $data[$offer['product_id']][$offer['id']]['quantity'] = $offer['quantity'] - $offer['in_reserve'];
 
+            //$data[$offer['product_id']][$offer['id']]['size'] =  mb_strtoupper($offer['properties'][1]['value']);
+            //$data[$offer['product_id']][$offer['id']]['color'] = $offer['properties'][0]['value'];
+
+            $data[$offer['product_id']][$offer['id']]= array_merge($data[$offer['product_id']][$offer['id']], $this->getProperties($offer['properties'] ));
 
         }
+
+
+
+        return $data;
+    }
+
+    private  function getProperties($properties){
+        $data = [];
+        foreach ($properties as $property){
+            if( mb_strtolower( $property['name']) == 'колір'){
+                $data['color'] = $property['value'];
+            }
+
+            if( mb_strtolower( $property['name']) == 'розмір'){
+                $data['size'] = mb_strtoupper($property['value']);
+            }
+        }
+
         return $data;
     }
 
@@ -95,25 +129,36 @@ class PrestaImport
         if(!$data){
             die('None data');
         }
+        $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
+
         $rows = [];
-        $rows[] = ['Parent ID', 'ID', 'Description', 'Images', 'Product name', 'SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
-            $parentSku =  $this->findCommonPartInSKU(array_column($items, 'sku'));
+
             foreach ($items as $id => $item) {
+                $shortDescription =  $listProductsCustomFields[$parentId]['shortDescription'];
+                $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
+
+                if(!$parentSku){
+                    continue;
+                }
+
                 $rows[] =  [
                     $parentId,
                     $id,
-                    isset($item['description']) ? trim($item['description']) : '',
-                    isset($item['images']) ? $item['images'] : '',
-                    $item['name'],
                     $item['sku'],
                     $parentSku,
                     $item['price'],
                     $item['quantity'],
                     $item['size'],
                     $item['color'],
+                    $item['name'],
+                    isset(  $shortDescription) ? trim(  $shortDescription) : '',
+                    isset($item['description']) ? trim($item['description']) : '',
+                    isset($item['images']) ? $item['images'] : '',
+
                     'Twice',
                     '',
                     $item['image'],
@@ -121,10 +166,37 @@ class PrestaImport
             }
         }
 
-
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
 
+        echo SimpleXLSX::parse($filename)->toHTML();
+    }
+
+
+    public function startImport(){
+        try {
+            $client = new Client();
+            $response = $client->get('https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport', [
+                'query' => [
+                    'settings' => 6,
+                    'id_shop_group' => 1,
+                    'id_shop' => 1,
+                    'secure_key' => '30aa0bdb68fa671e64a2ba3a4016aec0',
+                    'action' => 'importProducts',
+                ]
+            ]);
+
+            // Виводимо статус-код відповіді
+            echo 'Status Code: ' . $response->getStatusCode() . "\n";
+
+            // Виводимо тіло відповіді
+            echo 'Response Body: ' . $response->getBody();
+            return  $response->getBody();
+        } catch (RequestException $e) {
+            // Обробляємо можливі помилки запиту
+            echo 'Request failed: ' . $e->getMessage();
+            return $e->getMessage();
+        }
     }
 
 
