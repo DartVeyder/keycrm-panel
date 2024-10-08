@@ -111,7 +111,7 @@ class Intertop
                 break;
             }
 
-            // Merge the current page's items with the allItems array.
+
             $allItems = array_merge($allItems, $data['data']['items']);
 
             // Get the total number of records to determine if more pages exist.
