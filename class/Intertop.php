@@ -54,7 +54,7 @@ class Intertop
             return [
                 'barcode' => $item["barcode"], // Додаємо ключ 'barcode'
                 'article' => $article,          // Додаємо ключ 'article'
-                'quantity' => $this->productsKeycrm[$item["barcode"]],
+                'quantity' => ($this->productsKeycrm[$item["barcode"]] < 0) ? 0 : $this->productsKeycrm[$item["barcode"]],
                 "warehouse_external_id" => "default"
             ];
         }, $data);

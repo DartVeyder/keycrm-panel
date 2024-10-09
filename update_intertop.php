@@ -11,6 +11,10 @@ $keyCrm = new KeyCrm();
 $intertop->auth();
 
 $intertop->productsKeycrm = $intertop->getProductsKeycrm() ;
+$offers = $intertop->getDataToUpdateQuantity() ;
 
- $offers = $intertop->getDataToUpdateQuantity() ;
- dd($intertop->updateQuantity($offers ));
+$intertop->updateQuantity($offers ) ;
+
+foreach ($offers  as $offer){
+    echo $offer['barcode'] . " " .  $offer['article'] . " " .  $offer['quantity'] . "</br>";
+}
