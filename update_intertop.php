@@ -16,5 +16,9 @@ $offers = $intertop->getDataToUpdateQuantity() ;
 $intertop->updateQuantity($offers ) ;
 
 foreach ($offers  as $offer){
-    echo $offer['barcode'] . " " .  $offer['article'] . " " .  $offer['quantity'] . "</br>";
+    $txt =  $offer['barcode'] . " " .  $offer['article'] . " " .  $offer['quantity'] ;
+    echo $txt . "</br>";
+    $text = date("Y-m-d H:i:s"). " ". $txt ;
+    $intertop->saveLog($text , 'logs/update_stock_products.txt');
+
 }

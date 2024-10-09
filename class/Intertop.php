@@ -149,4 +149,10 @@ class Intertop
     {
         $this->token = $token;
     }
+
+    public function saveLog($text, $path){
+        $file = fopen( $path, 'a+');
+        fwrite($file, $text . "\n");
+        fclose($file);
+    }
 }
