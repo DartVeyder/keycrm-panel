@@ -36,20 +36,74 @@ class Intertop
         ]);
     }
 
+    function saveProductsToJson(array $data, string $filename) {
+        // Конвертуємо масив в JSON формат
+        $jsonData = json_encode($data, JSON_PRETTY_PRINT);
+
+        // Перевіряємо, чи вдалося конвертувати масив в JSON
+        if ($jsonData === false) {
+            return false; // Помилка конвертації
+        }
+
+        // Записуємо JSON дані у файл
+        if (file_put_contents($filename, $jsonData) === false) {
+            return false; // Помилка запису у файл
+        }
+
+        return true; // Успішне збереження
+    }
+
+    function readProductsFromJson(string $filename) {
+        // Зчитуємо вміст файлу
+        $jsonData = file_get_contents($filename);
+
+        // Перевіряємо, чи вдалося зчитати файл
+        if ($jsonData === false) {
+            return false; // Помилка зчитування
+        }
+
+        // Конвертуємо JSON дані в масив
+        $data = json_decode($jsonData, true);
+
+        // Перевіряємо, чи вдалося конвертувати JSON в масив
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return false; // Помилка конвертації
+        }
+
+        return $data; // Повертаємо зчитаний масив
+    }
+
+
     public function getDataToUpdateQuantity()
     {
         $data = [];
         $products = $this->getProducts() ;
+        $fileProducts = $this->readProductsFromJson('uploads/products.json');
+
+        if( $fileProducts && count($products) == $fileProducts['total_records']){
+            foreach ($fileProducts['data'] as $key => $product){
+                $data[] = [
+                    'barcode' => $product['barcode'],
+                    'article' =>$product['article'],
+                    'quantity' => ($this->productsKeycrm[$product["barcode"]] < 0) ? 0 : $this->productsKeycrm[$product["barcode"]],
+                    "warehouse_external_id" => "default"
+                ];
+            }
+            return   $data;
+        }
+
+
         foreach ($products as $product){
             $data  = array_merge($data ,$this->getProductOffersBarcode( $product['article'])  );
-
         }
+
+
+        $this->saveProductsToJson(['total_records' => count($products), 'data' =>$data], 'uploads/products.json');
         return $data;
     }
 
     private  function getOfferBarcode($data, $article)
     {
-       ;
         $barcodesWithMp = array_map(function($item) use ($article) {
             return [
                 'barcode' => $item["barcode"], // Додаємо ключ 'barcode'
@@ -82,8 +136,6 @@ class Intertop
 
     public function getProductOffersBarcode($article)
     {
-
-
         $request = $this->request('/products/' . $article . '/offers', 'GET', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->getToken(),
