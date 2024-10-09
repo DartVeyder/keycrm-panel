@@ -13,7 +13,9 @@ $intertop->auth();
 $intertop->productsKeycrm = $intertop->getProductsKeycrm() ;
 $offers = $intertop->getDataToUpdateQuantity() ;
 
-$intertop->updateQuantity($offers ) ;
+$updateQuantity = $intertop->updateQuantity($offers ) ;
+$text = date("Y-m-d H:i:s"). " ". json_encode($updateQuantity) ;
+$intertop->saveLog($text , 'logs/update_stoct.txt');
 
 foreach ($offers  as $offer){
     $txt =  $offer['barcode'] . " " .  $offer['article'] . " " .  $offer['quantity'] ;
