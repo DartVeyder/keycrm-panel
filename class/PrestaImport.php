@@ -16,11 +16,12 @@ class PrestaImport
 
     public  function generateData(){
         $data = [];
-      //   $offers = $this->keyCrm->product('[product_id]=1891');
-   // dd( $offers);
+       //  $offers = $this->keyCrm->product('[product_id]=1935');
+  //  dd( $offers);
        $offers = $this->keyCrm->products();
 
         foreach ($offers as $offer){
+
             $product = $offer['product'];
             if( $offer['product_id']  <= 1887 ){
                 continue;
@@ -125,6 +126,18 @@ class PrestaImport
 
         return $prefix;
     }
+
+    private function isValidShortDescription($string) {
+        // Використовуємо mb_strlen для підтримки UTF-8 символів
+        $length = mb_strlen($string, 'UTF-8');
+
+        // Перевірка на кількість символів більше 800
+        if ($length > 819) {
+            return false;
+        }
+
+        return true;
+    }
     public function generateXLS($data, $filename = 'uploads/output.xlsx') {
         if(!$data){
             die('None data');
@@ -132,15 +145,26 @@ class PrestaImport
         $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
 
             foreach ($items as $id => $item) {
-                $shortDescription =  $listProductsCustomFields[$parentId]['shortDescription'];
-                $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
+                $shortDescription = $listProductsCustomFields[$parentId]['shortDescription'];
 
+                $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
+                $isAdded =  $listProductsCustomFields[$parentId]['isAdded'] ?? 1;
+                $isActive =  $listProductsCustomFields[$parentId]['isActive'] ?? 0;
+
+                if(!$this->isValidShortDescription($shortDescription)){
+                    $shortDescription = 'Довжина властивості Product->description_short наразі '.mb_strlen($shortDescription, 'UTF-8').' символів. А повинно бути між 0 та 819 символами.';
+                    $isActive = 0;
+                }
+
+                if(!$isAdded){
+                    continue;
+                }
                 if(!$parentSku){
                     continue;
                 }
@@ -154,6 +178,8 @@ class PrestaImport
                     $item['quantity'],
                     $item['size'],
                     $item['color'],
+                    $isActive,
+                    $isAdded,
                     $item['name'],
                     isset(  $shortDescription) ? trim(  $shortDescription) : '',
                     isset($item['description']) ? trim($item['description']) : '',
