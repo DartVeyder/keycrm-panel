@@ -159,7 +159,6 @@ class PrestaImport
 
                 if(!$this->isValidShortDescription($shortDescription)){
                     $shortDescription = 'Довжина властивості Product->description_short наразі '.mb_strlen($shortDescription, 'UTF-8').' символів. А повинно бути між 0 та 819 символами.';
-                    $isActive = 0;
                 }
 
                 if(!$isAdded){
