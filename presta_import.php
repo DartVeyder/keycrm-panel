@@ -11,6 +11,5 @@ $text = date("Y-m-d H:i:s"). " start cron "  ;
 
 
 $prestaImport->generateXLS($prestaImport->generateData());
-//$startImport = $prestaImport->startImport();
-
-//$prestaImport->saveLog($text . " " . $startImport , 'logs/cron-import.txt');
+$startImport = $prestaImport->startImport();
+$prestaImport->saveLog($text . " " . $startImport , 'logs/cron-import.txt');
