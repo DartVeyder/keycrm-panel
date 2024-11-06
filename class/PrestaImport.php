@@ -43,11 +43,14 @@ class PrestaImport
                 $data[$offer['product_id']][$offer['id']]['description'] = $product['description'];
                 $data[$offer['product_id']][$offer['id']]['images'] = implode(',',$product['attachments_data'] );
             }
+            $quantity  = $offer['quantity'] - $offer['in_reserve'];
+            $quantity = ($quantity < 0) ? 0 : $quantity;
+
             $data[$offer['product_id']][$offer['id']]['name'] = $product['name'] ;
             $data[$offer['product_id']][$offer['id']]['sku'] = $offer['sku'];
             $data[$offer['product_id']][$offer['id']]['image'] = $offer['thumbnail_url'];
             $data[$offer['product_id']][$offer['id']]['price'] = $offer['price'];
-            $data[$offer['product_id']][$offer['id']]['quantity'] = $offer['quantity'] - $offer['in_reserve'];
+            $data[$offer['product_id']][$offer['id']]['quantity'] = $quantity;
 
             //$data[$offer['product_id']][$offer['id']]['size'] =  mb_strtoupper($offer['properties'][1]['value']);
             //$data[$offer['product_id']][$offer['id']]['color'] = $offer['properties'][0]['value'];
