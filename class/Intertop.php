@@ -23,6 +23,11 @@ class Intertop
          $this->setToken($request['data']['access_token']['token']) ;
     }
 
+    public  function create()
+    {
+
+    }
+
     public function updateQuantity($offers)
     {
         return $this->request('/offers/quantity', 'PATCH', [
