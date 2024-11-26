@@ -7,6 +7,14 @@ class Intertop
 {
     private string $token;
     public $productsKeycrm = [];
+    private $keycrm;
+
+    public function __construct()
+    {
+        $this->keycrm =  new KeyCrm();
+        $this->auth();
+    }
+
     public  function auth()
     {
          $request =  $this->request('/auth', 'POST', [
@@ -25,7 +33,133 @@ class Intertop
 
     public  function create()
     {
+        $productsCF = $this->getAddedProductWithCF();
+        $offersKeycrm = $this->keycrm->product('[product_id]=' . implode(',',array_column($productsCF, 'id')));
 
+        $groupedProducts = $this->grouped($offersKeycrm, $productsCF  );
+
+        foreach ($groupedProducts  as $item){
+            $this->createProductArray($item);
+
+        }
+        dd( $groupedProducts);
+    }
+    public function createProductArray($product){
+        $data = [];
+        $offers = [];
+        foreach ($product['colors'] as $key => $color){
+            $productIT = [
+                'vendor_code' => $color['vendor_code'],
+                'color_article' =>  $product['color_article'],
+                'article' => $product['color_article'],
+                'active' => true,
+                'sort' => 100,
+                'category_id' => 2,
+                'name' =>[['lang' => 'ua', 'value' => $product['product']['name']],['lang' => 'ru', 'value' => $product['product']['name']]],
+                'description' =>[['lang' => 'ua', 'value' => $product['product']['description']],['lang' => 'ru', 'value' => $product['product']['description']]]
+            ];
+
+            $this->request('/products', 'POST', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->getToken(),
+                ], 'form_params' => $productIT]
+            );
+
+
+            foreach ($color['items'] as $offer){
+                $offerIT = [
+                    'barcode'=>$offer['sku'],
+                    'active' => true,
+                    'base_price' => [
+                        "amount" =>$offer['price'],
+                        "currency" => 'UAH' ,
+                    ],
+                    "quantity" =>$offer['quantity'],
+                ];
+
+                dd($this->request('/products/'.$product['color_article'] .'/offers', 'POST', [
+                        'headers' => [
+                            'Authorization' => 'Bearer ' . $this->getToken(),
+                        ], 'form_params' => $offerIT]
+                ));
+            }
+        }
+
+        dd( $data,$product );
+    }
+
+    private  function  grouped($offersKeycrm, $productsCF  ){
+        $grouped = [];
+
+        foreach ($offersKeycrm as $item) {
+            // Skip items where "sku" starts with "5555_"
+            if (strpos($item['sku'], '_') !== false) {
+                continue;
+            }
+
+            $productId = $item['product_id'];
+
+            // Find color property
+            $color = null;
+            foreach ($item['properties'] as $property) {
+                if ($property['name'] === "Колір") {
+                    $color = $property['value'];
+                    break;
+                }
+            }
+
+            // Generate vendor_code (numeric only)
+            $vendorCode = $color
+                ? $item['id'] . abs(crc32($color)) // ID + numeric hash of the color
+                : $item['id'] . '00000'; // Default for no color
+
+            // Initialize grouping structure
+            if (!isset($grouped[$productId])) {
+                $grouped[$productId] = [
+                    'product' => $item['product'], // Add product details once per product_id
+                    'colors' => [],
+                    'color_article' => $productsCF[$item['product_id']]['parentSku'],
+                    'product_id' => $productId
+                ];
+            }
+            if ($color) {
+                if (!isset($grouped[$productId]['colors'][$color])) {
+                    $grouped[$productId]['colors'][$color] = [
+                        'vendor_code' => $vendorCode,
+                        'items' => []
+                    ];
+                }
+                $grouped[$productId]['colors'][$color]['items'][] = $item;
+            } else {
+                if (!isset($grouped[$productId]['colors']['Без кольору'])) {
+                    $grouped[$productId]['colors']['Без кольору'] = [
+                        'vendor_code' => $vendorCode,
+                        'items' => []
+                    ];
+                }
+                $grouped[$productId]['colors']['Без кольору']['items'][] = $item;
+            }
+        }
+
+       return   $grouped ;
+    }
+
+
+
+    public function getAddedProductWithCF(): array{
+
+        $products = [];
+        $productsKeycrm =  $this->keycrm->listProductsCustomFields();
+
+        foreach ($productsKeycrm as $id => $product){
+            if($product['isAddedIntertop']){
+                $product['id'] = $id;
+                $products[$id] =  $product;
+
+            }
+        }
+
+        return $products;
     }
 
     public function updateQuantity($offers)
