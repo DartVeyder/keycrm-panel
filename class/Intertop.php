@@ -47,23 +47,53 @@ class Intertop
     public function createProductArray($product){
         $data = [];
         $offers = [];
+        $result = [];
         foreach ($product['colors'] as $key => $color){
+            $colorId = $this->getColorId($key);
+            $article = $product['color_article'] .$colorId;
             $productIT = [
-                'vendor_code' => $color['vendor_code'],
+                'vendor_code' =>  $product['color_article'],
                 'color_article' =>  $product['color_article'],
-                'article' => $product['color_article'],
+                'article' => $article ,
                 'active' => true,
                 'sort' => 100,
                 'category_id' => 2,
                 'name' =>[['lang' => 'ua', 'value' => $product['product']['name']],['lang' => 'ru', 'value' => $product['product']['name']]],
-                'description' =>[['lang' => 'ua', 'value' => $product['product']['description']],['lang' => 'ru', 'value' => $product['product']['description']]]
+                'description' =>[['lang' => 'ua', 'value' => $product['product']['description']],['lang' => 'ru', 'value' => $product['product']['description']]],
+                'props'  => [
+                    [
+                        'id' => 7,
+                        'value' =>15119
+                    ],
+                    [
+                        'id' => 31,
+                        'value' =>5323
+                    ],
+                    [
+                        'id' => 32,
+                        'value' =>6086
+                    ],
+                    [
+                        'id' => 13,
+                        'value' =>921
+                    ],
+                ]
             ];
 
-            $this->request('/products', 'POST', [
+            $request = $this->request('/products', 'POST', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->getToken(),
                 ], 'form_params' => $productIT]
             );
+
+
+
+
+                $request = $this->request('/products/'.$article , 'PATCH', [
+                        'headers' => [
+                            'Authorization' => 'Bearer ' . $this->getToken(),
+                        ], 'form_params' => $productIT]
+                );
 
 
             foreach ($color['items'] as $offer){
@@ -77,15 +107,56 @@ class Intertop
                     "quantity" =>$offer['quantity'],
                 ];
 
-                dd($this->request('/products/'.$product['color_article'] .'/offers', 'POST', [
+                $request = $this->request('/products/'.$article .'/offers', 'POST', [
                         'headers' => [
                             'Authorization' => 'Bearer ' . $this->getToken(),
                         ], 'form_params' => $offerIT]
-                ));
+                ) ;
+                print_r($request);
             }
         }
 
         dd( $data,$product );
+    }
+
+    private function getColorId($value)
+    {
+        $colors = [
+            "бежевий" => "478",
+            "білий" => "479",
+            "безбарвний" => "480",
+            "бірюзовий" => "481",
+            "бордовий" => "482",
+            "бронзовий" => "483",
+            "блакитний" => "484",
+            "колір не зазначено" => "485",
+            "жовтий" => "486",
+            "зелений" => "487",
+            "золотий" => "488",
+            "кораловий" => "489",
+            "коричневий" => "490",
+            "червоний" => "491",
+            "малиновий" => "492",
+            "помаранчевий" => "494",
+            "рожевий" => "495",
+            "салатовий" => "496",
+            "срібний" => "497",
+            "сірий" => "498",
+            "синій" => "499",
+            "бузковий" => "500",
+            "фіолетовий" => "501",
+            "чорний" => "502",
+            "м'ятний" => "5796",
+            "графіт" => "5798",
+            "молочний" => "5799",
+            "тауп" => "5800",
+            "хакі" => "5801",
+            "темно-сірий" => "6011",
+            "світло-сірий" => "6038",
+            "білий/чорний" => "6110"
+        ];
+
+        return (int) $colors[$value];
     }
 
     private  function  grouped($offersKeycrm, $productsCF  ){
@@ -316,20 +387,30 @@ class Intertop
         return $allItems; // Return all fetched items.
     }
 
-    private function request($endpoint, $method, $params = []){
-
+    private function request($endpoint, $method, $params = [])
+    {
         $client = new Client();
         try {
             $response = $client->request($method, INTERTOP_API_URL . $endpoint, $params);
 
             // Get the response body as a string
-            return json_decode($response->getBody()->getContents(), 1);
-        }catch (RequestException $e) {
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
             // Обробка помилок
-            echo 'Request Error: ' . $e->getMessage();
-            return null;
+            if ($e->hasResponse()) {
+                $errorResponse =  $e->getResponse()->getBody()->getContents() ;
+                if (isset($errorResponse['message'])) {
+                    echo 'Error Message: ' . $errorResponse['message'];
+                } else {
+                    echo 'Request Error: ' . $e->getMessage();
+                }
+            } else {
+                echo 'Request Error: ' . $e->getMessage();
+            }
+            return json_decode($errorResponse, true);
         }
     }
+
 
     public function getToken(): string
     {
