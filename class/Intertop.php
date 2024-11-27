@@ -8,10 +8,12 @@ class Intertop
     private string $token;
     public $productsKeycrm = [];
     private $keycrm;
+    private $prestashop;
 
     public function __construct()
     {
         $this->keycrm =  new KeyCrm();
+        $this->prestashop =  new Prestashop();
         $this->auth();
     }
 
@@ -48,9 +50,11 @@ class Intertop
         $data = [];
         $offers = [];
         $result = [];
+
         foreach ($product['colors'] as $key => $color){
             $colorId = $this->getColorId($key);
             $article = $product['color_article'] .$colorId;
+
             $productIT = [
                 'vendor_code' =>  $product['color_article'],
                 'color_article' =>  $product['color_article'],
@@ -76,26 +80,35 @@ class Intertop
                     [
                         'id' => 13,
                         'value' =>921
-                    ],
+                    ]
                 ]
             ];
 
-            $request = $this->request('/products', 'POST', [
+
+
+            $responseSave = $this->request('/products', 'POST', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->getToken(),
                 ], 'form_params' => $productIT]
             );
 
+            $responseUpdate = $this->request('/products/'.$article , 'PATCH', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $this->getToken(),
+                    ], 'form_params' => $productIT]
+            );
+
+            $images = array_column($color['items'], 'thumbnail_url' , 'url');
 
 
+//            $responsePictures= $this->request('/products/'.$article . '/pictures', 'POST', [
+//                    'headers' => [
+//                        'Authorization' => 'Bearer ' . $this->getToken(),
+//                    ], 'form_params' =>['url' => $images[0]]]
+//            );
 
-                $request = $this->request('/products/'.$article , 'PATCH', [
-                        'headers' => [
-                            'Authorization' => 'Bearer ' . $this->getToken(),
-                        ], 'form_params' => $productIT]
-                );
 
-
+            $images = [];
             foreach ($color['items'] as $offer){
                 $offerIT = [
                     'barcode'=>$offer['sku'],
@@ -104,19 +117,67 @@ class Intertop
                         "amount" =>$offer['price'],
                         "currency" => 'UAH' ,
                     ],
+                    'discount_price' => [
+                        "amount" =>$offer['price'],
+                        "currency" => 'UAH' ,
+                    ],
                     "quantity" =>$offer['quantity'],
+                    'size_id' => $this->getDictionarySizeId( $offer['properties'][1]['value'])
                 ];
+                $offerITs[] = $offerIT;
 
-                $request = $this->request('/products/'.$article .'/offers', 'POST', [
+                $responseOffer[] = $this->request('/products/'.$article .'/offers', 'POST', [
                         'headers' => [
                             'Authorization' => 'Bearer ' . $this->getToken(),
                         ], 'form_params' => $offerIT]
                 ) ;
-                print_r($request);
+                $responseOfferUpdate[] = $this->request('/products/'.$article .'/offers/'.$offer['sku'], 'PATCH', [
+                        'headers' => [
+                            'Authorization' => 'Bearer ' . $this->getToken(),
+                        ], 'form_params' => $offerIT]
+                ) ;
+
+//                $prestashopProductCombination = $this->prestashop->getProductImagesByReference($offer['sku'] );
+//
+//                echo '<pre>';
+//
+//                if(  $prestashopProductCombination){
+//
+//                    $associationsImages =  $prestashopProductCombination['combinations'][0]['associations']['images'] ;
+//                    $idProduct = $prestashopProductCombination['combinations'][0]['id_product'];
+//                    $images = array_merge(   $images, array_column( $associationsImages , 'id'));
+//                }
+
+
             }
+//            $images = array_unique($images);
+//            echo "<pre>";
+//            foreach ($images as $image){
+//                $responsePictures = $this->request('/products/'.$article . '/pictures', 'POST', [
+//                        'headers' => [
+//                            'Authorization' => 'Bearer ' . $this->getToken(),
+//                        ], 'form_params' =>['url' => " https://twice.com.ua/api/images/products/$idProduct/$image?ws_key=4EKKVVWI6A26Q7D4LQE8HGKN8FUASW2P "]]
+//                );
+//                print_r(  $responsePictures);
+//            }
+
+
+
         }
 
-        dd( $data,$product );
+         dd($responseSave,$responseUpdate,  $color, $responseOffer,  $offerITs );
+
+    }
+
+    private function getDictionarySizeId($value){
+        $dictionaries = $this->request('/dictionaries/16/values?limit=1223', 'GET', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->getToken(),
+                ] ]
+        );
+        $dictionaries = array_column($dictionaries['data']['items'],'id','name');
+
+        return (int)$dictionaries[mb_strtoupper($value)];
     }
 
     private function getColorId($value)
@@ -156,7 +217,7 @@ class Intertop
             "білий/чорний" => "6110"
         ];
 
-        
+
         return (int) $colors[$value];
     }
 
@@ -401,12 +462,12 @@ class Intertop
             if ($e->hasResponse()) {
                 $errorResponse =  $e->getResponse()->getBody()->getContents() ;
                 if (isset($errorResponse['message'])) {
-                    echo 'Error Message: ' . $errorResponse['message'];
+                   // echo 'Error Message: ' . $errorResponse['message'];
                 } else {
-                    echo 'Request Error: ' . $e->getMessage();
+                   // echo 'Request Error: ' . $e->getMessage();
                 }
             } else {
-                echo 'Request Error: ' . $e->getMessage();
+               // echo 'Request Error: ' . $e->getMessage();
             }
             return json_decode($errorResponse, true);
         }
