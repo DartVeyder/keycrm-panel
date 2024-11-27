@@ -156,6 +156,7 @@ class Intertop
             "білий/чорний" => "6110"
         ];
 
+        
         return (int) $colors[$value];
     }
 
