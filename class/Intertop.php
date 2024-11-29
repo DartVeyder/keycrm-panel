@@ -41,10 +41,11 @@ class Intertop
         $groupedProducts = $this->grouped($offersKeycrm, $productsCF  );
 
         foreach ($groupedProducts  as $item){
-            $this->createProductArray($item);
-
+            $return[] = $this->createProductArray($item);
         }
-        dd( $groupedProducts);
+        $log[date('Y-m-d H:i:s')] = $return;
+        $this->saveLog(json_encode($log, JSON_UNESCAPED_UNICODE),'logs/log-import-intertop.txt');
+        dd( $groupedProducts,$log);
     }
     public function createProductArray($product){
         $data = [];
@@ -86,7 +87,7 @@ class Intertop
 
 
 
-            $responseSave = $this->request('/products', 'POST', [
+            $responseCreate = $this->request('/products', 'POST', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->getToken(),
                 ], 'form_params' => $productIT]
@@ -98,14 +99,12 @@ class Intertop
                     ], 'form_params' => $productIT]
             );
 
-            $images = array_column($color['items'], 'thumbnail_url' , 'url');
-
-
-//            $responsePictures= $this->request('/products/'.$article . '/pictures', 'POST', [
-//                    'headers' => [
-//                        'Authorization' => 'Bearer ' . $this->getToken(),
-//                    ], 'form_params' =>['url' => $images[0]]]
-//            );
+            $result[$article] = [
+                'colorArticle' => $article,
+                'request' => $productIT,
+                'responseCreate' =>$responseCreate,
+                'responseUpdate' =>$responseUpdate
+            ];
 
 
             $images = [];
@@ -124,9 +123,7 @@ class Intertop
                     "quantity" =>$offer['quantity'],
                     'size_id' => $this->getDictionarySizeId( $offer['properties'][1]['value'])
                 ];
-                $offerITs[] = $offerIT;
-
-                $responseOffer[] = $this->request('/products/'.$article .'/offers', 'POST', [
+                $responseOfferCreate[] = $this->request('/products/'.$article .'/offers', 'POST', [
                         'headers' => [
                             'Authorization' => 'Bearer ' . $this->getToken(),
                         ], 'form_params' => $offerIT]
@@ -136,6 +133,15 @@ class Intertop
                             'Authorization' => 'Bearer ' . $this->getToken(),
                         ], 'form_params' => $offerIT]
                 ) ;
+                unset($offer['product']);
+                $result[$article]['offers'][$offer['sku']] = [
+                    'sku' => $offer['sku'],
+                    'data' => $offer,
+                    'requestOffer' => $offerIT,
+                    'responseOfferCreate'=>$responseOfferCreate[0],
+                    'responseOfferUpdate'=>$responseOfferUpdate[0]
+                ];
+
 
 //                $prestashopProductCombination = $this->prestashop->getProductImagesByReference($offer['sku'] );
 //
@@ -164,8 +170,12 @@ class Intertop
 
 
         }
+        return  [
+            'article' => $product['color_article'],
+            'product' => $product['product'],
+            'productColors' => $result
+        ];
 
-         dd($responseSave,$responseUpdate,  $color, $responseOffer,  $offerITs );
 
     }
 
@@ -351,13 +361,13 @@ class Intertop
         $data = [];
         $products = $this->getProducts() ;
         $fileProducts = $this->readProductsFromJson('uploads/products.json');
-
         if( $fileProducts && count($products) == $fileProducts['total_records']){
             foreach ($fileProducts['data'] as $key => $product){
+                $quantity = ($this->productsKeycrm[$product["barcode"]] < 0) ? 0 : $this->productsKeycrm[$product["barcode"]];
                 $data[] = [
                     'barcode' => $product['barcode'],
                     'article' =>$product['article'],
-                    'quantity' => ($this->productsKeycrm[$product["barcode"]] < 0) ? 0 : $this->productsKeycrm[$product["barcode"]],
+                    'quantity' =>  (int)$quantity,
                     "warehouse_external_id" => "default"
                 ];
             }

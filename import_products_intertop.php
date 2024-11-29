@@ -11,12 +11,6 @@ $prestahop = new Prestashop;
 $intertop = new Intertop();
 
 $keycrm = new KeyCrm();
-//dd($keycrm->product('[product_id]=1909'));
 $intertop->auth();
 
-//dd($intertop->getProducts( )[0]);
 $intertop->create();
-
-
-
-//$prestahop->products( ['filter[reference]' => '865_39']);
