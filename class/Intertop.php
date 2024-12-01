@@ -45,7 +45,7 @@ class Intertop
         }
         $log[date('Y-m-d H:i:s')] = $return;
         $this->saveLog(json_encode($log, JSON_UNESCAPED_UNICODE),'logs/log-import-intertop.txt');
-        dd( $groupedProducts,$log);
+        dd( $log);
     }
     public function createProductArray($product){
         $data = [];
@@ -71,6 +71,10 @@ class Intertop
                         'value' =>15119
                     ],
                     [
+                        'id' => 8,
+                        "value" => [$this->getColorId($key)]
+                    ],
+                    [
                         'id' => 31,
                         'value' =>5323
                     ],
@@ -86,18 +90,22 @@ class Intertop
             ];
 
 
-
             $responseCreate = $this->request('/products', 'POST', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->getToken(),
-                ], 'form_params' => $productIT]
+                    'Accept' => 'application/json',
+                ], 'json' => $productIT]
             );
 
-            $responseUpdate = $this->request('/products/'.$article , 'PATCH', [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $this->getToken(),
-                    ], 'form_params' => $productIT]
-            );
+            if( $responseCreate['status_code'] == "validation_error"){
+                $responseUpdate = $this->request('/products/'.$article , 'PATCH', [
+                        'headers' => [
+                            'Authorization' => 'Bearer ' . $this->getToken(),
+                            'Accept' => 'application/json',
+                        ], 'json' => $productIT]
+                );
+            }
+
 
             $result[$article] = [
                 'colorArticle' => $article,
@@ -109,6 +117,10 @@ class Intertop
 
             $images = [];
             foreach ($color['items'] as $offer){
+                $sizeId = $this->getDictionarySizeId( $offer['properties'][1]['value']);
+                if(!$sizeId){
+                    continue;
+                }
                 $offerIT = [
                     'barcode'=>$offer['sku'],
                     'active' => true,
@@ -121,17 +133,21 @@ class Intertop
                         "currency" => 'UAH' ,
                     ],
                     "quantity" =>$offer['quantity'],
-                    'size_id' => $this->getDictionarySizeId( $offer['properties'][1]['value'])
+                    'size_id' => $sizeId
                 ];
+
+
                 $responseOfferCreate[] = $this->request('/products/'.$article .'/offers', 'POST', [
                         'headers' => [
                             'Authorization' => 'Bearer ' . $this->getToken(),
-                        ], 'form_params' => $offerIT]
+                            'Accept' => 'application/json',
+                        ], 'json' => $offerIT]
                 ) ;
                 $responseOfferUpdate[] = $this->request('/products/'.$article .'/offers/'.$offer['sku'], 'PATCH', [
                         'headers' => [
                             'Authorization' => 'Bearer ' . $this->getToken(),
-                        ], 'form_params' => $offerIT]
+                            'Accept' => 'application/json',
+                        ], 'json' => $offerIT]
                 ) ;
                 unset($offer['product']);
                 $result[$article]['offers'][$offer['sku']] = [
