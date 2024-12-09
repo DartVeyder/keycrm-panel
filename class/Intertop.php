@@ -39,22 +39,96 @@ class Intertop
         $offersKeycrm = $this->keycrm->product('[product_id]=' . implode(',',array_column($productsCF, 'id')));
 
         $groupedProducts = $this->grouped($offersKeycrm, $productsCF  );
-
+        $result = '';
         foreach ($groupedProducts  as $item){
-            $return[] = $this->createProductArray($item);
+            $createProductArray = $this->createProductArray($item);
+            $return[] =   $createProductArray;
+
         }
+        $this->renderTable($return);
         $log[date('Y-m-d H:i:s')] = $return;
         $this->saveLog(json_encode($log, JSON_UNESCAPED_UNICODE),'logs/log-import-intertop.txt');
-        dd( $log);
+        dd($return);
     }
+
+    // Function to render the table
+    private function renderTable($data) {
+        echo "<table border='1' cellpadding='5'>";
+        echo "<tr>
+                    <th>Article</th>
+                    <th>Color</th>
+                    <th>Color Article</th>  
+                    <th>Moderate Troubles</th>
+                    <th>Errors</th>
+                    <th>Offer SKU</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Offer Status</th>
+               </tr>";
+
+        foreach ($data as $item) {
+            $article = $item['article'];
+
+            foreach ($item['productColors'] as $colorArticle => $colorData) {
+                $categoryID = $colorData['responseCreate']['data']['category_id'];
+                $active = $colorData['responseCreate']['data']['active'] ? 'Yes' : 'No';
+                $status = '';
+                if (isset($colorData['responseCreate']['data']['moderate_troubles'])) {
+                    $troubles = implode('<br>', $colorData['responseCreate']['data']['moderate_troubles']);
+                    $status = "Created: ". $colorData['responseCreate']['status'];
+                }else{
+                    $troubles = implode('<br>', $colorData['responseUpdate']['data']['moderate_troubles']);
+                    $status = "Updated: ". $colorData['responseUpdate']['status'];
+                }
+
+                $errors = '';
+
+                // Перевірка на помилки в data['errors']
+                if (isset($colorData['responseCreate']['data']['errors'])) {
+                    $errorMessages = [];
+                    foreach ($colorData['responseCreate']['data']['errors'] as $field => $fieldErrors) {
+                        foreach ($fieldErrors as $error) {
+                            $errorMessages[] = "{$field}: {$error}";
+                        }
+                    }
+                    $errors = implode(", ", $errorMessages);
+                }
+
+
+                foreach ($colorData['offers'] as $offer) {
+                    $sku = $offer['sku'];
+                    $quantity = $offer['responseOfferUpdate']['data']['quantity'];
+                    $statusOffer = $offer['responseOfferUpdate']['status'];
+
+                    echo "<tr>";
+                    echo "<td>{$article}</td>";
+                    echo "<td>{$colorData['color']}</td>";
+                    echo "<td>{$colorArticle}</td>";
+                    echo "<td>{$troubles}</td>";
+                    echo "<td>{$errors}</td>";
+                    echo "<td>{$sku}</td>";
+                    echo "<td>{$quantity}</td>";
+                    echo "<td>{$status}</td>";
+                    echo "<td>{$statusOffer}</td>";
+                    echo "</tr>";
+                }
+            }
+        }
+
+        echo "</table>";
+    }
+
+
     public function createProductArray($product){
         $data = [];
         $offers = [];
         $result = [];
-
+        $log = '';
         foreach ($product['colors'] as $key => $color){
+
+
             $colorId = $this->getColorId($key);
-            $article = $product['color_article'] .$colorId;
+            $article = $product['color_article'] . $this->generateColorCode($key);
 
             $productIT = [
                 'vendor_code' =>  $product['color_article'],
@@ -70,10 +144,7 @@ class Intertop
                         'id' => 7,
                         'value' =>15119
                     ],
-                    [
-                        'id' => 8,
-                        "value" => [$this->getColorId($key)]
-                    ],
+
                     [
                         'id' => 31,
                         'value' =>5323
@@ -88,6 +159,13 @@ class Intertop
                     ]
                 ]
             ];
+
+            if($this->getColorId($key) > 0){
+                $productIT['props'][]= [
+                    'id' => 8,
+                    "value" => [$this->getColorId($key)]
+                ];
+            }
 
 
             $responseCreate = $this->request('/products', 'POST', [
@@ -110,6 +188,7 @@ class Intertop
             $result[$article] = [
                 'colorArticle' => $article,
                 'request' => $productIT,
+                'color' => $key,
                 'responseCreate' =>$responseCreate,
                 'responseUpdate' =>$responseUpdate
             ];
@@ -154,8 +233,8 @@ class Intertop
                     'sku' => $offer['sku'],
                     'data' => $offer,
                     'requestOffer' => $offerIT,
-                    'responseOfferCreate'=>$responseOfferCreate[0],
-                    'responseOfferUpdate'=>$responseOfferUpdate[0]
+                    'responseOfferCreate'=>$responseOfferCreate,
+                    'responseOfferUpdate'=>$responseOfferUpdate
                 ];
 
 
@@ -204,6 +283,17 @@ class Intertop
         $dictionaries = array_column($dictionaries['data']['items'],'id','name');
 
         return (int)$dictionaries[mb_strtoupper($value)];
+    }
+
+    private function generateColorCode(string $color): string {
+        // Генеруємо унікальний цифровий код на основі хешу назви кольору
+        $hash = crc32($color);
+
+        // Перетворюємо хеш у позитивне число та беремо останні 3 цифри
+        $code = abs($hash) % 1000;
+
+        // Додаємо провідні нулі, щоб код завжди був тризначним
+        return str_pad((string)$code, 3, '0', STR_PAD_LEFT);
     }
 
 
