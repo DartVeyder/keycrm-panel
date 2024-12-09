@@ -48,7 +48,7 @@ class Intertop
         $this->renderTable($return);
         $log[date('Y-m-d H:i:s')] = $return;
         $this->saveLog(json_encode($log, JSON_UNESCAPED_UNICODE),'logs/log-import-intertop.txt');
-        dd($return);
+
     }
 
     // Function to render the table
