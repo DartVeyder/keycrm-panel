@@ -175,14 +175,14 @@ class Intertop
                 ], 'json' => $productIT]
             );
 
-            if( $responseCreate['status_code'] == "validation_error"){
+            /*if( $responseCreate['status_code'] == "validation_error"){
                 $responseUpdate = $this->request('/products/'.$article , 'PATCH', [
                         'headers' => [
                             'Authorization' => 'Bearer ' . $this->getToken(),
                             'Accept' => 'application/json',
                         ], 'json' => $productIT]
                 );
-            }
+            }*/
 
 
             $result[$article] = [
