@@ -77,7 +77,7 @@ class Intertop
                     $troubles = implode('<br>', $colorData['responseCreate']['data']['moderate_troubles']);
                     $status = "Created: ". $colorData['responseCreate']['status'];
                 }else{
-                    $troubles = implode('<br>', $colorData['responseUpdate']['data']['moderate_troubles']);
+                    //$troubles = implode('<br>', $colorData['responseUpdate']['data']['moderate_troubles']);
                     $status = "Updated: ". $colorData['responseUpdate']['status'];
                 }
 
