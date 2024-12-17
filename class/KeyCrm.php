@@ -12,7 +12,13 @@ class KeyCrm
     }
 
     public function listProductsCustomFields($filter = ''){
-        $fields = ["CT_1007" => 'shortDescription', "CT_1009" => "parentSku" , "CT_1011" => "isAdded", "CT_1012" => "isActive", "CT_1015" => "isAddedIntertop"];
+        $fields = ["CT_1007" => 'shortDescription',
+            "CT_1009" => "parentSku" ,
+            "CT_1011" => "isAdded",
+            "CT_1012" => "isActive",
+            "CT_1015" => "isAddedIntertop",
+            "CT_1014" => "fullPrice"
+        ];
         $activeField = ['Так' => 1, 'Ні' => 0];
         $data = [];
         $products =  $this->request('/products?limit=100000000&include=custom_fields&'.$filter);
@@ -39,6 +45,10 @@ class KeyCrm
 
                 if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1015'){
                     $data[$id][$fields[$customField['uuid']]] = $activeField[$customField['value'][0]];
+                }
+
+                if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1014'){
+                    $data[$id][$fields[$customField['uuid']]] =  $customField['value'];
                 }
             }
         }

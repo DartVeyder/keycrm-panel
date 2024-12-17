@@ -148,7 +148,7 @@ class PrestaImport
         $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Full Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -157,6 +157,7 @@ class PrestaImport
                 $shortDescription = $listProductsCustomFields[$parentId]['shortDescription'];
 
                 $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
+                $fullPrice =  $listProductsCustomFields[$parentId]['fullPrice'];
                 $isAdded =  $listProductsCustomFields[$parentId]['isAdded'] ?? 1;
                 $isActive =  $listProductsCustomFields[$parentId]['isActive'] ?? 0;
 
@@ -177,6 +178,7 @@ class PrestaImport
                     $item['sku'],
                     $parentSku,
                     $item['price'],
+                    $fullPrice,
                     $item['quantity'],
                     $item['size'],
                     $item['color'],
