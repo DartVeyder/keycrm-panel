@@ -14,7 +14,7 @@ class PrestaImport
         $this->keyCrm = new KeyCrm();
     }
 
-    public  function generateData(){
+    public  function generateData($filterWithIdProduct = null){
         $data = [];
        //  $offers = $this->keyCrm->product('[product_id]=1935');
   //  dd( $offers);
@@ -23,8 +23,10 @@ class PrestaImport
         foreach ($offers as $offer){
 
             $product = $offer['product'];
-            if( $offer['product_id']  <= 1887 ){
-                continue;
+            if($filterWithIdProduct){
+                if( $offer['product_id']  <= $filterWithIdProduct){
+                    continue;
+                }
             }
 
             if(empty( $product['name'])){
@@ -141,25 +143,35 @@ class PrestaImport
 
         return true;
     }
-    public function generateXLS($data, $filename = 'uploads/output.xlsx') {
+    public function generateXLS($data, $filename = 'uploads/output.xlsx', $type="full") {
         if(!$data){
             die('None data');
         }
+
         $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price', 'Full Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
+
 
             foreach ($items as $id => $item) {
                 $shortDescription = $listProductsCustomFields[$parentId]['shortDescription'];
 
                 $parentSku =  $listProductsCustomFields[$parentId]['parentSku'];
                 $fullPrice =  $listProductsCustomFields[$parentId]['fullPrice'];
+                $specialPrice =  $listProductsCustomFields[$parentId]['specialPrice'];
                 $isAdded =  $listProductsCustomFields[$parentId]['isAdded'] ?? 1;
                 $isActive =  $listProductsCustomFields[$parentId]['isActive'] ?? 0;
+
+                $price = (double)(isset($fullPrice))? $fullPrice: $item['price'];
+
+                $specialPrice = (double)(isset($specialPrice))? $specialPrice: $item['price'];
+
+                $discountPrice = $price - $specialPrice;
+                $discountPrice = ($discountPrice > 0)? $discountPrice: '';
 
                 if(!$this->isValidShortDescription($shortDescription)){
                     $shortDescription = 'Довжина властивості Product->description_short наразі '.mb_strlen($shortDescription, 'UTF-8').' символів. А повинно бути між 0 та 819 символами.';
@@ -177,22 +189,25 @@ class PrestaImport
                     $id,
                     $item['sku'],
                     $parentSku,
-                    $item['price'],
-                    $fullPrice,
+                    $price,
+                    $discountPrice,
                     $item['quantity'],
                     $item['size'],
-                    $item['color'],
+                    mb_strtolower($item['color']),
                     $isActive,
                     $isAdded,
                     $item['name'],
-                    isset(  $shortDescription) ? trim(  $shortDescription) : '',
-                    isset($item['description']) ? trim($item['description']) : '',
-                    isset($item['images']) ? $item['images'] : '',
-
+                    '',
+                    '',
+                    '',
                     'Twice',
                     '',
-                    $item['image'],
+                    '',
                 ]  ;
+                if( $type != 'full'){
+                    break;
+                }
+
             }
         }
 
@@ -202,6 +217,31 @@ class PrestaImport
         echo SimpleXLSX::parse($filename)->toHTML();
     }
 
+    public function startUpdatePrice(){
+        try {
+            $client = new Client();
+            $response = $client->get('https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport', [
+                'query' => [
+                    'settings' => 7,
+                    'id_shop_group' => 1,
+                    'id_shop' => 1,
+                    'secure_key' => '30aa0bdb68fa671e64a2ba3a4016aec0',
+                    'action' => 'importProducts',
+                ]
+            ]);
+
+            // Виводимо статус-код відповіді
+            echo 'Status Code: ' . $response->getStatusCode() . "\n";
+
+            // Виводимо тіло відповіді
+            echo 'Response Body: ' . $response->getBody();
+            return  $response->getBody();
+        } catch (RequestException $e) {
+            // Обробляємо можливі помилки запиту
+            echo 'Request failed: ' . $e->getMessage();
+            return $e->getMessage();
+        }
+    }
 
     public function startImport(){
         try {

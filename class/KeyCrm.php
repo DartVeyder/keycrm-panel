@@ -17,7 +17,8 @@ class KeyCrm
             "CT_1011" => "isAdded",
             "CT_1012" => "isActive",
             "CT_1015" => "isAddedIntertop",
-            "CT_1014" => "fullPrice"
+            "CT_1014" => "fullPrice",
+            "CT_1010" => "specialPrice",
         ];
         $activeField = ['Так' => 1, 'Ні' => 0];
         $data = [];
@@ -49,6 +50,10 @@ class KeyCrm
 
                 if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1014'){
                     $data[$id][$fields[$customField['uuid']]] =  $customField['value'];
+                }
+
+                if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1010') {
+                    $data[$id][$fields[$customField['uuid']]] = $customField['value'];
                 }
             }
         }
