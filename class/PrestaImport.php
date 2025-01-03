@@ -36,6 +36,9 @@ class PrestaImport
             if ( strpos($offer['sku'], '_') !== false) {
                 continue;
             }
+            if ( strpos($offer['sku'], 'B24') !== false) {
+                continue;
+            }
 
             if(!in_array($offer['product_id'], $this->productIds)){
                 $this->productIds[] = $offer['product_id'];
