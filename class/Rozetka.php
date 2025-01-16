@@ -41,7 +41,7 @@ class Rozetka extends Base
 
                 // Розбираємо JSON-відповідь
                 $data = $response;
-dd( $data['content']['items'][0]);
+dd( $data['content']['items'][5]);
                 // Перевірка на наявність товарів
                 if (isset($data['content']['items'])) {
                     $allGoods = array_merge($allGoods, $data['content']['items']); // Додаємо товари до загального масиву
