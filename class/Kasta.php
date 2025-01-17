@@ -75,14 +75,14 @@ class Kasta
         $result = ( $price * $percentage / 100);
         return (int) round($price - $result );
     }
-    public function formatDataPrice($products, $inBarcodes,$listProductsCustomFields) {
+    public function formatDataPrice($products, $inBarcodes,$listProductsCustomFields = []) {
 
 
         $discounts = $this->readDiscount();
         $data = array_filter(array_map(function($product) use ($inBarcodes,$discounts,$listProductsCustomFields) {
             if (in_array($product['sku'], $inBarcodes)) {
-                $fullPrice = $listProductsCustomFields[$product['product_id']]['fullPrice'];
-                $price = (double)(isset($fullPrice))? $fullPrice:  $product['price'];
+                //$fullPrice = $listProductsCustomFields[$product['product_id']]['fullPrice'];
+                $price =   $product['price'];
 
                 return [
                     'barcode' => $product['sku'],
