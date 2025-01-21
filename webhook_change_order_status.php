@@ -32,7 +32,7 @@ $idOrder = 8392;
 $groupStatusId = 2;
 
 $idOrderState = $statusPS[$groupStatusId];
-
+dd($orderPS = $prestashop->getOrder($idOrder));
 if( $orderKC_source_id == 18) {
     $orderPS = $prestashop->getOrder($idOrder);
     $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'] . json_encode($orderPS) ;
