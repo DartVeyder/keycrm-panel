@@ -76,12 +76,11 @@ class KeyCrm
             if (json_last_error() !== JSON_ERROR_NONE) {
                 die(header('HTTP/1.0 415 Unsupported Media Type'));
             }
-            $context = $object['context'];
-            $global_source_uuid = explode('-', $context['global_source_uuid']);
-            $order_id = $context['id'];
-            $order_status = $context['status_id'];
             file_put_contents('test_webhook.txt', print_r($object, true),FILE_APPEND);
+            return $object['context'];
         }
+
+        return null;
     }
 
     private function request($endpoint){
