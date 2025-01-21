@@ -54,14 +54,16 @@ class Prestashop extends Base
             if ($response->getStatusCode() === 200) {
                 $order =  json_decode($response->getBody(), true);
                 if(!$order){
-                    return $order;
+                    return null;
                 }
-                return $order;
+                return $order['orders'][0];
             }
         } catch (\Exception $e) {
             // Логування або обробка помилки
             error_log($e->getMessage());
         }
+
+        return null;
     }
     public function changeOrderStatus($idOrder, $idOrderState){
 $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
