@@ -42,10 +42,12 @@ if( $orderKC_source_id == 18) {
     $file = fopen('logs/changeOrderStatus.txt', 'a+');
     fwrite($file, $text . "\n");
     fclose($file);
-
-    if ($orderPS['current_state'] != $idOrderState) {
-        $prestashop->changeOrderStatus($idOrder, $idOrderState);
+    if( $orderPS){
+        if ($orderPS['current_state'] != $idOrderState) {
+            $prestashop->changeOrderStatus($idOrder, $idOrderState);
+        }
     }
+
 }
 
 }
