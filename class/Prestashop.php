@@ -62,8 +62,6 @@ class Prestashop extends Base
             // Логування або обробка помилки
             error_log($e->getMessage());
         }
-
-        return null;
     }
     public function changeOrderStatus($idOrder, $idOrderState){
 $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
