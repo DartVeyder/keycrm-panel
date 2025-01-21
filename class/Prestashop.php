@@ -56,7 +56,7 @@ class Prestashop extends Base
                 if(!$order){
                     return $order;
                 }
-                return $order['orders'][0];
+                return $order;
             }
         } catch (\Exception $e) {
             // Логування або обробка помилки
