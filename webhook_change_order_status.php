@@ -35,15 +35,16 @@ $idOrderState = $statusPS[$groupStatusId];
 
 $orderPS = $prestashop->getOrder((int)$idOrder);
 
-$text = date("Y-m-d H:i:s") . " orderKC_id: " .$orderKC_id  . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " .  $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'];
-echo  $text ;
-$file = fopen( 'logs/changeOrderStatus.txt', 'a+');
-fwrite($file, $text . "\n");
-fclose($file);
+if( $orderKC_source_id == 18) {
+    $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'];
+    echo $text;
+    $file = fopen('logs/changeOrderStatus.txt', 'a+');
+    fwrite($file, $text . "\n");
+    fclose($file);
 
-if($orderPS['current_state'] != $idOrderState &&  $orderKC_source_id== 18){
-    $prestashop->changeOrderStatus($idOrder,$idOrderState);
+    if ($orderPS['current_state'] != $idOrderState) {
+        $prestashop->changeOrderStatus($idOrder, $idOrderState);
+    }
 }
-
 
 }
