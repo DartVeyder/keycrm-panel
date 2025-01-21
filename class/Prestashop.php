@@ -54,7 +54,7 @@ class Prestashop extends Base
             if ($response->getStatusCode() === 200) {
                 $order =  json_decode($response->getBody(), true);
                 if(!$order){
-                    return null;
+                    return $order;
                 }
                 return $order['orders'][0];
             }
