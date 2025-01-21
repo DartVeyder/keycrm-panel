@@ -65,6 +65,24 @@ class KeyCrm
         $offers =   $this->request('/offers?limit=100000000&include=product&filter'.$filter);
         return $offers['data'];
     }
+    public function webhookOrder(){
+        $json = file_get_contents('php://input');
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            // fetch RAW input
+            $json = file_get_contents('php://input');
+            // decode json
+            $object = json_decode($json, 1);
+            // expecting valid json
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                die(header('HTTP/1.0 415 Unsupported Media Type'));
+            }
+            $context = $object['context'];
+            $global_source_uuid = explode('-', $context['global_source_uuid']);
+            $order_id = $context['id'];
+            $order_status = $context['status_id'];
+            file_put_contents('test_webhook.txt', print_r($object, true),FILE_APPEND);
+        }
+    }
 
     private function request($endpoint){
         $client = new Client();
