@@ -109,4 +109,63 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         return null;
     }
 
+    public function getStockAvailables(){
+        try {
+            $response = $this->client->request('GET', 'stock_availables', [
+                'query' => [
+                    'ws_key' => PRESTASHOP_API_KEY,
+                    'display' => '[id, id_product, id_product_attribute, quantity]',
+                    'output_format' => 'JSON',
+                ]
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody(), true);
+            }
+        } catch (\Exception $e) {
+            // Логування або обробка помилки
+            error_log($e->getMessage());
+            return null;
+        }
+    }
+
+    public function getProducts($display = 'full'){
+        try {
+            $response = $this->client->request('GET', 'products', [
+                'query' => [
+                    'ws_key' => PRESTASHOP_API_KEY,
+                    'display' => $display ,
+                    'output_format' => 'JSON',
+                ]
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody(), true)['products'];
+            }
+        } catch (\Exception $e) {
+            // Логування або обробка помилки
+            error_log($e->getMessage());
+            return null;
+        }
+    }
+
+    public function getCombinations($display = 'full'){
+        try {
+            $response = $this->client->request('GET', 'combinations', [
+                'query' => [
+                    'ws_key' => PRESTASHOP_API_KEY,
+                    'display' => $display ,
+                    'output_format' => 'JSON',
+                ]
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody(), true)['combinations'];
+            }
+        } catch (\Exception $e) {
+            // Логування або обробка помилки
+            error_log($e->getMessage());
+            return null;
+        }
+    }
 }
