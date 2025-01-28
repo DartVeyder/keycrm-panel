@@ -5,7 +5,7 @@ use Shuchkin\SimpleXLSX;
 
 class Kasta
 {
-    public  function products()
+    public  function products( )
     {
         $data = [];
         $cursor = null;
@@ -19,6 +19,17 @@ class Kasta
             }
 
         }while($response['cursor'] != null);
+
+
+        return $data;
+    }
+
+    public function productsStock(){
+        $products = $this->products();
+        $data = [];
+        foreach ($products as $product){
+           $data[ $product['barcode'][0]] = $product['total_stock'];
+        }
 
         return $data;
     }

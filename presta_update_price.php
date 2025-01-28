@@ -11,5 +11,5 @@ $text = date("Y-m-d H:i:s"). " start cron "  ;
 
 
 $prestaImport->generateXLS($prestaImport->generateData(),'uploads/output_presta_price.xlsx', 'price');
-$startImport = $prestaImport->startUpdatePrice();
-$prestaImport->saveLog($text . " " . $startImport , 'logs/cron-prestashop-update-price.txt');
+//$startImport = $prestaImport->startUpdatePrice();
+//$prestaImport->saveLog($text . " " . $startImport , 'logs/cron-prestashop-update-price.txt');

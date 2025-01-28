@@ -120,7 +120,7 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
             ]);
 
             if ($response->getStatusCode() === 200) {
-                return json_decode($response->getBody(), true);
+                return json_decode($response->getBody(), true)['stock_availables'];
             }
         } catch (\Exception $e) {
             // Логування або обробка помилки
