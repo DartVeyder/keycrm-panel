@@ -83,9 +83,9 @@ class KeyCrm
         return null;
     }
 
-    private function request($endpoint){
+    private function request($endpoint, $method = "GET"){
         $client = new Client();
-        $response = $client ->request('GET',  KEYCRM_API_URL . $endpoint, [
+        $response = $client ->request($method,  KEYCRM_API_URL . $endpoint, [
             'headers' => [
                 'Authorization' => 'Bearer ' .KEYCRM_API_TOKEN,
                 'Accept' => 'application/json',
@@ -94,5 +94,10 @@ class KeyCrm
 
         // Get the response body as a string
         return json_decode($response->getBody()->getContents(),1);
+    }
+
+    public function addTagOrder($orderId, $tagId){
+       $response =  $this->request("/order/$orderId/tag/$tagId",'POST');
+        dd($response);
     }
 }
