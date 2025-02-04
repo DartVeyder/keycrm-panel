@@ -36,7 +36,6 @@ $groupStatusId = $orderKC['status_group_id'];
 //$groupStatusId = 2;
 //$orderKS_reference = 'FKQALEIQT';
 
-
 $idOrderState = $statusPS[$groupStatusId];
 
 if( $orderKC_source_id == 18) {
