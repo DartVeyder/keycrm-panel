@@ -10,6 +10,11 @@ require_once ('class/LookSize.php');
 $looksize = new LookSize();
 $keyCrm = new KeyCrm();
 
-$keyCrm->addTagOrder(122614,265);
+$orderKS_reference = 'FKQALEIQT';
+$orderKC_id =  122614;
 
-dd($looksize->getOrder('FKQALEIQT'));
+$orderLS = $looksize->getOrder($orderKS_reference);
+
+if($orderLS['list']){
+    $keyCrm->addTagOrder($orderKC_id,265);
+}

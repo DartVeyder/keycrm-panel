@@ -97,7 +97,6 @@ class KeyCrm
     }
 
     public function addTagOrder($orderId, $tagId){
-       $response =  $this->request("/order/$orderId/tag/$tagId",'POST');
-        dd($response);
+       return $this->request("/order/$orderId/tag/$tagId",'POST');
     }
 }

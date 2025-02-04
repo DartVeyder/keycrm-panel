@@ -127,6 +127,7 @@ class Kasta
 
     }
 
+
     public function updateStock($items)
     {
         $data =  [
