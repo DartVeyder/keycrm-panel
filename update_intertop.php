@@ -13,6 +13,8 @@ $intertop->auth();
 
 $intertop->productsKeycrm = $intertop->getProductsKeycrm() ;
 $offers = $intertop->getDataToUpdateQuantity() ;
+
+dd($offers );
 $groups = array_chunk($offers, 1000);
 $date  = date("Y-m-d H:i:s");
 foreach ($groups  as $group){
@@ -27,5 +29,4 @@ foreach ($offers  as $offer){
     $txt =  $offer['barcode'] . " " .  $offer['article'] . " " .  $offer['quantity'] ;
     $text = date("Y-m-d H:i:s"). " ". $txt ;
     $intertop->saveLog($text , 'logs/update_stock_products_intertop.txt');
-
 }

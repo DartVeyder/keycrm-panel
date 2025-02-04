@@ -92,13 +92,16 @@ class Kasta
         $discounts = $this->readDiscount();
         $data = array_filter(array_map(function($product) use ($inBarcodes,$discounts,$listProductsCustomFields) {
             if (in_array($product['sku'], $inBarcodes)) {
-                //$fullPrice = $listProductsCustomFields[$product['product_id']]['fullPrice'];
-                $price =   $product['price'];
+                $fullPrice = $listProductsCustomFields[$product['product_id']]['fullPrice'];
+                $specialPrice =  $listProductsCustomFields[$product['product_id']]['specialPrice'];
+                $price = (double)(isset($fullPrice))? $fullPrice: $product['price'];
+
+                $specialPrice = (double)(isset($specialPrice))? $specialPrice: $product['price'];
 
                 return [
                     'barcode' => $product['sku'],
-                    'old_price' => $price * 1.2,
-                    'new_price' => $this->calculateDiscountPrice( $price, @$discounts[$product['sku']]) ,
+                    'old_price' =>  $price,
+                    'new_price' =>  $specialPrice,
                 ];
             }
             return null;
