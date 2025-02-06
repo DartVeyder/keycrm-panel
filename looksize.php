@@ -15,6 +15,18 @@ $orderKC_id =  122614;
 
 $orderLS = $looksize->getOrder($orderKS_reference);
 
-if($orderLS['list']){
-    $keyCrm->addTagOrder($orderKC_id,265);
-}
+$action_key = end($orderLS['list'])['action_key'] ;
+
+ $looksize->getDataByKey($action_key);
+
+$keyCrmData = $looksize->getSizesClient();
+
+$response = $keyCrm->updateClient(109712,$keyCrmData);
+
+
+dd($response,$keyCrmData);
+
+//
+//if($orderLS['list']){
+//    $keyCrm->addTagOrder($orderKC_id,265);
+//}

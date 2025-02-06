@@ -28,7 +28,7 @@ $orderKC_source_id = $orderKC['source_id'] ;
 $idOrder = $global_source_uuid[1];
 $orderKS_reference = $global_source_uuid[2];
 $groupStatusId = $orderKC['status_group_id'];
-
+$kcClientId =  $orderKC['client_id'];
 
 //$orderKC_id =  100000;
 //$orderKC_source_id = 18 ;
@@ -43,7 +43,14 @@ if( $orderKC_source_id == 18) {
     $orderLS = $looksize->getOrder($orderKS_reference);
     if($orderLS['list']){
         $keyCrm->addTagOrder($orderKC_id,265);
+        $action_key = end($orderLS['list'])['action_key'] ;
+        $looksize->getDataByKey($action_key);
+        $keyCrmData = $looksize->getSizesClient();
+        if( $keyCrmData ){
+            $response = $keyCrm->updateClient($kcClientId,$keyCrmData);
+        }
     }
+
     $orderPS = $prestashop->getOrder((int)$idOrder);
     $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'];
     echo $text;
