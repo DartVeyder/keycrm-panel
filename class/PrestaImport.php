@@ -19,7 +19,9 @@ class PrestaImport
        //  $offers = $this->keyCrm->product('[product_id]=1935');
   //  dd( $offers);
        $offers = $this->keyCrm->products();
-
+         if($offers <= 100){
+             die('менше  50 продуктів!!!!');
+         }
         foreach ($offers as $offer){
 
             $product = $offer['product'];
@@ -63,7 +65,6 @@ class PrestaImport
             $data[$offer['product_id']][$offer['id']]= array_merge($data[$offer['product_id']][$offer['id']], $this->getProperties($offer['properties'] ));
 
         }
-
 
 
         return $data;

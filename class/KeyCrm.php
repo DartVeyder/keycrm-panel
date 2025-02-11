@@ -5,10 +5,33 @@ use GuzzleHttp\Client;
 class KeyCrm
 {
     public  function products(){
-        $offers =   $this->request('/offers?limit=100000000&include=product&filter[is_archived]=false');
+//        $offers =   $this->request('/offers?limit=1000&include=product&filter[is_archived]=false');
 //        $products =   $this->request('/products?limit=100000000&include=custom_fields&filter[product_id]=1891');
 //        dd( $products);
-        return $offers['data'];
+        $page = 1;
+        $limit = 50;
+        $allData = [];
+
+        do {
+            $url = "/offers?limit={$limit}&include=product&filter[is_archived]=false&page={$page}";
+
+            $response = $this->request($url); // Assuming this method sends the request and returns the response
+
+            // If the response contains data, append it to the allData array
+            if (isset($response['data'])) {
+                $allData = array_merge($allData, $response['data']);
+            }
+
+            // Get the next page URL from the response
+            $nextPageUrl = $response['next_page_url'] ?? null;
+
+            // Increment the page number
+            $page++;
+            sleep(1);
+        } while ($nextPageUrl);
+
+
+        return $allData;
     }
 
     public function listProductsCustomFields($filter = ''){
@@ -21,10 +44,33 @@ class KeyCrm
             "CT_1010" => "specialPrice",
         ];
         $activeField = ['Так' => 1, 'Ні' => 0];
-        $data = [];
-        $products =  $this->request('/products?limit=100000000&include=custom_fields&'.$filter);
-        $products = array_column( $products['data'], 'custom_fields', 'id');
 
+        $data = [];
+        $page = 1;
+        $limit = 50;
+        $allData = [];
+
+        do {
+            $url = "/products?limit=$limit&include=custom_fields&'.$filter&page={$page}";
+
+            $response = $this->request($url); // Assuming this method sends the request and returns the response
+
+            // If the response contains data, append it to the allData array
+            if (isset($response['data'])) {
+                $allData = array_merge($allData, $response['data']);
+            }
+
+            // Get the next page URL from the response
+            $nextPageUrl = $response['next_page_url'] ?? null;
+
+            // Increment the page number
+            $page++;
+            sleep(1);
+        } while ($nextPageUrl);
+
+
+        //$products =  $this->request('/products?limit=100000000&include=custom_fields&'.$filter);
+        $products = array_column( $allData, 'custom_fields', 'id');
 
         foreach ($products as $id => $product){
             foreach ($product as  $customField){
