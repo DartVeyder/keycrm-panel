@@ -17,14 +17,16 @@ $orderLS = $looksize->getOrder($orderKS_reference);
 
 $action_key = end($orderLS['list'])['action_key'] ;
 
- $looksize->getDataByKey($action_key);
+$looksize->getDataByKey($action_key);
 
-$keyCrmData = $looksize->getSizesClient();
+//$keyCrmData = $looksize->getSizesClient();
+$keyCrmData = $looksize->getSizesClientByOrder();
 
-$response = $keyCrm->updateClient(109712,$keyCrmData);
+//$response = $keyCrm->updateClient(109712,$keyCrmData);
+ $response = $keyCrm->updateOrder($orderKC_id,$keyCrmData);
 
 
-dd($response,$keyCrmData);
+dd($keyCrmData,$response );
 
 //
 //if($orderLS['list']){

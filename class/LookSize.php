@@ -28,6 +28,33 @@ class LookSize extends Base
         ]);
     }
 
+    public function getSizesClientByOrder(){
+        $dataUser = $this->getDataByKey;
+        $params = '';
+        if($dataUser['userSize']['chest_circ']){
+            $params .= "Обхват грудей: " . $dataUser['userSize']['chest_circ'] . "\n";
+        }
+
+        if($dataUser['userSize']['waist']){
+            $params .= "Обхват талії: " . $dataUser['userSize']['waist'] . "\n";
+        }
+
+        if($dataUser['user_size_standart']){
+            $params .= "Розмір: " . $dataUser['user_size_standart'] . "\n";
+        }
+        if($dataUser['userSize']['hips']){
+            $params .= "Обхват стегон: " . $dataUser['userSize']['hips'] . "\n";
+        }
+
+        return  [
+            "custom_fields" => [
+                [
+                    "uuid" =>"OR_1025",
+                    "value" => $params
+                ]
+            ]
+        ];
+    }
     public function getSizesClient(){
         $dataUser = $this->getDataByKey;
         $keyCrmData = [];

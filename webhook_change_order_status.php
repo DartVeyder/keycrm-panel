@@ -45,10 +45,16 @@ if( $orderKC_source_id == 18) {
         $keyCrm->addTagOrder($orderKC_id,265);
         $action_key = end($orderLS['list'])['action_key'] ;
         $looksize->getDataByKey($action_key);
-        $keyCrmData = $looksize->getSizesClient();
-        if( $keyCrmData ){
-            $response = $keyCrm->updateClient($kcClientId,$keyCrmData);
+        $getSizesClient = $looksize->getSizesClient();
+        if( $getSizesClient ){
+            $response = $keyCrm->updateClient($kcClientId,$getSizesClient);
         }
+
+        $getSizesClientByOrder = $looksize->getSizesClientByOrder();
+        if( $getSizesClientByOrder ) {
+            $response = $keyCrm->updateOrder($orderKC_id, $getSizesClientByOrder);
+        }
+
     }
 
     $orderPS = $prestashop->getOrder((int)$idOrder);

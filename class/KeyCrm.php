@@ -151,4 +151,8 @@ class KeyCrm
     public function updateClient($clientId,$data){
         return $this->request("/buyer/$clientId",'PUT',$data);
     }
+
+    public function updateOrder($orderId,$data){
+        return $this->request("/order/$orderId",'PUT',$data);
+    }
 }
