@@ -10,5 +10,5 @@ require_once ('class/Rozetka.php');
 $rozetka = new Rozetka();
 $kasta = new Kasta();
 $kastaProducts  = $kasta->products();
-dd($kastaProducts[67] ,$kastaProducts[68]);
-dd($rozetka->getProducts());
+//dd($kastaProducts[67] ,$kastaProducts[68]);
+//dd($rozetka->getProducts());
