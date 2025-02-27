@@ -20,7 +20,7 @@ class Rozetka extends Base
         }
     }
 
-    public function getProducts()
+    public function products()
     {
         $allGoods = []; // Масив для збереження всіх товарів
         $page = 1; // Починаємо з першої сторінки
@@ -41,7 +41,6 @@ class Rozetka extends Base
 
                 // Розбираємо JSON-відповідь
                 $data = $response;
-dd( $data['content']['items'][5]);
                 // Перевірка на наявність товарів
                 if (isset($data['content']['items'])) {
                     $allGoods = array_merge($allGoods, $data['content']['items']); // Додаємо товари до загального масиву

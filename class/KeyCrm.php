@@ -129,6 +129,32 @@ class KeyCrm
         return null;
     }
 
+    public function categories(){
+        $page = 1;
+        $limit = 50;
+        $allData = [];
+
+        do {
+            $url = "/products/categories?limit=$limit&page={$page}";
+
+            $response = $this->request($url); // Assuming this method sends the request and returns the response
+
+            // If the response contains data, append it to the allData array
+            if (isset($response['data'])) {
+                $allData = array_merge($allData, $response['data']);
+            }
+
+            // Get the next page URL from the response
+            $nextPageUrl = $response['next_page_url'] ?? null;
+
+            // Increment the page number
+            $page++;
+            sleep(1);
+        } while ($nextPageUrl);
+
+        return array_column($allData, 'name', 'id');
+    }
+
     private function request($endpoint, $method = "GET", $body = []){
         $client = new Client();
         $response = $client ->request($method,  KEYCRM_API_URL . $endpoint, [
