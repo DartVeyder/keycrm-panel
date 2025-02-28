@@ -9,12 +9,18 @@ require_once ('class/Prestashop.php');
 require_once ('class/Intertop.php');
 require_once ('class/Kasta.php');
 require_once ('class/Rozetka.php');
+require_once ('class/Prom.php');
+
 
 $prestashop = new Prestashop();
 $keyCrm = new KeyCrm();
 $kasta = new Kasta();
 $intertop = new Intertop();
 $rozetka = new Rozetka();
+$prom = new Prom();
+
+$promProducts = $prom->products();
+$promProducts = array_column($promProducts, 'quantity_in_stock','sku');
 $rozetkaProducts = $rozetka->products();
 $rozetkaProducts = array_column($rozetkaProducts, 'stock_quantity','article');
 
@@ -32,6 +38,7 @@ echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/
 echo '<table class="table  table-bordered ">
   <thead>
     <tr>
+      <th scope="col">№</th>
       <th scope="col">Артикл</th>
       <th scope="col">Назва</th>
        <th scope="col">Категорія</th>
@@ -40,9 +47,11 @@ echo '<table class="table  table-bordered ">
       <th scope="col">KASTA</th> 
       <th scope="col">INTERTOP</th> 
       <th scope="col">ROZETKA</th> 
+      <th scope="col">PROM</th> 
     </tr>
   </thead>
   <tbody>';
+    $i = 1;
         foreach ($kc_products as $kc_product){
             if(!$kc_product['sku']){
                 continue;
@@ -52,8 +61,17 @@ echo '<table class="table  table-bordered ">
                 continue;
             }
 
+            if ( strpos($kc_product['sku'], '5555') !== false) {
+                continue;
+            }
+
+            if ( strpos($kc_product['sku'], 'B24') !== false) {
+                continue;
+            }
+
             $stock = (int)$kc_product['quantity'] - (int)$kc_product['in_reserve'];
             echo '  <tr>
+      <th scope="row">'.$i++.'</th>
       <th scope="row">'.$kc_product['sku'].'</th>
         <td>'.$kc_product['product']['name'].'</td>
         <td>'. $categories[$kc_product['product']['category_id']].'</td>
@@ -62,6 +80,7 @@ echo '<table class="table  table-bordered ">
       <td>'.$kasta_products[$kc_product['sku'] ].'</td> 
       <td>'.$intertopProducts[$kc_product['sku'] ].'</td> 
       <td>'.$rozetkaProducts[$kc_product['sku'] ].'</td> 
+      <td>'.$promProducts[$kc_product['sku'] ].'</td> 
     </tr> ';
 
         }
