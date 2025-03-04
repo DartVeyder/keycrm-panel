@@ -23,21 +23,34 @@ class PrestaImportV2
                 }
             }
 
+            if($offer['product']['isPreorder']){
+                $offer['stock'] = 20;
+            }
+
 
             if(empty( $offer['product']['name'])){
                 continue;
             }
 
-            if ( strpos($offer['sku'], '_') !== false) {
-                continue;
+            if (strpos($offer['sku'], '_') !== false) {
+                if (strpos($offer['sku'], 'В') === false) {
+                    continue;
+                }
             }
-            if ( strpos($offer['sku'], 'B24') !== false) {
-                continue;
-            }
+
             if ( strpos($offer['size'], '_') !== false) {
                 continue;
             }
+
+            if ( strpos($offer['color'], '_') !== false) {
+                continue;
+            }
+
             if ( strpos($offer['size'], ' ') !== false) {
+                continue;
+            }
+
+            if ( strpos($offer['color'], ' ') !== false) {
                 continue;
             }
 
@@ -55,6 +68,7 @@ class PrestaImportV2
 
             $discountPrice = $price - $specialPrice;
             $discountPrice = ($discountPrice > 0)? $discountPrice: '';
+
             $rows[] =  [
                 $offer['product_id'],
                 $offer['id'],

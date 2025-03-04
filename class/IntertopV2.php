@@ -3,17 +3,12 @@
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 
-class Intertop
+class IntertopV2
 {
     private string $token;
-    public $productsKeycrm = [];
-    private $keycrm;
-    private $prestashop;
-
+    public $productsKeycrm =[];
     public function __construct()
     {
-        $this->keycrm =  new KeyCrm();
-        $this->prestashop =  new Prestashop();
         $this->auth();
     }
 
@@ -33,16 +28,17 @@ class Intertop
          $this->setToken($request['data']['access_token']['token']) ;
     }
 
-    public  function create()
+    public  function create($offersKeycrm )
     {
-        $productsCF = $this->getAddedProductWithCF();
-        $offersKeycrm = $this->keycrm->product('[product_id]=' . implode(',',array_column($productsCF, 'id')));
+        //$productsCF = $this->getAddedProductWithCF();
+        //$offersKeycrm = $this->keycrm->product('[product_id]=' . implode(',',array_column($productsCF, 'id')));
 
-        $groupedProducts = $this->grouped($offersKeycrm, $productsCF  );
+        $groupedProducts = $this->grouped($offersKeycrm );
 
         $result = '';
         foreach ($groupedProducts  as $item){
             $createProductArray = $this->createProductArray($item);
+            dump($createProductArray);
             $return[] =   $createProductArray;
 
         }
@@ -201,18 +197,26 @@ class Intertop
                 if(!$sizeId){
                     continue;
                 }
+
+
+                $fullPrice = $offer['product']['fullPrice'];
+                $specialPrice = $offer['product']['specialPrice'];
+
+                $price =  (double)(isset($fullPrice))? $fullPrice: $offer['price'];
+                $discountPrice = (double)(isset($specialPrice))? $specialPrice:  $offer['price'];
+
                 $offerIT = [
                     'barcode'=>$offer['sku'],
                     'active' => true,
                     'base_price' => [
-                        "amount" =>$offer['price'],
+                        "amount" => $price,
                         "currency" => 'UAH' ,
                     ],
                     'discount_price' => [
-                        "amount" =>$offer['price'],
+                        "amount" =>$discountPrice ,
                         "currency" => 'UAH' ,
                     ],
-                    "quantity" =>$offer['quantity'],
+                    "quantity" =>$offer['stock'],
                     'size_id' => $sizeId
                 ];
 
@@ -443,14 +447,37 @@ class Intertop
         return (int) $colors[$value];
     }
 
-    private  function  grouped($offersKeycrm, $productsCF  ){
+    private  function  grouped($offersKeycrm  ){
         $grouped = [];
 
         foreach ($offersKeycrm as $item) {
             // Skip items where "sku" starts with "5555_"
+
             if (strpos($item['sku'], '_') !== false) {
+                if (strpos($item['sku'], 'В') === false) {
+                    continue;
+                }
+            }
+            if ( strpos($item['size'], '_') !== false) {
                 continue;
             }
+
+            if ( strpos($item['color'], '_') !== false) {
+                continue;
+            }
+
+            if ( strpos($item['size'], ' ') !== false) {
+                continue;
+            }
+
+            if ( strpos($item['color'], ' ') !== false) {
+                continue;
+            }
+
+           if(!$item['product']['isAddedIntertop']){
+               continue;
+           }
+
 
             $productId = $item['product_id'];
 
@@ -473,7 +500,7 @@ class Intertop
                 $grouped[$productId] = [
                     'product' => $item['product'], // Add product details once per product_id
                     'colors' => [],
-                    'color_article' => $productsCF[$item['product_id']]['parentSku'],
+                    'color_article' => $item['product']['parentSku'],
                     'product_id' => $productId
                 ];
             }
@@ -544,21 +571,28 @@ class Intertop
     }
 
 
-    function saveProductsToJson(array $data, string $filename) {
-        // Конвертуємо масив в JSON формат
-        $jsonData = json_encode($data, JSON_PRETTY_PRINT);
+    function saveProductsToJson(array $data, string $filename): bool {
+        // Переконуємося, що директорія існує
+        $directory = dirname($filename);
+        if (!is_dir($directory)) {
+            if (!mkdir($directory, 0777, true) && !is_dir($directory)) {
+                throw new RuntimeException("Не вдалося створити директорію: $directory");
+            }
+        }
 
-        // Перевіряємо, чи вдалося конвертувати масив в JSON
+        // Конвертуємо масив у JSON
+        $jsonData = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
         if ($jsonData === false) {
-            return false; // Помилка конвертації
+            throw new RuntimeException("Помилка конвертації JSON: " . json_last_error_msg());
         }
 
-        // Записуємо JSON дані у файл
-        if (file_put_contents($filename, $jsonData) === false) {
-            return false; // Помилка запису у файл
+        // Записуємо JSON у файл, створюючи його за потреби
+        if (file_put_contents($filename, $jsonData, LOCK_EX) === false) {
+            throw new RuntimeException("Не вдалося записати JSON у файл: $filename");
         }
 
-        return true; // Успішне збереження
+        return true;
     }
 
     function readProductsFromJson(string $filename) {
@@ -587,23 +621,29 @@ class Intertop
         $data = [];
         $products = $this->getProducts() ;
 
-        $fileProducts = $this->readProductsFromJson('uploads/products.json');
+        $fileProducts = $this->readProductsFromJson('uploads/intertop_products.json');
         if( $fileProducts && count($products) == $fileProducts['total_records']){
             foreach ($fileProducts['data'] as $key => $product){
-                $quantity = ($this->productsKeycrm[$product["barcode"]]['quantity'] < 0) ? 0 : $this->productsKeycrm[$product["barcode"]]['quantity'];
+
+                $fullPrice = $this->productsKeycrm[$product["barcode"]]['product']['fullPrice'];
+                $specialPrice = $this->productsKeycrm[$product["barcode"]]['product']['specialPrice'];
+
+                $price =  (double)(isset($fullPrice))? $fullPrice: $this->productsKeycrm[$product["barcode"]]['price'];
+                $discountPrice = (double)(isset($specialPrice))? $specialPrice:  $this->productsKeycrm[$product["barcode"]]['price'];
+
                 $data[] = [
                     'barcode' => $product['barcode'],
                     'article' =>$product['article'],
-                    'quantity' =>  (int)$quantity,
+                    'quantity' =>  (int)$this->productsKeycrm[$product["barcode"]]['stock'] ,
                     "warehouse_external_id" => "default",
                     'base_price'=>
                         [
-                            "amount"=>$this->productsKeycrm[$product["barcode"]]['price'],
+                            "amount"=>  $price,
                             "currency"=> "UAH"
                         ],
                     'discount_price'=>
                         [
-                            "amount"=>$this->productsKeycrm[$product["barcode"]]['specialPrice'],
+                            "amount"=> $discountPrice,
                             "currency"=> "UAH"
                         ]
                 ];
@@ -617,27 +657,33 @@ class Intertop
         }
 
 
-        $this->saveProductsToJson(['total_records' => count($products), 'data' =>$data], 'uploads/products.json');
+        $this->saveProductsToJson(['total_records' => count($products), 'data' =>$data], 'uploads/intertop_products.json');
         return $data;
     }
 
     private  function getOfferBarcode($data, $article)
     {
-        $barcodesWithMp = array_map(function($item) use ($article) {
+            $barcodesWithMp = array_map(function($item) use ($article) {
+
+            $fullPrice = $this->productsKeycrm[$item["barcode"]]['product']['fullPrice'];
+            $specialPrice = $this->productsKeycrm[$item["barcode"]]['product']['specialPrice'];
+
+            $price =  (double)(isset($fullPrice))? $fullPrice: $this->productsKeycrm[$item["barcode"]]['price'];
+            $discountPrice = (double)(isset($specialPrice))? $specialPrice:  $this->productsKeycrm[$item["barcode"]]['price'];
 
             return [
-                'barcode' => $item["barcode"], // Додаємо ключ 'barcode'
-                'article' => $article,          // Додаємо ключ 'article'
-                'quantity' => ($this->productsKeycrm[$item["barcode"]]['quantity'] < 0) ? 0 : $this->productsKeycrm[$item["barcode"]]['quantity'],
+                'barcode' => $item['barcode'],
+                'article' =>$article,
+                'quantity' =>  (int)$this->productsKeycrm[$item["barcode"]]['stock'] ,
                 "warehouse_external_id" => "default",
                 'base_price'=>
                     [
-                        "amount"=>$this->productsKeycrm[$item["barcode"]]['price'],
+                        "amount"=>  $price,
                         "currency"=> "UAH"
                     ],
                 'discount_price'=>
                     [
-                        "amount"=>$this->productsKeycrm[$item["barcode"]]['specialPrice'],
+                        "amount"=> $discountPrice,
                         "currency"=> "UAH"
                     ]
             ];

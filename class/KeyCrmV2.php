@@ -142,6 +142,7 @@ class KeyCrmV2
             "CT_1015" => "isAddedIntertop",
             "CT_1014" => "fullPrice",
             "CT_1010" => "specialPrice",
+            "CT_1026" => "isPreorder",
         ];
         $activeField = ['Так' => 1, 'Ні' => 0];
         foreach ($customFields as  $customField){
@@ -154,6 +155,9 @@ class KeyCrmV2
             }
 
             if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1011'){
+                $data[$fields[$customField['uuid']]] = $activeField[$customField['value'][0]];
+            }
+            if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1026'){
                 $data[$fields[$customField['uuid']]] = $activeField[$customField['value'][0]];
             }
 
