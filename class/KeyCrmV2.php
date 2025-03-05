@@ -259,4 +259,29 @@ class KeyCrmV2
     public function updateOrder($orderId,$data){
         return $this->request("/order/$orderId",'PUT',$data);
     }
+
+    public function orders($filter = ''){
+        $page = 1;
+        $limit = 50;
+        $allData = [];
+
+        do {
+            $url = "/orders?limit={$limit}&include=payments&$filter&page={$page}";
+
+            $response = $this->request($url);
+
+            if (isset($response['data'])) {
+                foreach ($response['data'] as &$product){
+                    if($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])){
+                        $product = array_merge($product,  $getProductCustomFields);
+                    }
+                }
+                $allData = array_merge($allData,  $response['data']);
+            }
+
+            $nextPageUrl = $response['next_page_url'] ?? null;
+
+            $page++;
+        } while ($nextPageUrl);
+    }
 }

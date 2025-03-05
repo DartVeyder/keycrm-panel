@@ -56,11 +56,9 @@ class PrestaImportV2
             }
 
             if ( strpos($offer['size'], ' ') !== false) {
-                continue;
-            }
-
-            if ( strpos($offer['color'], ' ') !== false) {
-                continue;
+                if (strpos($offer['size'], 'ONE SIZE') === false) {
+                    continue;
+                }
             }
 
             if(!$isAdded){
@@ -101,7 +99,10 @@ class PrestaImportV2
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
 
-        echo SimpleXLSX::parse($filename)->toHTML();
+        if(PRESTASHOP_RESPONSE){
+            echo SimpleXLSX::parse($filename)->toHTML();
+        }
+
     }
 
     public function startUpdatePriceStock(){
