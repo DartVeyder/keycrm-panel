@@ -55,11 +55,11 @@ class PrestaImportV2
                 continue;
             }
 
-            if ( strpos($offer['size'], ' ') !== false) {
-                if (strpos($offer['size'], 'ONE SIZE') === false) {
-                    continue;
-                }
-            }
+//            if ( strpos($offer['size'], ' ') !== false) {
+//                if (strpos($offer['size'], 'ONE SIZE') === false) {
+//                    continue;
+//                }
+//            }
 
             if(!$isAdded){
                 continue;
