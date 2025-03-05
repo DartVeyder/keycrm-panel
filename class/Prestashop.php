@@ -1,5 +1,7 @@
 <?php
+require_once('class/Base.php');
 use GuzzleHttp\Client;
+
 class Prestashop extends Base
 {
     private Client $client;
@@ -168,4 +170,18 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
             return null;
         }
     }
+
+    public function getPreorderProducts(){
+        try {
+            $response =  file_get_contents('https://twice.com.ua/admin298rbunic/keycrm/api-preorder.php');
+             return json_decode($response, true);
+
+        } catch (\Exception $e) {
+            // Логування або обробка помилки
+            error_log($e->getMessage());
+            return null;
+        }
+    }
+
+
 }

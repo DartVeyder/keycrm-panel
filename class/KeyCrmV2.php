@@ -24,6 +24,8 @@ class KeyCrmV2
         $limit = 50;
         $allData = [];
 
+
+
         do {
             $url = "/offers/stocks?limit={$limit}&filter[details]=true&$filter&page={$page}";
 
@@ -32,6 +34,7 @@ class KeyCrmV2
             if (isset($response['data'])) {
 
                 foreach ($response['data'] as &$offer) {
+
                     $offer['stock'] = $this->getStockWIthWarehouse($offer['warehouse'], ["Інтернет", "Twice Магазин"]);
                 }
                 $allData = array_merge($allData, $response['data']);
@@ -61,7 +64,9 @@ class KeyCrmV2
         $page = 1;
         $limit = 50;
         $allData = [];
-
+        $prestashop = new Prestashop();
+        $getPreorderProducts =  $prestashop->getPreorderProducts();
+        $preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
 
         do {
             $url = "/offers?limit={$limit}&filter[is_archived]=false&$filter&page={$page}";
@@ -73,6 +78,11 @@ class KeyCrmV2
                 foreach ($response['data'] as &$offer){
                     if($getOfferProperties = $this->getOfferProperties($offer['properties'])){
                         $offer = array_merge($offer,  $getOfferProperties);
+                    }
+
+                    if(array_key_exists($offer['sku'], $preorderProducts)){
+                        $offer['preorder_stock'] = $preorderProducts[$offer['sku']]['pre_order_product_quantity_limit'];
+                        $offer['isPreorderOffer'] = 1;
                     }
                 }
                 $allData = array_merge($allData, $response['data']);

@@ -5,9 +5,11 @@ require_once('vendor/autoload.php');
 
 require_once('config.php');
 require_once('class/KeyCrmV2.php');
+require_once('class/Prestashop.php');
 require_once('class/PrestaImportV2.php');
 require_once('class/KastaV2.php');
 require_once ('class/IntertopV2.php');
+
 
 $keyCrm = new KeyCrmV2();
 

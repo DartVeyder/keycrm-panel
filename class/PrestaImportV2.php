@@ -11,6 +11,8 @@ class PrestaImportV2
         $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
         foreach ($offers as $offer){
+
+
             $parentSku = $offer['product']['parentSku'];
             $fullPrice = $offer['product']['fullPrice'];
             $specialPrice = $offer['product']['specialPrice'];
@@ -23,8 +25,8 @@ class PrestaImportV2
                 }
             }
 
-            if($offer['product']['isPreorder']){
-                $offer['stock'] = 20;
+            if($offer['isPreorderOffer']){
+                $offer['stock'] = $offer['preorder_stock'];
             }
 
 
@@ -36,6 +38,13 @@ class PrestaImportV2
                 if (strpos($offer['sku'], 'В') === false) {
                     continue;
                 }
+            }
+
+            if (strpos($offer['sku'], 'В') !== false) {
+                $parentSku =  $offer['sku'];
+                $offer['sku'] = '';
+                $offer['color'] = '';
+                $offer['size'] = '';
             }
 
             if ( strpos($offer['size'], '_') !== false) {
@@ -68,7 +77,6 @@ class PrestaImportV2
 
             $discountPrice = $price - $specialPrice;
             $discountPrice = ($discountPrice > 0)? $discountPrice: '';
-
             $rows[] =  [
                 $offer['product_id'],
                 $offer['id'],
