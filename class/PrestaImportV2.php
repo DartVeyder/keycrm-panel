@@ -14,8 +14,6 @@ class PrestaImportV2
 
 
             $parentSku = $offer['product']['parentSku'];
-            $fullPrice = $offer['product']['fullPrice'];
-            $specialPrice = $offer['product']['specialPrice'];
             $isAdded = $offer['product']['isAddedPrestashop'] ?? 1;
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
 
@@ -50,6 +48,9 @@ class PrestaImportV2
             if ( strpos($offer['size'], '_') !== false) {
                 continue;
             }
+            if ( strpos($offer['size'], 'В') !== false) {
+                continue;
+            }
 
             if ( strpos($offer['color'], '_') !== false) {
                 continue;
@@ -69,9 +70,8 @@ class PrestaImportV2
                 continue;
             }
 
-            $price = (double)(isset($fullPrice))? $fullPrice: $offer['price'];
-
-            $specialPrice = (double)(isset($specialPrice))? $specialPrice: $offer['price'];
+            $price = (double)(isset($offer['product']['fullPrice']))?$offer['product']['fullPrice']: $offer['price'];
+            $specialPrice = (double)(isset($offer['product']['specialPrice']))? $offer['product']['specialPrice']: $offer['price'];
 
             $discountPrice = $price - $specialPrice;
             $discountPrice = ($discountPrice > 0)? $discountPrice: '';

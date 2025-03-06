@@ -155,6 +155,7 @@ class KeyCrmV2
             "CT_1026" => "isPreorder",
         ];
         $activeField = ['Так' => 1, 'Ні' => 0];
+        $data = [];
         foreach ($customFields as  $customField){
             if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1007'){
                 $data[$fields[$customField['uuid']] ] = $customField['value'];

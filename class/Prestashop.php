@@ -1,5 +1,5 @@
 <?php
-require_once('Base.php');
+
 use GuzzleHttp\Client;
 
 class Prestashop extends Base
