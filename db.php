@@ -29,9 +29,3 @@ if (!$db->tableExists("products")) {
         "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
     ]);
 }
-$data = [
-    'sku' =>'2501105425234',
-
-    'keycrm_stock' => 3,
-];
-$db->insertOrUpdate("products", $data , "sku = ?", [ '2501105425234']);
