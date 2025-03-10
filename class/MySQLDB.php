@@ -1,20 +1,13 @@
 <?php
 
-class Database {
+class MySQLDB {
     private $pdo;
-    private $databaseType;
 
     // Конструктор для підключення до бази даних
-    public function __construct($databaseType, $host = '', $dbname = '', $username = '', $password = '', $filename = '') {
-        $this->databaseType = $databaseType;
-
+    public function __construct($host, $dbname, $username, $password) {
         try {
-            if ($this->databaseType == 'sqlite') {
-                $this->pdo = new PDO("sqlite:" . $filename);
-            } elseif ($this->databaseType == 'mysql') {
-                $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8";
-                $this->pdo = new PDO($dsn, $username, $password);
-            }
+            $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8";
+            $this->pdo = new PDO($dsn, $username, $password);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
             $this->logError("Помилка підключення: " . $e->getMessage());
@@ -81,10 +74,14 @@ class Database {
 
     // Метод для додавання або оновлення запису
     public function insertOrUpdate($table, $data, $where, $whereParams) {
+        // Перевіряємо, чи є запис у базі
         $exists = $this->exists($table, $where, $whereParams);
+
         if ($exists) {
+            // Якщо є — оновлюємо
             return $this->update($table, $data, $where, $whereParams);
         } else {
+            // Якщо немає — додаємо
             return $this->insert($table, $data);
         }
     }
@@ -103,10 +100,7 @@ class Database {
 
     // Перевірка існування таблиці
     public function tableExists($table) {
-        $sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
-        if ($this->databaseType == 'mysql') {
-            $sql = "SHOW TABLES LIKE ?";
-        }
+        $sql = "SHOW TABLES LIKE ?";
         return $this->fetchOne($sql, [$table]) ? true : false;
     }
 
@@ -127,4 +121,5 @@ class Database {
         file_put_contents("logs/errors.log", date("[Y-m-d H:i:s] ") . $message . "\n", FILE_APPEND);
     }
 }
+
 ?>

@@ -4,7 +4,7 @@ require_once('vendor/autoload.php');
 
 require_once('config.php');
 require_once ('class/Base.php');
-require_once ('class/SQLiteDB.php');
+require_once ('class/MySQLDB.php');
 require_once ('class/KeyCrm.php');
 require_once ('class/Prestashop.php');
 require_once ('class/Intertop.php');
@@ -18,9 +18,7 @@ $kasta = new Kasta();
 $intertop = new Intertop();
 $rozetka = new Rozetka();
 $prom = new Prom();
-$db = new SQLiteDB("uploads/twice_data.sqlite");
-
-
+$db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 $promProducts = $prom->products();
 $promProducts = array_column($promProducts, 'quantity_in_stock','sku');
