@@ -97,6 +97,12 @@ class SQLiteDB {
         }
     }
 
+    // Перевірка існування таблиці
+    public function tableExists($table) {
+        $sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
+        return $this->fetchOne($sql, [$table]) ? true : false;
+    }
+
     // Метод для отримання одного запису
     public function fetchOne($sql, $params = []) {
         try {

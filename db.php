@@ -9,25 +9,26 @@ require_once('class/SQLiteDB.php');
 // 🔹 Приклад використання
 $db = new SQLiteDB("uploads/twice_data.sqlite");
 
-// 🔹 Створення таблиці "users"
-//    $db->createTable("products", [
-//        "id INTEGER PRIMARY KEY AUTOINCREMENT",
-//        "keycrm_offer_id INTEGER NULL ",
-//        "keycrm_product_id INTEGER NULL ",
-//        "sku TEXT NULL",
-//        "parent_sku TEXT NULL",
-//        "name TEXT  NULL",
-//        "category TEXT NULL",
-//        "price REAL NULL",
-//        "keycrm_stock INTEGER NULL ",
-//        "rozetka_stock INTEGER NULL ",
-//        "prom_stock INTEGER NULL ",
-//        "intertop_stock INTEGER NULL ",
-//        "prestashop_stock INTEGER  NULL",
-//        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-//        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-//    ]);
-
+// 🔹 Створення таблиці "products"
+if (!$db->tableExists("products")) {
+    $db->createTable("products", [
+        "id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "keycrm_offer_id INTEGER NULL ",
+        "keycrm_product_id INTEGER NULL ",
+        "sku TEXT NULL",
+        "parent_sku TEXT NULL",
+        "name TEXT  NULL",
+        "category TEXT NULL",
+        "price REAL NULL",
+        "keycrm_stock INTEGER NULL ",
+        "rozetka_stock INTEGER NULL ",
+        "prom_stock INTEGER NULL ",
+        "intertop_stock INTEGER NULL ",
+        "prestashop_stock INTEGER  NULL",
+        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    ]);
+}
 $data = [
     'sku' =>'2501105425234',
 
