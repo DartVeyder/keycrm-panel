@@ -1,4 +1,6 @@
 <?php
+require_once ('SQLiteDB.php');
+
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -7,6 +9,8 @@ class PrestaImportV2
 {
     public function generateListProductsXLSX($offers, $filename, $type = 'import')
     {
+        $db = new SQLiteDB("uploads/twice_data.sqlite");
+
         $rows = [];
         $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
 
@@ -16,7 +20,7 @@ class PrestaImportV2
             $parentSku = $offer['product']['parentSku'];
             $isAdded = $offer['product']['isAddedPrestashop'] ?? 1;
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
-
+            $sku = $offer['sku'];
             if($type == 'import'){
                 if( $offer['product_id']  <= 1887){
                     continue;
@@ -27,8 +31,15 @@ class PrestaImportV2
                 $offer['stock'] = $offer['preorder_stock'];
             }
 
-
             if(empty( $offer['product']['name'])){
+                continue;
+            }
+
+            if ($offer['sku'] == '') {
+                continue;
+            }
+
+            if ($parentSku == '') {
                 continue;
             }
 
@@ -36,13 +47,6 @@ class PrestaImportV2
                 if (strpos($offer['sku'], 'В') === false) {
                     continue;
                 }
-            }
-
-            if (strpos($offer['sku'], 'В') !== false) {
-                $parentSku =  $offer['sku'];
-                $offer['sku'] = '';
-                $offer['color'] = '';
-                $offer['size'] = '';
             }
 
             if ( strpos($offer['size'], '_') !== false) {
@@ -75,6 +79,28 @@ class PrestaImportV2
 
             $discountPrice = $price - $specialPrice;
             $discountPrice = ($discountPrice > 0)? $discountPrice: '';
+
+
+            $data = [
+                'keycrm_offer_id' => $offer['id'],
+                'keycrm_product_id' => $offer['product_id'],
+                'sku' => $sku,
+                'parent_sku' => $parentSku,
+                'name' => $offer['product']['name'],
+                'category' => $offer['product']['category'],
+                'price' => $price,
+                'keycrm_stock' => $offer['stock'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+            $db->insertOrUpdate("products", $data , "sku = ?", [ $sku]);
+
+            if (strpos($offer['sku'], 'В') !== false) {
+                $parentSku =  $offer['sku'];
+                $offer['sku'] = '';
+                $offer['color'] = '';
+                $offer['size'] = '';
+            }
+
             $rows[] =  [
                 $offer['product_id'],
                 $offer['id'],
@@ -96,6 +122,7 @@ class PrestaImportV2
                 '',
             ]  ;
         }
+
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
 
@@ -103,6 +130,7 @@ class PrestaImportV2
             echo SimpleXLSX::parse($filename)->toHTML();
         }
 
+        return $rows;
     }
 
     public function startUpdatePriceStock(){

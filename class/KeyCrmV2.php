@@ -120,7 +120,7 @@ class KeyCrmV2
         $page = 1;
         $limit = 50;
         $allData = [];
-
+        $categories = $this->categories();
         do {
             $url = "/products?limit={$limit}&include=custom_fields&$filter&page={$page}";
 
@@ -128,6 +128,7 @@ class KeyCrmV2
 
             if (isset($response['data'])) {
                 foreach ($response['data'] as &$product){
+                    $product['category'] = $categories[$product['category_id']] ?? '';
                     if($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])){
                         $product = array_merge($product,  $getProductCustomFields);
                     }
