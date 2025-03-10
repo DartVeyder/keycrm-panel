@@ -21,6 +21,27 @@ class PrestaImportV2
             $isAdded = $offer['product']['isAddedPrestashop'] ?? 1;
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
             $sku = $offer['sku'];
+
+            $price = (double)(isset($offer['product']['fullPrice']))?$offer['product']['fullPrice']: $offer['price'];
+            $specialPrice = (double)(isset($offer['product']['specialPrice']))? $offer['product']['specialPrice']: $offer['price'];
+
+            $discountPrice = $price - $specialPrice;
+            $discountPrice = ($discountPrice > 0)? $discountPrice: '';
+
+
+            $data = [
+                'keycrm_offer_id' => $offer['id'],
+                'keycrm_product_id' => $offer['product_id'],
+                'sku' => $sku,
+                'parent_sku' => $parentSku,
+                'name' => $offer['product']['name'],
+                'category' => $offer['product']['category'],
+                'price' => $price,
+                'keycrm_stock' => $offer['stock'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+            $db->insertOrUpdate("products", $data , "sku = ?", [ $sku]);
+
             if($type == 'import'){
                 if( $offer['product_id']  <= 1887){
                     continue;
@@ -74,25 +95,9 @@ class PrestaImportV2
                 continue;
             }
 
-            $price = (double)(isset($offer['product']['fullPrice']))?$offer['product']['fullPrice']: $offer['price'];
-            $specialPrice = (double)(isset($offer['product']['specialPrice']))? $offer['product']['specialPrice']: $offer['price'];
-
-            $discountPrice = $price - $specialPrice;
-            $discountPrice = ($discountPrice > 0)? $discountPrice: '';
 
 
-            $data = [
-                'keycrm_offer_id' => $offer['id'],
-                'keycrm_product_id' => $offer['product_id'],
-                'sku' => $sku,
-                'parent_sku' => $parentSku,
-                'name' => $offer['product']['name'],
-                'category' => $offer['product']['category'],
-                'price' => $price,
-                'keycrm_stock' => $offer['stock'],
-                'updated_at' => date('Y-m-d H:i:s'),
-            ];
-            $db->insertOrUpdate("products", $data , "sku = ?", [ $sku]);
+
 
             if (strpos($offer['sku'], 'В') !== false) {
                 $parentSku =  $offer['sku'];
