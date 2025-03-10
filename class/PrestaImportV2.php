@@ -40,7 +40,7 @@ class PrestaImportV2
                 'keycrm_stock' => $offer['stock'],
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
-            $db->insertOrUpdate("products", $data , "sku = ?", [ $sku]);
+            $db->insertOrUpdate("keycrm_products", $data , "sku = ?", [ $sku]);
 
             if($type == 'import'){
                 if( $offer['product_id']  <= 1887){

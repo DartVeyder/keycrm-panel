@@ -10,7 +10,7 @@ require_once('class/MySQLDB.php');
 //$db = new SQLiteDB("uploads/twice_data.sqlite");
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 // 🔹 Створення таблиці "products"
-$db->createTable("products", [
+$db->createTable("keycrm_products", [
     "id INT AUTO_INCREMENT PRIMARY KEY",
     "keycrm_offer_id INT NULL",
     "keycrm_product_id INT NULL",

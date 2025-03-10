@@ -59,7 +59,7 @@ $skuFilter = isset($_GET['sku']) ? trim($_GET['sku']) : '';
 $sortBy = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'name_asc'; // Сортування за замовчуванням
 
 // Формуємо SQL-запит із фільтрами
-$sql = 'SELECT * FROM products WHERE 1=1';
+$sql = 'SELECT * FROM keycrm_products WHERE 1=1';
 $params = [];
 
 if (!empty($categoryFilter)) {
