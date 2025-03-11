@@ -27,6 +27,7 @@ echo '
       <th scope="col">INTERTOP</th> 
       <th scope="col">ROZETKA</th> 
       <th scope="col">PROM</th> 
+      <th scope="col">Дата оновлення</th> 
     </tr>
   </thead>
   <tbody>';
@@ -133,6 +134,7 @@ echo '
       <td>'.$kc_product['intertop_stock'].'</td> 
       <td>'.$kc_product['rozetka_stock'].'</td> 
       <td>'.$kc_product['prom_stock'].'</td> 
+      <td>'.$kc_product['updated_at'].'</td> 
     </tr> ';
 
         }
