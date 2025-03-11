@@ -28,20 +28,6 @@ class PrestaImportV2
             $discountPrice = $price - $specialPrice;
             $discountPrice = ($discountPrice > 0)? $discountPrice: '';
 
-
-            $data = [
-                'keycrm_offer_id' => $offer['id'],
-                'keycrm_product_id' => $offer['product_id'],
-                'sku' => $sku,
-                'parent_sku' => $parentSku,
-                'name' => $offer['product']['name'],
-                'category' => $offer['product']['category'],
-                'price' => $price,
-                'keycrm_stock' => $offer['stock'],
-                'updated_at' => date('Y-m-d H:i:s'),
-            ];
-            $db->insertOrUpdate("keycrm_products", $data , "sku = ?", [ $sku]);
-
             if($type == 'import'){
                 if( $offer['product_id']  <= 1887){
                     continue;

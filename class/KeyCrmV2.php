@@ -128,7 +128,7 @@ class KeyCrmV2
 
             if (isset($response['data'])) {
                 foreach ($response['data'] as &$product){
-                    $product['category'] = $categories[$product['category_id']] ?? '';
+                    $product['category'] = $categories[$product['category_id']] ?? [];
                     if($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])){
                         $product = array_merge($product,  $getProductCustomFields);
                     }
@@ -233,7 +233,23 @@ class KeyCrmV2
             $page++;
         } while ($nextPageUrl);
 
-        return array_column($allData, 'name', 'id');
+            $categories = array_column($allData, null, 'id');
+            // Сортуємо масив за ключем id
+            ksort($categories);
+
+            foreach ($categories as &$category) {
+                if (!empty($category['parent_id']) && isset($categories[$category['parent_id']])) {
+                    $parent = $categories[$category['parent_id']];
+                    $category['parent_name'] = $parent['name'];
+                    $category['full_name'] = $parent['name'] . ">" . $category['name'];
+                } else {
+                    $category['full_name'] = $category['name'];
+                }
+            }
+
+
+
+        return $categories ;
     }
 
     private function request($endpoint, $method = "GET", $body = []){
