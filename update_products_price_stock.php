@@ -1,5 +1,8 @@
 <?php
-set_time_limit(0); // Знімає обмеження часу виконання
+ini_set('max_execution_time', 0); // 5 хвилин
+set_time_limit(0); // Альтернативний спосіб
+ini_set('display_errors', 1);  // Включаємо відображення помилок
+error_reporting(E_ERROR);      // Виводимо тільки фатальні помилки
 
 require_once('vendor/autoload.php');
 
