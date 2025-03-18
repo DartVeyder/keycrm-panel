@@ -1,6 +1,8 @@
 <?php
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 
 class KeyCrmV2
 {
@@ -18,32 +20,40 @@ class KeyCrmV2
         return $offers;
     }
 
-    public function offersStock($filter= ''): array
+    public function offersStock($filter = ''): array
     {
         $page = 1;
         $limit = 50;
         $allData = [];
 
-
-
         do {
             $url = "/offers/stocks?limit={$limit}&filter[details]=true&$filter&page={$page}";
 
-            $response = $this->request($url);
+            try {
+                $response = $this->request($url); // Викликаємо метод request для отримання даних
+            } catch (Exception $e) {
+                // Логування помилки, якщо запит не вдався
+                echo "Помилка при отриманні даних акцій: " . $e->getMessage();
+                break;
+            }
 
             if (isset($response['data'])) {
-
                 foreach ($response['data'] as &$offer) {
-
+                    // Отримуємо дані складу
                     $offer['stock'] = $this->getStockWIthWarehouse($offer['warehouse'], ["Інтернет", "Twice Магазин"]);
                 }
+                // Об'єднуємо дані з усіма отриманими записами
                 $allData = array_merge($allData, $response['data']);
             }
+
+            // Перевіряємо наявність наступної сторінки
             $nextPageUrl = $response['next_page_url'] ?? null;
-
             $page++;
-        } while ($nextPageUrl);
 
+            // Затримка для запобігання перевищенню ліміту запитів, якщо це потрібно
+            sleep(1);
+
+        } while ($nextPageUrl); // Продовжуємо, поки є наступні сторінки
 
         return array_column($allData, null, 'id');
     }
@@ -60,44 +70,56 @@ class KeyCrmV2
         return ($sum < 0) ? 0 : $sum;
     }
 
-    public  function offers($filter= ''): array{
+    public function offers($filter = ''): array
+    {
         $page = 1;
         $limit = 50;
         $allData = [];
         $prestashop = new Prestashop();
-        $getPreorderProducts =  $prestashop->getPreorderProducts();
+        $getPreorderProducts = $prestashop->getPreorderProducts();
         $preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
 
         do {
-            $url = "/offers?limit={$limit}&filter[is_archived]=false&$filter&page={$page}";
+            $url = "/offers?limit={$limit}&filter[is_archived]=false&include=product&sort=-product_id&$filter&page={$page}";
 
-            $response = $this->request($url); // Assuming this method sends the request and returns the response
+            try {
+                $response = $this->request($url); // Assuming this method sends the request and returns the response
+            } catch (Exception $e) {
+                // Логування помилки
+                echo "Помилка при отриманні пропозицій: " . $e->getMessage();
+                break;
+            }
 
-            // If the response contains data, append it to the allData array
+            // Якщо відповідь містить дані, додаємо їх до allData
             if (isset($response['data'])) {
-                foreach ($response['data'] as &$offer){
-                    if($getOfferProperties = $this->getOfferProperties($offer['properties'])){
-                        $offer = array_merge($offer,  $getOfferProperties);
+                foreach ($response['data'] as &$offer) {
+                    // Отримуємо властивості пропозиції
+                    if ($getOfferProperties = $this->getOfferProperties($offer['properties'])) {
+                        $offer = array_merge($offer, $getOfferProperties);
                     }
 
-                    if(array_key_exists($offer['sku'], $preorderProducts)){
+                    // Якщо є преордерний товар, додаємо додаткові дані
+                    if (array_key_exists($offer['sku'], $preorderProducts)) {
                         $offer['preorder_stock'] = $preorderProducts[$offer['sku']]['pre_order_product_quantity_limit'];
                         $offer['isPreorderOffer'] = 1;
                     }
                 }
+
+                // Об'єднуємо дані з усіма отриманими записами
                 $allData = array_merge($allData, $response['data']);
             }
 
-            // Get the next page URL from the response
+            // Перевіряємо, чи є наступна сторінка
             $nextPageUrl = $response['next_page_url'] ?? null;
 
-            // Increment the page number
+            // Збільшуємо номер сторінки для наступного запиту
             $page++;
-        } while ($nextPageUrl);
 
+        } while ($nextPageUrl); // Продовжуємо, поки є наступні сторінки
 
         return $allData;
     }
+
 
     private  function getOfferProperties($properties){
         $data = [];
@@ -115,34 +137,50 @@ class KeyCrmV2
     }
 
 
-    public  function products($filter= ''): array
+    public function products($filter = ''): array
     {
         $page = 1;
         $limit = 50;
         $allData = [];
         $categories = $this->categories();
+
         do {
             $url = "/products?limit={$limit}&include=custom_fields&$filter&page={$page}";
 
-            $response = $this->request($url);
-
-            if (isset($response['data'])) {
-                foreach ($response['data'] as &$product){
-                    $product['category'] = $categories[$product['category_id']] ?? [];
-                    if($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])){
-                        $product = array_merge($product,  $getProductCustomFields);
-                    }
-                }
-                $allData = array_merge($allData,  $response['data']);
+            // Викликаємо запит і обробляємо помилки
+            try {
+                $response = $this->request($url);
+            } catch (Exception $e) {
+                // Логування помилки
+                echo "Помилка при отриманні продуктів: " . $e->getMessage();
+                break;
             }
 
+            // Перевіряємо, чи є дані в відповіді
+            if (isset($response['data'])) {
+                foreach ($response['data'] as &$product) {
+                    // Додаємо категорії
+                    $product['category'] = $categories[$product['category_id']] ?? [];
+
+                    // Отримуємо кастомні поля
+                    if ($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])) {
+                        $product = array_merge($product, $getProductCustomFields);
+                    }
+                }
+                // Об'єднуємо з уже отриманими даними
+                $allData = array_merge($allData, $response['data']);
+            }
+
+            // Перевіряємо, чи є наступна сторінка
             $nextPageUrl = $response['next_page_url'] ?? null;
 
+            // Збільшуємо номер сторінки для наступного запиту
             $page++;
         } while ($nextPageUrl);
 
         return array_column($allData, null, 'id');
     }
+
 
     private function getProductCustomFields($customFields)
     {
@@ -252,20 +290,36 @@ class KeyCrmV2
         return $categories ;
     }
 
-    private function request($endpoint, $method = "GET", $body = []){
+    private function request($endpoint, $method = "GET", $body = [])
+    {
         $client = new Client();
-        $response = $client ->request($method,  KEYCRM_API_URL . $endpoint, [
-            'headers' => [
-                'Authorization' => 'Bearer ' .KEYCRM_API_TOKEN,
-                'Accept' => 'application/json',
-            ],
-            'json' => $body
-        ]);
-        sleep(1);
-        // Get the response body as a string
-        return json_decode($response->getBody()->getContents(),1);
-    }
 
+        try {
+            // Виконуємо запит до API
+            $response = $client->request($method, KEYCRM_API_URL . $endpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . KEYCRM_API_TOKEN,
+                    'Accept' => 'application/json',
+                ],
+                'json' => $body
+            ]);
+        } catch (ClientException $e) {
+            // Обробка помилки клієнта (наприклад, 400 чи 429)
+            if ($e->getCode() == 429) {
+                echo "API перевищено ліміт запитів. Чекаємо перед повтором...". $e->getMessage() . "</br>";
+                sleep(5); // Затримка перед повтором
+                return $this->request($endpoint, $method, $body); // Повторюємо запит
+            } else {
+                throw new Exception("Помилка запиту до API: " . $e->getMessage());
+            }
+        } catch (RequestException $e) {
+            // Загальна обробка помилок запиту
+            throw new Exception("Помилка при виконанні запиту: " . $e->getMessage());
+        }
+
+        // Отримуємо тіло відповіді як рядок і парсимо в масив
+        return json_decode($response->getBody()->getContents(), true);
+    }
     public function addTagOrder($orderId, $tagId){
        return $this->request("/order/$orderId/tag/$tagId",'POST');
     }

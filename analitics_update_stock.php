@@ -3,6 +3,7 @@ ini_set('max_execution_time', 0); // 5 хвилин
 set_time_limit(0); // Альтернативний спосіб
 //ini_set('display_errors', 1);  // Включаємо відображення помилок
 //error_reporting(E_ERROR);      // Виводимо тільки фатальні помилки
+$startTime = microtime(true);
 
 require_once('vendor/autoload.php');
 
@@ -58,8 +59,12 @@ foreach ($listProducts as $offer){
         'rozetka_stock' => $rozetkaProducts[$offer['sku']],
         'prom_stock' => $promProducts[$offer['sku']],
         'intertop_stock' => $intertopProducts[$offer['sku']],
+        'updated_at'=> date("Y-m-d H:i:s"),
     ];
 
-    $db->insertOrUpdate("analitic_products_stock", $data , "keycrm_offer_id = ?", [$offer['id']]);
-
+    $db->insertOrUpdatePartial("analitic_products_stock", $data , "keycrm_offer_id",300);
 }
+
+$endTime = microtime(true);
+$executionTime = $endTime - $startTime;
+echo "Час виконання скрипта: " . round($executionTime, 4) . " секунд\n";

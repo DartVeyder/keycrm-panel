@@ -22,11 +22,38 @@ class PrestaImportV2
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
             $sku = $offer['sku'];
 
+//            $data = [
+//                'keycrm_offer_id' => $offer['id'],
+//                'keycrm_product_id' => $offer['product_id'],
+//                'sku' =>$offer['sku'],
+//                'parent_sku' => $offer['product']['parentSku'],
+//                'name' => $offer['product']['name'],
+//                'category' => $offer['product']['category']['full_name'],
+//                'price' => $offer['price'],
+//                'keycrm_stock' => $offer['stock'],
+//                'updated_at'=> date("Y-m-d H:i:s"),
+//            ];
+//
+//            $db->insertOrUpdate("analitic_products_stock", $data , "keycrm_offer_id");
+
+
+            if($offer['price'] == 0){
+                $offer['price'] = $offer['product']['max_price'];
+            }
+
+
+
             $price = (double)(isset($offer['product']['fullPrice']))?$offer['product']['fullPrice']: $offer['price'];
             $specialPrice = (double)(isset($offer['product']['specialPrice']))? $offer['product']['specialPrice']: $offer['price'];
 
+
+
             $discountPrice = $price - $specialPrice;
             $discountPrice = ($discountPrice > 0)? $discountPrice: '';
+
+            if($discountPrice >= $price){
+                $discountPrice = '';
+            }
 
             if($type == 'import'){
                 if( $offer['product_id']  <= 1887){
@@ -116,7 +143,7 @@ class PrestaImportV2
 
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
         $xlsx->saveAs($filename);
-
+       // $db->update('marketplaces', ['updated_at' => date("Y-m-d H:i:s"),'updated_analitic' => date("Y-m-d H:i:s")], 'name = ?', ['prestashop']);
         if(PRESTASHOP_RESPONSE){
             echo SimpleXLSX::parse($filename)->toHTML();
         }
