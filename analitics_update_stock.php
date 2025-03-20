@@ -44,27 +44,32 @@ $kasta_products = $kasta->productsStock();
 $ps_combinations = $prestashop->getCombinations('[id,reference,quantity]');
 $ps_combinations = array_column($ps_combinations, 'quantity','reference');
 
-foreach ($listProducts as $offer){
-    $data = [
-        'keycrm_offer_id' => $offer['id'],
-        'keycrm_product_id' => $offer['product_id'],
-        'sku' =>$offer['sku'],
-        'parent_sku' => $offer['product']['parentSku'],
-        'name' => $offer['product']['name'],
-        'category' => $offer['product']['category']['full_name'],
-        'price' => $offer['price'],
-        'keycrm_stock' => $offer['stock'],
-        'prestashop_stock' => $ps_combinations[$offer['sku']],
-        'kasta_stock' => $kasta_products[$offer['sku']],
-        'rozetka_stock' => $rozetkaProducts[$offer['sku']],
-        'prom_stock' => $promProducts[$offer['sku']],
-        'intertop_stock' => $intertopProducts[$offer['sku']],
-        'updated_at'=> date("Y-m-d H:i:s"),
-    ];
+$listProductsPartials = array_chunk($listProducts, 300);
 
-    $db->insertOrUpdatePartial("analitic_products_stock", $data , "keycrm_offer_id",300);
+foreach ($listProductsPartials as $listProducts){
+    $data = [];
+    foreach ($listProducts as $offer){
+        $data[] = [
+            'keycrm_offer_id' => $offer['id'],
+            'keycrm_product_id' => $offer['product_id'],
+            'sku' =>$offer['sku'],
+            'parent_sku' => $offer['product']['parentSku'],
+            'name' => $offer['product']['name'],
+            'category' => $offer['product']['category']['full_name'],
+            'price' => $offer['price'],
+            'keycrm_stock' => $offer['stock'],
+            'prestashop_stock' => $ps_combinations[$offer['sku']],
+            'kasta_stock' => $kasta_products[$offer['sku']],
+            'rozetka_stock' => $rozetkaProducts[$offer['sku']],
+            'prom_stock' => $promProducts[$offer['sku']],
+            'intertop_stock' => $intertopProducts[$offer['sku']],
+            'updated_at'=> date("Y-m-d H:i:s"),
+        ];
+        echo  date("Y-m-d H:i:s") . " " .$offer['sku']."<br>";
+    }
+
+    $db->insertOrUpdateMulti("analitic_products_stock", $data , "keycrm_offer_id");
 }
-
 $endTime = microtime(true);
 $executionTime = $endTime - $startTime;
 echo "Час виконання скрипта: " . round($executionTime, 4) . " секунд\n";

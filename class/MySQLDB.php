@@ -90,6 +90,40 @@ class MySQLDB {
             return false;
         }
     }
+    public function insertOrUpdateMulti($table, array $dataArray, $uniqueKey)
+    {
+        try {
+            if (empty($dataArray)) {
+                throw new Exception("Передано порожній масив даних");
+            }
+
+            $columns = array_keys(reset($dataArray));
+            $placeholders = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
+            $updatePart = implode(', ', array_map(fn($col) => "$col = VALUES($col)", $columns));
+
+            $sql = "INSERT INTO $table (" . implode(',', $columns) . ") 
+                VALUES " . implode(',', array_fill(0, count($dataArray), $placeholders)) . " 
+                ON DUPLICATE KEY UPDATE $updatePart";
+
+            $stmt = $this->pdo->prepare($sql);
+
+            $values = [];
+            foreach ($dataArray as $data) {
+                $values = array_merge($values, array_values($data));
+            }
+
+            return $stmt->execute($values);
+        } catch (PDOException $e) {
+            $this->logError("Помилка insertOrUpdate: " . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            $this->logError("Помилка insertOrUpdate: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
+
 
     public function insertOrUpdatePartial($table, $data, $uniqueKey, $batchSize = 5) {
         try {

@@ -306,8 +306,8 @@ class KeyCrmV2
         } catch (ClientException $e) {
             // Обробка помилки клієнта (наприклад, 400 чи 429)
             if ($e->getCode() == 429) {
-                echo "API перевищено ліміт запитів. Чекаємо перед повтором...". $e->getMessage() . "</br>";
-                sleep(5); // Затримка перед повтором
+                echo date("Y-m-d H:i:s")." API перевищено ліміт запитів. Чекаємо перед повтором..." . "</br>";
+                sleep(20); // Затримка перед повтором
                 return $this->request($endpoint, $method, $body); // Повторюємо запит
             } else {
                 throw new Exception("Помилка запиту до API: " . $e->getMessage());
