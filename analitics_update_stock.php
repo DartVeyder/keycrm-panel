@@ -41,9 +41,11 @@ $intertopProducts  = array_column($intertopProducts['data'], 'quantity','barcode
 
 $kasta_products = $kasta->productsStock();
 
-$ps_combinations = $prestashop->getCombinations('[id,reference,quantity]');
-$ps_combinations = array_column($ps_combinations, 'quantity','reference');
+//$ps_combinations = $prestashop->getCombinations('[id,reference,quantity]');
+//$ps_combinations = array_column($ps_combinations, 'quantity','reference');
 
+$psProductsCombinations = $prestashop->getApiProducts();
+$psProductsCombinations = array_column($psProductsCombinations, 'quantity','combination_reference');
 $listProductsPartials = array_chunk($listProducts, 300);
 
 foreach ($listProductsPartials as $listProducts){
@@ -58,7 +60,7 @@ foreach ($listProductsPartials as $listProducts){
             'category' => $offer['product']['category']['full_name'],
             'price' => $offer['price'],
             'keycrm_stock' => $offer['stock'],
-            'prestashop_stock' => $ps_combinations[$offer['sku']],
+            'prestashop_stock' => $psProductsCombinations[$offer['sku']],
             'kasta_stock' => $kasta_products[$offer['sku']],
             'rozetka_stock' => $rozetkaProducts[$offer['sku']],
             'prom_stock' => $promProducts[$offer['sku']],

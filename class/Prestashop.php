@@ -151,6 +151,18 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         }
     }
 
+    public function getApiProducts(){
+        try {
+            $response = $this->request( 'https://twice.com.ua/admin298rbunic/keycrm/api-product.php', 'GET',
+             );
+             return $response['data']['products'];
+        } catch (\Exception $e) {
+            // Логування або обробка помилки
+            error_log($e->getMessage());
+            return null;
+        }
+    }
+
     public function getCombinations($display = 'full'){
         try {
             $response = $this->client->request('GET', 'combinations', [

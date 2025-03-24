@@ -73,9 +73,7 @@ class PrestaImportV2
                 continue;
             }
 
-            if ($parentSku == '') {
-                continue;
-            }
+
 
             if (strpos($offer['sku'], '_') !== false) {
                 if (strpos($offer['sku'], 'В') === false) {
@@ -108,15 +106,15 @@ class PrestaImportV2
                 continue;
             }
 
-
-
-
-
             if (strpos($offer['sku'], 'В') !== false) {
                 $parentSku =  $offer['sku'];
                 $offer['sku'] = '';
                 $offer['color'] = '';
                 $offer['size'] = '';
+            }
+
+            if ($parentSku == '') {
+                continue;
             }
 
             $rows[] =  [
