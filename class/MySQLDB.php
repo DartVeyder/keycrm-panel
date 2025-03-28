@@ -90,6 +90,30 @@ class MySQLDB {
             return false;
         }
     }
+    // Метод для виконання SQL-запиту
+    public function query($sql, $params = []) {
+        try {
+            // Підготовка запиту
+            $stmt = $this->pdo->prepare($sql);
+
+            // Виконання запиту з параметрами
+            $stmt->execute($params);
+
+            // Якщо запит на вибірку (SELECT)
+            if (stripos($sql, "SELECT") === 0) {
+                // Повертаємо результати у вигляді масиву
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            // Якщо запит на вставку (INSERT), оновлення (UPDATE) або видалення (DELETE)
+            return true;
+        } catch (PDOException $e) {
+            // Логування помилки
+            $this->logError("Помилка виконання запиту: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function insertOrUpdateMulti($table, array $dataArray, $uniqueKey)
     {
         try {

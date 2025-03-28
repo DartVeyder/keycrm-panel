@@ -50,6 +50,7 @@ $listProductsPartials = array_chunk($listProducts, 300);
 
 foreach ($listProductsPartials as $listProducts){
     $data = [];
+    $dataKasta = [];
     foreach ($listProducts as $offer){
         $data[] = [
             'keycrm_offer_id' => $offer['id'],
@@ -67,6 +68,8 @@ foreach ($listProductsPartials as $listProducts){
             'intertop_stock' => $intertopProducts[$offer['sku']],
             'updated_at'=> date("Y-m-d H:i:s"),
         ];
+
+
         echo  date("Y-m-d H:i:s") . " " .$offer['sku']."<br>";
     }
 

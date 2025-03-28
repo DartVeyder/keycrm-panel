@@ -5,6 +5,10 @@ use Shuchkin\SimpleXLSX;
 
 class KastaV2
 {
+    private $db;
+    public function __construct(){
+        $this->db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
+    }
     public  function products( )
     {
         $data = [];
@@ -32,6 +36,103 @@ class KastaV2
         }
 
         return $data;
+    }
+
+    public function getCategories(){
+        return $this->request('/supplier-content/category/all', 'GET');
+    }
+
+    public function getCategoryDetails($kindId, $affiliationId){
+        return $this->request("/supplier-content/category/details?kind_id=$kindId&affiliation_id=$affiliationId", 'GET');
+    }
+
+    public function createCharacteristics($categoryDetails){
+
+    }
+
+    public function createProducts($data){
+       $groupProducts =  $this->grouped($data);
+
+    }
+
+    public function uploadImage($data){
+        return $this->request("/supplier-content/submit/image", 'POST', $data);
+    }
+
+    public function grouped($data){
+        $grouped = [];
+
+        foreach ($data as $item) {
+            if (strpos($item['sku'], '_') !== false) {
+                if (strpos($item['sku'], 'В') === false) {
+                    continue;
+                }
+            }
+
+            $kasta = $this->db->fetchOne("SELECT * FROM kasta WHERE sku  = ?", [$item['sku']] );
+            if(  !$kasta || $kasta['status'] == ''){
+                continue;
+            }
+
+            if ( strpos($item['size'], '_') !== false) {
+                continue;
+            }
+
+            if ( strpos($item['color'], '_') !== false) {
+                continue;
+            }
+
+            if ( strpos($item['color'], ' ') !== false) {
+                continue;
+            }
+
+            if ( strpos($item['size'], 'В') !== false) {
+                continue;
+            }
+
+            if(!$item['product']['isAddedKasta']){
+                continue;
+            }
+
+            $productId = $item['product_id'];
+
+            // Find color property
+            $color = $item['color'];
+
+            // Generate vendor_code (numeric only)
+            $vendorCode = $color
+                ? $item['id'] . abs(crc32($color)) // ID + numeric hash of the color
+                : $item['id'] . '00000'; // Default for no color
+
+            // Initialize grouping structure
+            if (!isset($grouped[$productId])) {
+                $grouped[$productId] = [
+                    'product' => $item['product'], // Add product details once per product_id
+                    'colors' => [],
+                    'color_article' => $item['product']['parentSku'],
+                    'product_id' => $productId
+                ];
+            }
+            if ($color) {
+                if (!isset($grouped[$productId]['colors'][$color])) {
+                    $grouped[$productId]['colors'][$color] = [
+                        'vendor_code' => $vendorCode,
+                        'items' => []
+                    ];
+                }
+                $grouped[$productId]['colors'][$color]['items'][] = $item;
+            } else {
+                if (!isset($grouped[$productId]['colors']['Без кольору'])) {
+                    $grouped[$productId]['colors']['Без кольору'] = [
+                        'vendor_code' => $vendorCode,
+                        'items' => []
+                    ];
+                }
+                $grouped[$productId]['colors']['Без кольору']['items'][] = $item;
+            }
+        }
+
+        return $grouped;
     }
 
     public function listBarcodes()

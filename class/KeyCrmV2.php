@@ -192,6 +192,7 @@ class KeyCrmV2
             "CT_1014" => "fullPrice",
             "CT_1010" => "specialPrice",
             "CT_1026" => "isPreorder",
+            "CT_1029" => "isAddedKasta",
         ];
         $activeField = ['Так' => 1, 'Ні' => 0];
         $data = [];
@@ -216,6 +217,10 @@ class KeyCrmV2
             }
 
             if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1015'){
+                $data[$fields[$customField['uuid']]] = $activeField[$customField['value'][0]];
+            }
+
+            if(isset($customField['name'] ) && $customField['uuid'] == 'CT_1029'){
                 $data[$fields[$customField['uuid']]] = $activeField[$customField['value'][0]];
             }
 

@@ -18,7 +18,7 @@ class PrestaImportV2
 
 
             $parentSku = $offer['product']['parentSku'];
-            $isAdded = $offer['product']['isAddedPrestashop'] ?? 1;
+            $isAdded = $offer['product']['isAddedPrestashop'] ?? 0;
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
             $sku = $offer['sku'];
 
