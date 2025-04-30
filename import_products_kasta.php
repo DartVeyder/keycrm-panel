@@ -19,11 +19,12 @@ $kastaProducts  = $kasta->products();
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 $keyCrm = new KeyCrmV2();
-$keycrmListProducts = $keyCrm->listProducts();
-
-dd($kasta->grouped($keycrmListProducts ));
+$keycrmListProducts = $keyCrm->listProducts('2031,2032');
 
 
+$grouped =$kasta->grouped($keycrmListProducts ) ;
+
+$generateDataCreateProducts = $kasta->generateDataCreateProducts($grouped);
 
 //$categories = $kasta->categories();
 //$categories = array_column($categories['items'], 'kinds','name');

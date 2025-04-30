@@ -6,11 +6,26 @@ use GuzzleHttp\Exception\RequestException;
 
 class KeyCrmV2
 {
-    public function listProducts()
+    public function listProducts($product_ids = null)
     {
-        $offers = $this->offers();
-        $products = $this->products();
-        $offersStock = $this->offersStock();
+        if($product_ids){
+            $filter = "filter[product_id]=$product_ids";
+        }else{
+            $filter = '';
+        }
+
+        $offers = $this->offers( $filter );
+
+
+        $products = $this->products( $filter );
+
+        if($product_ids){
+            $filterOffersStock = "filter[offers_id]=". implode(',',array_column($offers,'id')) ;
+        }else{
+            $filterOffersStock = '';
+        }
+
+        $offersStock = $this->offersStock( $filterOffersStock);
 
         foreach ($offers as &$offer) {
             $offer['product'] = $products[$offer['product_id']];
