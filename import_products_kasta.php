@@ -13,13 +13,14 @@ require_once ('class/KastaV2.php');
 require_once ('class/Rozetka.php');
 require_once ('class/MySQLDB.php');
 
+$prestashop = new Prestashop();
 
 $kasta = new KastaV2();
-$kastaProducts  = $kasta->products();
+
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 $keyCrm = new KeyCrmV2();
-$keycrmListProducts = $keyCrm->listProducts('2031,2032');
+$keycrmListProducts = $keyCrm->listProducts('2032');
 
 
 $grouped =$kasta->grouped($keycrmListProducts ) ;
