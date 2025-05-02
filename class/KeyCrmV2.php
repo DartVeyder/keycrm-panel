@@ -323,6 +323,7 @@ class KeyCrmV2
                 ],
                 'json' => $body
             ]);
+            sleep(5);
         } catch (ClientException $e) {
             // Обробка помилки клієнта (наприклад, 400 чи 429)
             if ($e->getCode() == 429) {
@@ -336,6 +337,7 @@ class KeyCrmV2
             // Загальна обробка помилок запиту
             throw new Exception("Помилка при виконанні запиту: " . $e->getMessage());
         }
+
 
         // Отримуємо тіло відповіді як рядок і парсимо в масив
         return json_decode($response->getBody()->getContents(), true);

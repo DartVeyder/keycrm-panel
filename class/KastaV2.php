@@ -171,21 +171,23 @@ class KastaV2
             $category = $product["product"]["category"]["name"];
             $category_parent_name =  $product["product"]["category"]["parent_name"];
             $kasta_kind_keycrm_category = $this->db->fetchOne("SELECT * FROM kasta_kind_keycrm_category WHERE keycrm_category_name  LIKE ? OR keycrm_category_name LIKE ?", ["%$category%","%$category_parent_name%"] );
+            $prestashopProducts = $prestashop->getApiProducts($product["color_article"]);
+           // dump($prestashopProducts);
+            $prestashopProducts = array_column($prestashopProducts , null,'color') ;
 
-            $prestashopProducts = $prestashop->getApiProducts($product["color_article"]) ;
-            $colorsImage = array_column($prestashopProducts , 'images', 'color') ;
+            //$colorsImage = array_column($prestashopProducts , 'images', 'color') ;
 
            // dump($colorsImage);
            // dump($kasta_kind_keycrm_category);
             if(!$kasta_kind_keycrm_category){
                 $errors[] = 'kasta_kind_keycrm_category: none';
-                $this->saveLog('kasta_kind_keycrm_category: none', 'logs/kasta_created_product.txt');
+                $this->saveLog( $product["product"] . ' kasta_kind_keycrm_category: none', 'logs/kasta_created_product.txt');
                 dump($errors);
                 continue;
             }
             $getCategoryDetails = $this->getCategoryDetails($kasta_kind_keycrm_category['kind_id'], $kasta_kind_keycrm_category['affiliation_id']);
-
-            $kastaSizes =  array_column($getCategoryDetails['kasta_size']['sizecharts'][0]['sizes'] , 'id','value') + array_column($getCategoryDetails['kasta_size']['sizecharts'][1]['sizes']   , 'id','value') + array_column($getCategoryDetails['kasta_size']['sizecharts'][2]['sizes']   , 'id','value')  ;
+           // dump($getCategoryDetails['kasta_size']['sizecharts']);
+            $kastaSizes =  array_column($getCategoryDetails['kasta_size']['sizecharts'][0]['sizes'] , 'id','value') ;
             $kastaColor = array_column($getCategoryDetails[3]['value_ids'] , 'id','value');
 
             $subgroup = array_column($getCategoryDetails[14]['value_ids'] , 'id','value');
@@ -215,13 +217,17 @@ class KastaV2
                     $colors['kind_id'] =  (int)$kasta_kind_keycrm_category['kind_id'];
                     $colors['affiliation_id'] =  (int)$kasta_kind_keycrm_category['affiliation_id'];
 
-                    $image = $colorsImage[$key][0];
+                    $image =  $prestashopProducts [$key]['images'][0];
+                    $images = [];
                     if (!$image) {
                         $errors[] = 'image: none';
                         $this->saveLog($key . '- image: none', 'logs/kasta_created_product.txt');
                     }else{
-                        $image = $this->uploadImage(['url' => $image]);
-                        $this->saveLog($key . '- image: '. $image['path'], 'logs/kasta_created_product.txt');
+                        foreach ( $prestashopProducts [$key]['images'] as $image){
+                            $uploadImage = $this->uploadImage(['url' => $image]);
+                            $images[] = $uploadImage['path'];
+                            $this->saveLog($key . '- image: '. $image['path'], 'logs/kasta_created_product.txt');
+                        }
                     }
 
                     foreach ($color['items'] as $size){
@@ -253,11 +259,9 @@ class KastaV2
 
                         $colors['data'][] = [
                             "color" => $size['color'],
-                            "images" => [
-                                $image['path']
-                            ],
+                            "images" => $images,
                             "name_uk" => $size['product']['name'],
-                            "description_uk" => $size['product']['description'],
+                            "description_uk" =>  strip_tags($prestashopProducts[$key]['product_description']) ?? $size['product']['description'],
                             "brand" => "Twice",
                             "code" => $color['vendor_code'],
                             "old_price" => (double)(isset($fullPrice))? $fullPrice: $size['price'],
@@ -317,14 +321,14 @@ class KastaV2
                     }
                 }
                dump($colors);
-               $uploadProduct = $this->uploadProduct($colors);
-               $this->saveLog(json_encode($uploadProduct), 'logs/kasta_created_product.txt');
-                dump($uploadProduct);
+//               $uploadProduct = $this->uploadProduct($colors);
+//               $this->saveLog(json_encode($uploadProduct), 'logs/kasta_created_product.txt');
+//               dump($uploadProduct);
 
-                dump($errors);
-                exit;
+                break;
                 $errors = [];
             }
+
 
         }
 
@@ -407,7 +411,7 @@ class KastaV2
 
     public function saveLog($text, $path){
         $file = fopen( $path, 'a+');
-        fwrite($file, $text . "\n");
+        fwrite($file, date("Y-m-d H:i:s").' '. $text . "\n");
         fclose($file);
     }
 
@@ -416,7 +420,7 @@ class KastaV2
         $data =  [
             'items' =>  $items
         ];
-        $text = date("Y-m-d H:i:s"). " update price  "  ;
+        $text =  " update price  "  ;
         $this->saveLog($text , 'logs/cron.txt');
         return $this->request('/products/update-price', 'POST',$data );
 

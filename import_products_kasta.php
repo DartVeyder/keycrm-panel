@@ -20,7 +20,7 @@ $kasta = new KastaV2();
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 $keyCrm = new KeyCrmV2();
-$keycrmListProducts = $keyCrm->listProducts('2032');
+$keycrmListProducts = $keyCrm->listProducts();
 
 
 $grouped =$kasta->grouped($keycrmListProducts ) ;
