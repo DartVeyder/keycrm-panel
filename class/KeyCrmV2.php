@@ -6,18 +6,19 @@ use GuzzleHttp\Exception\RequestException;
 
 class KeyCrmV2
 {
-    public function listProducts($product_ids = null)
+    public function listProducts($product_ids = null, $numPages = null)
     {
+
         if($product_ids){
             $filter = "filter[product_id]=$product_ids";
         }else{
             $filter = '';
         }
 
-        $offers = $this->offers( $filter );
+        $offers = $this->offers( $filter, $numPages);
 
 
-        $products = $this->products( $filter );
+        $products = $this->products( $filter , $numPages);
 
         if($product_ids){
             $filterOffersStock = "filter[offers_id]=". implode(',',array_column($offers,'id')) ;
@@ -25,7 +26,7 @@ class KeyCrmV2
             $filterOffersStock = '';
         }
 
-        $offersStock = $this->offersStock( $filterOffersStock);
+        $offersStock = $this->offersStock( $filterOffersStock, $numPages);
 
         foreach ($offers as &$offer) {
             $offer['product'] = $products[$offer['product_id']];
@@ -35,7 +36,7 @@ class KeyCrmV2
         return $offers;
     }
 
-    public function offersStock($filter = ''): array
+    public function offersStock($filter = '',$numPages = null): array
     {
         $page = 1;
         $limit = 50;
@@ -63,6 +64,11 @@ class KeyCrmV2
 
             // Перевіряємо наявність наступної сторінки
             $nextPageUrl = $response['next_page_url'] ?? null;
+            if($page){
+                if($page == $numPages){
+                    break;
+                }
+            }
             $page++;
 
             // Затримка для запобігання перевищенню ліміту запитів, якщо це потрібно
@@ -85,7 +91,7 @@ class KeyCrmV2
         return ($sum < 0) ? 0 : $sum;
     }
 
-    public function offers($filter = ''): array
+    public function offers($filter = '',$numPages = null): array
     {
         $page = 1;
         $limit = 50;
@@ -122,11 +128,17 @@ class KeyCrmV2
 
                 // Об'єднуємо дані з усіма отриманими записами
                 $allData = array_merge($allData, $response['data']);
+
+
             }
 
             // Перевіряємо, чи є наступна сторінка
             $nextPageUrl = $response['next_page_url'] ?? null;
-
+            if($page){
+                if($page == $numPages){
+                    break;
+                }
+            }
             // Збільшуємо номер сторінки для наступного запиту
             $page++;
 
@@ -152,7 +164,7 @@ class KeyCrmV2
     }
 
 
-    public function products($filter = ''): array
+    public function products($filter = '',$numPages = null): array
     {
         $page = 1;
         $limit = 50;
@@ -188,7 +200,11 @@ class KeyCrmV2
 
             // Перевіряємо, чи є наступна сторінка
             $nextPageUrl = $response['next_page_url'] ?? null;
-
+            if($page){
+                if($page == $numPages){
+                    break;
+                }
+            }
             // Збільшуємо номер сторінки для наступного запиту
             $page++;
         } while ($nextPageUrl);

@@ -158,7 +158,7 @@ class KastaV2
     }
 
     public function generateDataCreateProducts($products){
-        dump($products);
+
         $errors = [];
         $prestashop = new Prestashop();
         $corectColor = [
@@ -248,7 +248,7 @@ class KastaV2
 
                         $sizeId =  $kastaSizes[$size['size']];
                         if(!$sizeId){
-                            $sizeId = $this->sizeMapping($size['size']);
+                            $sizeId =  $kastaSizes[$this->sizeMapping($size['size'])];
                         }
 
                         if(!$sizeId){
@@ -321,11 +321,10 @@ class KastaV2
                     }
                 }
                dump($colors);
-//               $uploadProduct = $this->uploadProduct($colors);
-//               $this->saveLog(json_encode($uploadProduct), 'logs/kasta_created_product.txt');
-//               dump($uploadProduct);
-
-                break;
+               $uploadProduct = $this->uploadProduct($colors);
+               $this->saveLog(json_encode($uploadProduct), 'logs/kasta_created_product.txt');
+               dump($uploadProduct);
+               dump($errors);
                 $errors = [];
             }
 

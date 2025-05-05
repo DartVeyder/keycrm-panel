@@ -25,5 +25,12 @@ if(PRESTASHOP){
 if(INTERTOP){
     $intertop = new IntertopV2();
     $intertop->create($listProducts);
+}
 
+if (KASTA){
+    $kasta = new KastaV2();
+
+    $grouped =$kasta->grouped($listProducts ) ;
+
+   $kasta->generateDataCreateProducts($grouped);
 }
