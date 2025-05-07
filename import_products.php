@@ -12,7 +12,6 @@ require_once('class/IntertopV2.php');
 
 $keyCrm = new KeyCrmV2();
 $listProducts = $keyCrm->listProducts();
-
 if(PRESTASHOP){
     $prestaImport = new PrestaImportV2();
     $prestaImport->generateListProductsXLSX($listProducts, 'uploads/prestashop_import_products.xlsx','import');
