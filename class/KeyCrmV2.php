@@ -339,7 +339,6 @@ class KeyCrmV2
                 ],
                 'json' => $body
             ]);
-            sleep(5);
         } catch (ClientException $e) {
             // Обробка помилки клієнта (наприклад, 400 чи 429)
             if ($e->getCode() == 429) {

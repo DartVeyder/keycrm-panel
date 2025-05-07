@@ -12,7 +12,7 @@ class PrestaImportV2
         $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image', 'Date'];
 
         foreach ($offers as $offer){
 
@@ -136,6 +136,7 @@ class PrestaImportV2
                 'Twice',
                 '',
                 '',
+                date("Y-m-d H:i:s")
             ]  ;
         }
 
