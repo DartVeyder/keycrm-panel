@@ -180,6 +180,31 @@ class PrestaImportV2
             return $e->getMessage();
         }
     }
+    public function startUpdatePriceStockChangeStatus(){
+        try {
+            $client = new Client();
+            $response = $client->get('https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport', [
+                'query' => [
+                    'settings' => 9,
+                    'id_shop_group' => 1,
+                    'id_shop' => 1,
+                    'secure_key' => '30aa0bdb68fa671e64a2ba3a4016aec0',
+                    'action' => 'importProducts',
+                ]
+            ]);
+
+            // Виводимо статус-код відповіді
+            echo 'Status Code: ' . $response->getStatusCode() . "\n";
+
+            // Виводимо тіло відповіді
+            echo 'Response Body: ' . $response->getBody();
+            return  $response->getBody();
+        } catch (RequestException $e) {
+            // Обробляємо можливі помилки запиту
+            echo 'Request failed: ' . $e->getMessage();
+            return $e->getMessage();
+        }
+    }
 
     public function startImport(){
         try {

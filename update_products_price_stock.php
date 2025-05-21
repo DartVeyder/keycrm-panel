@@ -45,7 +45,11 @@ if(PRESTASHOP){
     $prestaImport->generateListProductsXLSX($listProducts, $fileNameXLSX ,'update');
 
     if(PRESTASHOP_UPDATE_PRICE){
-        $startImport = $prestaImport->startUpdatePriceStock();
+        if(empty($product_ids)){
+            $startImport = $prestaImport->startUpdatePriceStock();
+        }else{
+            $startImport = $prestaImport->startUpdatePriceStockChangeStatus();
+        }
     }
 }
 
