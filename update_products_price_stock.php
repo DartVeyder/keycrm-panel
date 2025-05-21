@@ -26,25 +26,30 @@ $prestashop = new Prestashop();
 $rozetka = new Rozetka();
 $prom = new Prom();
 
+$fileNameXLSX = 'uploads/prestashop_update_products_price_stock.xlsx';
 
 if(empty($product_ids)){
     $product_ids  = $_GET['product_ids'] ?? '';
+}else{
+    $fileNameXLSX = 'uploads/prestashop_update_products_price_stock_change_status.xlsx';
 }
 
 
 $listProducts = $keyCrm->listProducts($product_ids );
+
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 
 if(PRESTASHOP){
 
-    $prestaImport->generateListProductsXLSX($listProducts, 'uploads/prestashop_update_products_price_stock.xlsx','update');
+    $prestaImport->generateListProductsXLSX($listProducts, $fileNameXLSX ,'update');
 
     if(PRESTASHOP_UPDATE_PRICE){
         $startImport = $prestaImport->startUpdatePriceStock();
     }
 }
 
+echo "<pre>";
 if(KASTA) {
     $kasta->listBarcodes();
 
@@ -54,8 +59,9 @@ if(KASTA) {
     $itemsDataPrice = $kasta->formatDataPrice($listProducts,$inBarcodes );
 
     $updateStock = $kasta->updateStock( $itemsDataStock );
+    print_r($updateStock) ;
     $updatePrice = $kasta->updatePrice($itemsDataPrice);
-
+    print_r($updatePrice) ;
 }
 
 if(INTERTOP){
@@ -73,7 +79,7 @@ if(INTERTOP){
         $response['Quantity'] =  $updateQuantity;
         $response['Price'] =  $updatePrice;
     }
-
+    print_r($response) ;
 }
 
 

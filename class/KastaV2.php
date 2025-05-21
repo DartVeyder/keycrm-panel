@@ -338,13 +338,16 @@ class KastaV2
     {
         $data = [];
         $products =  $this->products();
+
+
         foreach ($products  as $product){
-            if(isset($product['barcode'][0])){
-                $data[] = $product['barcode'][0];
+            if(isset($product['barcode'])){
+                $data[] = $product['barcode'];
             }else{
                 $data[] = $product['code'];
             }
         }
+
         return $data;
 
 //
@@ -416,6 +419,9 @@ class KastaV2
 
     public function updatePrice($items)
     {
+        if(!$items){
+            return [];
+        }
         $data =  [
             'items' =>  $items
         ];
@@ -428,6 +434,9 @@ class KastaV2
 
     public function updateStock($items)
     {
+        if(!$items){
+            return [];
+        }
         $data =  [
             'items' =>  $items
         ];

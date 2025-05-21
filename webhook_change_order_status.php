@@ -20,7 +20,6 @@ $statusPS = [
 $orderKC = $keyCrm->webhookOrder();
 
 
-$order = $keyCrm->order(151217);
 
 if($orderKC){
 
@@ -43,8 +42,6 @@ $kcClientId =  $orderKC['client_id'];
 $idOrderState = $statusPS[$groupStatusId];
 
 $order = $keyCrm->order($orderKC_id);
-
-
 if($order ){
     $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
     include ('update_products_price_stock.php');
