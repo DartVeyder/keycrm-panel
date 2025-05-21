@@ -46,8 +46,10 @@ if(PRESTASHOP){
 
     if(PRESTASHOP_UPDATE_PRICE){
         if(empty($product_ids)){
+            echo "Обновлення всіх залишків і цін";
             $startImport = $prestaImport->startUpdatePriceStock();
         }else{
+            echo "Обновлення залишків при зміні статусу";
             $startImport = $prestaImport->startUpdatePriceStockChangeStatus();
         }
     }
