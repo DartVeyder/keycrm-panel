@@ -30,7 +30,9 @@ $fileNameXLSX = 'uploads/prestashop_update_products_price_stock.xlsx';
 
 if(empty($product_ids)){
     $product_ids  = $_GET['product_ids'] ?? '';
+    echo "Обновлення всіх залишків і цін ";
 }else{
+    echo "Обновлення залишків і цін при зміні статусу";
     $fileNameXLSX = 'uploads/prestashop_update_products_price_stock_change_status.xlsx';
 }
 
@@ -46,10 +48,10 @@ if(PRESTASHOP){
 
     if(PRESTASHOP_UPDATE_PRICE){
         if(empty($product_ids)){
-            echo "Обновлення всіх залишків і цін";
+            echo "Обновлення всіх залишків і цін на сайті";
             $startImport = $prestaImport->startUpdatePriceStock();
         }else{
-            echo "Обновлення залишків при зміні статусу";
+            echo "Обновлення залишків і цін на сайті при зміні статусу";
             $startImport = $prestaImport->startUpdatePriceStockChangeStatus();
         }
     }
