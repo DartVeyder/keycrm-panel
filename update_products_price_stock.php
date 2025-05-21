@@ -26,11 +26,14 @@ $prestashop = new Prestashop();
 $rozetka = new Rozetka();
 $prom = new Prom();
 
-$listProducts = $keyCrm->listProducts();
+
+if(empty($product_ids)){
+    $product_ids  = $_GET['product_ids'] ?? '';
+}
+
+
+$listProducts = $keyCrm->listProducts($product_ids );
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
-
-
-
 
 
 if(PRESTASHOP){

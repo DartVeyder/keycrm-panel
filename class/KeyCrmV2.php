@@ -393,4 +393,8 @@ class KeyCrmV2
             $page++;
         } while ($nextPageUrl);
     }
+
+    public function order($orderId){
+        return $this->request("/order/$orderId?include=products.offer,status");
+    }
 }

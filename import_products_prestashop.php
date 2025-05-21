@@ -8,9 +8,12 @@ require_once('class/Prestashop.php');
 require_once('class/KeyCrmV2.php');
 require_once ('class/PrestaImportV2.php');
 
+if(empty($product_ids)){
+    $product_ids  = $_GET['product_ids'] ?? '';
+}
 
 $keyCrm = new KeyCrmV2();
-$listProducts = $keyCrm->listProducts();
+$listProducts = $keyCrm->listProducts($product_ids);
 
 $prestaImport = new PrestaImportV2();
 $prestaImport->generateListProductsXLSX($listProducts, 'uploads/prestashop_import_products.xlsx','import');
