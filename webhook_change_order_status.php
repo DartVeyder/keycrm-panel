@@ -41,11 +41,14 @@ $kcClientId =  $orderKC['client_id'];
 
 $idOrderState = $statusPS[$groupStatusId];
 
-$order = $keyCrm->order($orderKC_id);
-if($order ){
-    $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
-    include ('update_products_price_stock.php');
+if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
+    $order = $keyCrm->order($orderKC_id);
+    if($order ){
+        $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
+        include ('update_products_price_stock.php');
+    }
 }
+
 
 if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
