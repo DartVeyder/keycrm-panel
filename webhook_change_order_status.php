@@ -30,6 +30,7 @@ $orderKC_source_id = $orderKC['source_id'] ;
 $idOrder = $global_source_uuid[1];
 $orderKS_reference = $global_source_uuid[2];
 $groupStatusId = $orderKC['status_group_id'];
+$orderStatusId = $orderKC['status_id'];
 $kcClientId =  $orderKC['client_id'];
 
 //$orderKC_id =  100000;
@@ -43,9 +44,14 @@ $idOrderState = $statusPS[$groupStatusId];
 
 if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
     $order = $keyCrm->order($orderKC_id);
-    if($order ){
-        $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
-        include ('update_products_price_stock.php');
+    $product_ids = '';
+    if($order){
+        if($orderStatusId == 4 ){
+            $keyCrm->addTagOrder($orderKC_id,266);
+            $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
+            include ('update_products_price_stock.php');
+        }
+
     }
 }
 
