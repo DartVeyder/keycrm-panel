@@ -75,7 +75,7 @@ if( $orderKC_source_id == 18) {
     }
 
     $orderPS = $prestashop->getOrder((int)$idOrder);
-    $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'] . 'order_id: '.$orderStatusId.  ' productIDS: '.  $product_ids ;
+    $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'] . 'order_status_id: '.$orderStatusId.  ' productIDS: '.  $product_ids ;
     echo $text;
     $file = fopen('logs/changeOrderStatus.txt', 'a+');
     fwrite($file, $text . "\n");
