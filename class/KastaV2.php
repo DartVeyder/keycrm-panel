@@ -84,6 +84,7 @@ class KastaV2
         foreach ($data as $item) {
             if (strpos($item['sku'], '_') !== false) {
                 if (strpos($item['sku'], 'В') === false) {
+
                     continue;
                 }
             }
@@ -160,6 +161,7 @@ class KastaV2
     public function generateDataCreateProducts($products){
 
         $errors = [];
+        $dataRow =[];
         $prestashop = new Prestashop();
         $corectColor = [
             "Шоколадний" => "Коричневий"
@@ -167,6 +169,8 @@ class KastaV2
         $kastaProducts = array_unique(array_column($this->products , 'name_color'))  ;
         foreach ($products as $product){
             $data = [];
+            $status = '';
+          //  dump( $product);
 
             $category = $product["product"]["category"]["name"];
             $category_parent_name =  $product["product"]["category"]["parent_name"];
@@ -217,10 +221,11 @@ class KastaV2
                     $colors['kind_id'] =  (int)$kasta_kind_keycrm_category['kind_id'];
                     $colors['affiliation_id'] =  (int)$kasta_kind_keycrm_category['affiliation_id'];
 
-                    $image =  $prestashopProducts [$key]['images'][0];
+                    $image =  $prestashopProducts[$key]['images'][0];
+
                     $images = [];
                     if (!$image) {
-                        $errors[] = 'image: none';
+                        $errors[] = $key . '- image: none';
                         $this->saveLog($key . '- image: none', 'logs/kasta_created_product.txt');
                     }else{
                         foreach ( $prestashopProducts [$key]['images'] as $image){
@@ -238,7 +243,7 @@ class KastaV2
 
                         $colorId =  $kastaColor[$size['color']];
                         if(!$colorId){
-                            $errors[] = $size['sku'] . '- kasta_color_id: none';
+                            $errors[] =  $size['sku'] . ' '. $key . '- kasta_color_id: none';
                             $this->saveLog($size['sku'] . '- kasta_color_id: none', 'logs/kasta_created_product.txt');
                         }
 
@@ -252,7 +257,7 @@ class KastaV2
                         }
 
                         if(!$sizeId){
-                            $errors[] = $size['sku'] .'- kasta_size_id: none';
+                            $errors[] = $size['sku'] . ' '. $key .'- kasta_size_id: none';
                             $this->saveLog($size['sku'] .'- kasta_size_id: none', 'logs/kasta_created_product.txt');
                         }
 
@@ -320,18 +325,46 @@ class KastaV2
 
                     }
                 }
-               dump($colors);
-               $uploadProduct = $this->uploadProduct($colors);
+               //dump($colors);
+                if(!$errors){
+                    $uploadProduct = $this->uploadProduct($colors);
+                    if($uploadProduct){
+                        $status .=  $size['sku']." $key Завантажено \n";
+                    }else{
+                        $status .= $size['sku']." $key Помилка завантаження\n";
+                    }
+
+                }else{
+                    $status .= $size['sku']." $key Помилки\n";
+                }
+
                $this->saveLog(json_encode($uploadProduct), 'logs/kasta_created_product.txt');
-               dump($uploadProduct);
-               dump($errors);
-                $errors = [];
+
+//               dump($uploadProduct);
+//               dump($errors);
+                //$errors = [];
             }
 
+            $dataRow[] =
+                [
+                    'data' => date("Y-m-d H:i:s"),
+                    'id' => $product["product"]['id'],
+                    'name' => $product["product"]['name'],
+                    'parent_sku' => $product["product"]['parentSku'],
+                    'errors' => implode("\n", $errors),
+                    'status' => $status,
 
+                ];
+
+            $status = '';
         }
+        $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $dataRow );
+        $xlsx->saveAs('xlsx/kasta_created_products.xlsx');
+
+        echo SimpleXLSX::parse('xlsx/kasta_created_products.xlsx')->toHTML();
 
 
+      //  dump($dataRow);
     }
 
     public function listBarcodes()
@@ -464,14 +497,16 @@ class KastaV2
             $errorBody = $e->getResponse()->getBody()->getContents();
 
             // Спробувати розпарсити JSON або вивести як є
-            echo "Client error:\n" . $errorBody;
+            echo $endpoint .   "</br>";
+            echo "Client error:" . $errorBody . "</br></br>";
             $this->saveLog("Client error:\n" . $errorBody, 'logs/kasta_request.txt');
 
             // Можна також кинути виняток далі або повернути null
             return null;
         } catch (\Exception $e) {
             // Інші помилки, наприклад, з'єднання
-            echo "General error:\n" . $e->getMessage();
+            echo $endpoint .   "</br>";
+            echo "General error:" . $e->getMessage() . "</br></br>";
             $this->saveLog(  "General error:\n" . $e->getMessage(), 'logs/kasta_request.txt');
             return null;
         }

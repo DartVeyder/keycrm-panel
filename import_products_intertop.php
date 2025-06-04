@@ -3,14 +3,14 @@ require_once('vendor/autoload.php');
 
 require_once('config.php');
 require_once ('class/Base.php');
-require_once ('class/KeyCrm.php');
-require_once ('class/Intertop.php');
+require_once ('class/KeyCrmV2.php');
+require_once ('class/IntertopV2.php');
 require_once ('class/Prestashop.php');
 
 $prestahop = new Prestashop;
-$intertop = new Intertop();
+$keyCrm = new KeyCrmV2();
+$listProducts = $keyCrm->listProducts();
 
-$keycrm = new KeyCrm();
-$intertop->auth();
+$intertop = new IntertopV2();
 
-$intertop->create();
+$intertop->create($listProducts);
