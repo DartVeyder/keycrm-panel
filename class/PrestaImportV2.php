@@ -69,6 +69,12 @@ class PrestaImportV2
             if(empty( $offer['product']['name'])){
                 continue;
             }
+            if (empty( $offer['size'])) {
+                continue;
+            }
+            if (empty($offer['color'])) {
+                continue;
+            }
 
             if ($offer['sku'] == '') {
                 continue;

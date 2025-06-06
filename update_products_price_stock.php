@@ -57,7 +57,6 @@ if(PRESTASHOP){
     }
 }
 
-echo "<pre>";
 if(KASTA) {
     $kasta->listBarcodes();
 
@@ -67,9 +66,9 @@ if(KASTA) {
     $itemsDataPrice = $kasta->formatDataPrice($listProducts,$inBarcodes );
 
     $updateStock = $kasta->updateStock( $itemsDataStock );
-    print_r($updateStock) ;
+
     $updatePrice = $kasta->updatePrice($itemsDataPrice);
-    print_r($updatePrice) ;
+
 }
 
 if(INTERTOP){
@@ -87,7 +86,6 @@ if(INTERTOP){
         $response['Quantity'] =  $updateQuantity;
         $response['Price'] =  $updatePrice;
     }
-    print_r($response) ;
 }
 
 

@@ -149,7 +149,7 @@ class KeyCrmV2
 
 
     private  function getOfferProperties($properties){
-        $data = [];
+        $data = ['color' => '', 'size' => ''];
         foreach ($properties as $property){
             if( mb_strtolower( $property['name']) == 'колір'){
                 $data['color'] = $property['value'];
