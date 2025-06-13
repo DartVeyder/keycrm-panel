@@ -47,7 +47,6 @@ if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
         $order = $keyCrm->order($orderKC_id);
         $product_ids = '';
         if($order){
-            $keyCrm->addTagOrder($orderKC_id,266);
             $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
             include ('update_products_price_stock.php');
         }

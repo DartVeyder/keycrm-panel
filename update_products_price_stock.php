@@ -57,37 +57,38 @@ if(PRESTASHOP){
     }
 }
 
-if(KASTA) {
-    $kasta->listBarcodes();
+if(isset($product_ids)) {
 
-    $inBarcodes = $kasta->listBarcodes();
+    if(KASTA) {
+        $kasta->listBarcodes();
 
-    $itemsDataStock = $kasta->formatDataStock($listProducts,$inBarcodes);
-    $itemsDataPrice = $kasta->formatDataPrice($listProducts,$inBarcodes );
+        $inBarcodes = $kasta->listBarcodes();
 
-    $updateStock = $kasta->updateStock( $itemsDataStock );
+        $itemsDataStock = $kasta->formatDataStock($listProducts,$inBarcodes);
+        $itemsDataPrice = $kasta->formatDataPrice($listProducts,$inBarcodes );
 
-    $updatePrice = $kasta->updatePrice($itemsDataPrice);
+        $updateStock = $kasta->updateStock( $itemsDataStock );
 
-}
+        $updatePrice = $kasta->updatePrice($itemsDataPrice);
 
-if(INTERTOP){
+    }
+    if (INTERTOP) {
 
-    $response = [];
-    $intertop->productsKeycrm = array_column($listProducts , null,'sku'); ;
+        $response = [];
+        $intertop->productsKeycrm = array_column($listProducts, null, 'sku');;
 
-    $offers = $intertop->getDataToUpdateQuantity() ;
+        $offers = $intertop->getDataToUpdateQuantity();
 
-    $groups = array_chunk($offers, 1000);
+        $groups = array_chunk($offers, 1000);
 
-    foreach ($groups  as $group){
-        $updateQuantity = $intertop->updateQuantity($group ) ;
-        $updatePrice = $intertop->updatePrice($group ) ;
-        $response['Quantity'] =  $updateQuantity;
-        $response['Price'] =  $updatePrice;
+        foreach ($groups as $group) {
+            $updateQuantity = $intertop->updateQuantity($group);
+            $updatePrice = $intertop->updatePrice($group);
+            $response['Quantity'] = $updateQuantity;
+            $response['Price'] = $updatePrice;
+        }
     }
 }
-
 
 $endTime = microtime(true);
 $executionTime = $endTime - $startTime;
