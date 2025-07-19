@@ -38,7 +38,7 @@ class IntertopV2
         $result = '';
         foreach ($groupedProducts  as $item){
             $createProductArray = $this->createProductArray($item);
-            dump($createProductArray);
+            //dump($createProductArray);
             $return[] =   $createProductArray;
 
         }
@@ -121,12 +121,17 @@ class IntertopV2
         $offers = [];
         $result = [];
         $log = '';
+        $prestashop = new Prestashop();
+        $prestashopProducts = $prestashop->getApiProducts($product["color_article"]);
+
+         $psDescription =  $prestashopProducts[0]['product_description'];
+
         foreach ($product['colors'] as $key => $color){
 
 
             $colorId = $this->getColorId($key);
             $article = $product['color_article'] . $this->generateColorCode($key);
-
+            $description = $psDescription ? $psDescription : $product['product']['description'];
             $productIT = [
                 'vendor_code' =>  $product['color_article'],
                 'color_article' =>  $product['color_article'],
@@ -135,7 +140,7 @@ class IntertopV2
                 'sort' => 100,
                 'category_id' => 2,
                 'name' =>[['lang' => 'ua', 'value' => $product['product']['name']],['lang' => 'ru', 'value' => $product['product']['name']]],
-                'description' =>[['lang' => 'ua', 'value' => $product['product']['description']],['lang' => 'ru', 'value' => $product['product']['description']]],
+                'description' =>[['lang' => 'ua', 'value' => $description],['lang' => 'ru', 'value' => $description]],
                 'props'  => [
                     [
                         'id' => 7,
@@ -164,7 +169,6 @@ class IntertopV2
                 ];
             }
 
-
             $responseCreate = $this->request('/products', 'POST', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->getToken(),
@@ -187,7 +191,7 @@ class IntertopV2
                 'request' => $productIT,
                 'color' => $key,
                 'responseCreate' =>$responseCreate,
-                'responseUpdate' =>$responseUpdate
+                //'responseUpdate' =>$responseUpdate
             ];
 
 

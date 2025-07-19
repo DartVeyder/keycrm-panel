@@ -10,7 +10,7 @@ class PrestaImportV2
     public function generateListProductsXLSX($offers, $filename, $type = 'import')
     {
         $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
-
+        $error = [];
         $rows = [];
         $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image', 'Date'];
 
@@ -56,46 +56,50 @@ class PrestaImportV2
                 $discountPrice = '';
             }
 
-            if($type == 'import'){
-                if( $offer['product_id']  <= 1887){
-                    continue;
-                }
-            }
+//            if($type == 'import'){
+//                if( $offer['product_id']  <= 1887){
+//                    $error[] = 'Product ID is less than 1887 for SKU: ' . $offer['sku'];
+//                    continue;
+//                }
+//            }
 
             if($offer['isPreorderOffer']){
                 $offer['stock'] = $offer['preorder_stock'];
             }
 
             if(empty( $offer['product']['name'])){
-                continue;
-            }
-            if (empty( $offer['size'])) {
-                continue;
-            }
-            if (empty($offer['color'])) {
+                $error[] = 'Product name is empty for SKU: ' . $offer['sku'];
                 continue;
             }
 
             if ($offer['sku'] == '') {
+                $error[] = 'SKU is empty for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
 
 
 
-            if (strpos($offer['sku'], '_') !== false) {
-                if (strpos($offer['sku'], 'В') === false) {
-                    continue;
-                }
+//            if (strpos($offer['sku'], '_') !== false) {
+//                if (strpos($offer['sku'], 'В') === false) {
+//                    $error[] = 'SKU contains underscore for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
+//                    continue;
+//                }
+//            }
+            if ( $offer['size'] == '') {
+                $error[] =  'Size is empty for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
+                continue;
             }
-
             if ( strpos($offer['size'], '_') !== false) {
+                $error[] = 'Size contains underscore for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
             if ( strpos($offer['size'], 'В') !== false) {
+                $error[] = 'Size contains В for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
 
             if ( strpos($offer['color'], '_') !== false) {
+                $error[] = 'Color contains underscore for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
 
@@ -106,10 +110,12 @@ class PrestaImportV2
 //            }
 
             if(!$isAdded){
+                $error[] = 'Offer is not added to Prestashop for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
 
             if(!$parentSku){
+                $error[] = 'Parent SKU is empty for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
 
@@ -121,8 +127,10 @@ class PrestaImportV2
             }
 
             if ($parentSku == '') {
+                $error[] = 'Parent SKU is empty for Product ID: ' . $offer['product_id'] . ' Offer ID: ' . $offer['id'];
                 continue;
             }
+
 
             $rows[] =  [
                 $offer['product_id'],
@@ -153,7 +161,7 @@ class PrestaImportV2
         if(PRESTASHOP_RESPONSE){
             echo SimpleXLSX::parse($filename)->toHTML();
         }
-
+        dump($error);
         return $rows;
     }
 

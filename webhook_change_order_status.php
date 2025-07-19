@@ -4,11 +4,11 @@ require_once('vendor/autoload.php');
 
 require_once('config.php');
 require_once ('class/Base.php');
-require_once ('class/KeyCrm.php');
+require_once ('class/KeyCrmV2.php');
 require_once ('class/Prestashop.php');
 require_once ('class/LookSize.php');
 
-$keyCrm = new KeyCrm();
+$keyCrm = new KeyCrmV2();
 $prestashop = new Prestashop();
 
 $statusPS = [
@@ -19,6 +19,8 @@ $statusPS = [
 ];
 $orderKC = $keyCrm->webhookOrder();
 
+
+
 if($orderKC){
 
 $global_source_uuid = explode('-', $orderKC['global_source_uuid']);
@@ -28,6 +30,7 @@ $orderKC_source_id = $orderKC['source_id'] ;
 $idOrder = $global_source_uuid[1];
 $orderKS_reference = $global_source_uuid[2];
 $groupStatusId = $orderKC['status_group_id'];
+$orderStatusId = $orderKC['status_id'];
 $kcClientId =  $orderKC['client_id'];
 
 //$orderKC_id =  100000;
@@ -36,7 +39,20 @@ $kcClientId =  $orderKC['client_id'];
 //$groupStatusId = 2;
 //$orderKS_reference = 'FKQALEIQT';
 
+
 $idOrderState = $statusPS[$groupStatusId];
+
+if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
+    if($orderStatusId == 4 ){
+        $order = $keyCrm->order($orderKC_id);
+        $product_ids = '';
+        if($order){
+            $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
+            include ('update_products_price_stock.php');
+        }
+    }
+}
+
 
 if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
@@ -58,7 +74,7 @@ if( $orderKC_source_id == 18) {
     }
 
     $orderPS = $prestashop->getOrder((int)$idOrder);
-    $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'];
+    $text = date("Y-m-d H:i:s") . " orderKC_id: " . $orderKC_id . " orderPS_id: " . $idOrder . " status_group_id: " . $groupStatusId . " source_id: " . $orderKC_source_id . ' current_state_PS: ' . $orderPS['current_state'] . 'order_status_id: '.$orderStatusId.  ' productIDS: '.  $product_ids ;
     echo $text;
     $file = fopen('logs/changeOrderStatus.txt', 'a+');
     fwrite($file, $text . "\n");

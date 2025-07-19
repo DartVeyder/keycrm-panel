@@ -155,7 +155,7 @@ class PrestaImport
         $listProductsCustomFields = $this->keyCrm->listProductsCustomFields('filter[product_id]=' . implode(',', $this->productIds));
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image','Date created'];
 
         // Write the data
         foreach ($data as $parentId => $items) {
@@ -219,6 +219,7 @@ class PrestaImport
                     'Twice',
                     '',
                     '',
+                    date('Y-m-d H:i:s'),
                 ]  ;
             }
         }

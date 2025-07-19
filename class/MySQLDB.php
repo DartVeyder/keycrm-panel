@@ -73,18 +73,115 @@ class MySQLDB {
     }
 
     // Метод для додавання або оновлення запису
-    public function insertOrUpdate($table, $data, $where, $whereParams) {
-        // Перевіряємо, чи є запис у базі
-        $exists = $this->exists($table, $where, $whereParams);
+    public function insertOrUpdate($table, $data, $uniqueKey) {
+        try {
+            $columns = array_keys($data);
+            $placeholders = array_fill(0, count($columns), '?');
+            $updatePart = implode(', ', array_map(fn($col) => "$col = VALUES($col)", $columns));
 
-        if ($exists) {
-            // Якщо є — оновлюємо
-            return $this->update($table, $data, $where, $whereParams);
-        } else {
-            // Якщо немає — додаємо
-            return $this->insert($table, $data);
+            $sql = "INSERT INTO $table (" . implode(',', $columns) . ") 
+                VALUES (" . implode(',', $placeholders) . ") 
+                ON DUPLICATE KEY UPDATE $updatePart";
+
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute(array_values($data));
+        } catch (PDOException $e) {
+            $this->logError("Помилка insertOrUpdate: " . $e->getMessage());
+            return false;
         }
     }
+    // Метод для виконання SQL-запиту
+    public function query($sql, $params = []) {
+        try {
+            // Підготовка запиту
+            $stmt = $this->pdo->prepare($sql);
+
+            // Виконання запиту з параметрами
+            $stmt->execute($params);
+
+            // Якщо запит на вибірку (SELECT)
+            if (stripos($sql, "SELECT") === 0) {
+                // Повертаємо результати у вигляді масиву
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            // Якщо запит на вставку (INSERT), оновлення (UPDATE) або видалення (DELETE)
+            return true;
+        } catch (PDOException $e) {
+            // Логування помилки
+            $this->logError("Помилка виконання запиту: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function insertOrUpdateMulti($table, array $dataArray, $uniqueKey)
+    {
+        try {
+            if (empty($dataArray)) {
+                throw new Exception("Передано порожній масив даних");
+            }
+
+            $columns = array_keys(reset($dataArray));
+            $placeholders = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
+            $updatePart = implode(', ', array_map(fn($col) => "$col = VALUES($col)", $columns));
+
+            $sql = "INSERT INTO $table (" . implode(',', $columns) . ") 
+                VALUES " . implode(',', array_fill(0, count($dataArray), $placeholders)) . " 
+                ON DUPLICATE KEY UPDATE $updatePart";
+
+            $stmt = $this->pdo->prepare($sql);
+
+            $values = [];
+            foreach ($dataArray as $data) {
+                $values = array_merge($values, array_values($data));
+            }
+
+            return $stmt->execute($values);
+        } catch (PDOException $e) {
+            $this->logError("Помилка insertOrUpdate: " . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            $this->logError("Помилка insertOrUpdate: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
+
+
+    public function insertOrUpdatePartial($table, $data, $uniqueKey, $batchSize = 5) {
+        try {
+            // Розбиваємо дані на частини
+            $chunks = array_chunk($data, $batchSize, true);
+
+            foreach ($chunks as $chunk) {
+                // Отримаємо колонки та заповнювачі
+                $columns = array_keys($chunk);
+                $placeholders = array_fill(0, count($columns), '?');
+
+                // Частина для оновлення
+                $updatePart = implode(', ', array_map(fn($col) => "$col = VALUES($col)", $columns));
+
+                // Формуємо запит
+                $sql = "INSERT INTO $table (" . implode(',', $columns) . ") 
+                    VALUES (" . implode(',', $placeholders) . ") 
+                    ON DUPLICATE KEY UPDATE $updatePart";
+
+                $stmt = $this->pdo->prepare($sql);
+                // Виконуємо запит для кожної частини даних
+                if (!$stmt->execute(array_values($chunk))) {
+                    $this->logError("Помилка при виконанні часткового запиту");
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (PDOException $e) {
+            $this->logError("Помилка insertOrUpdatePartial: " . $e->getMessage());
+            return false;
+        }
+    }
+
 
     // Метод для отримання всіх записів
     public function fetchAll($sql, $params = []) {
