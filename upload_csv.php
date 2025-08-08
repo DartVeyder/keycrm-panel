@@ -35,16 +35,34 @@ if (!is_dir($uploadDir)) {
 
 $originalName = basename($_FILES['file']['name']);
 $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-$uniqueName =  'products_1c.' . $extension;
+$uniqueName = 'products_1c.' . $extension;
 $destination = $uploadDir . $uniqueName;
 
 // Переміщення файлу
 if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
+
+    // Запуск імпорту через cron-URL
+    $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=10&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts";
+
+    // Варіант через file_get_contents (просто, але без таймаутів)
+    // @file_get_contents($cronUrl);
+
+    // Варіант через cURL (рекомендовано)
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $cronUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
     echo json_encode([
         "success" => true,
-        "message" => "File uploaded successfully.",
+        "message" => "File uploaded successfully. Import executed.",
         "file" => $uniqueName,
-        "path" => "/uploads/" . $uniqueName
+        "path" => "/uploads/" . $uniqueName,
+        "import_response" => $response,
+        "import_status" => $httpCode
     ]);
 } else {
     http_response_code(500);
