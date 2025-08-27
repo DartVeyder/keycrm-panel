@@ -6,5 +6,10 @@
         "shuchkin/simplexlsx": "^1.1",
         "shuchkin/simplexlsxgen": "^1.4",
         "symfony/console": "^5.4"
+    },
+    "config": {
+        "platform": {
+            "php": "7.4"
+        }
     }
 }
