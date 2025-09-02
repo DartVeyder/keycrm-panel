@@ -38,7 +38,7 @@ class KastaV2
         $products = $this->products();
         $data = [];
         foreach ($products as $product){
-           $data[ $product['barcode'][0]] = $product['total_stock'];
+           $data[ $product['barcode']] = $product['total_stock'];
         }
 
         return $data;

@@ -26,7 +26,6 @@ $intertop = new IntertopV2();
 $prestashop = new Prestashop();
 $rozetka = new Rozetka();
 $prom = new Prom();
-
 $listProducts = $keyCrm->listProducts();
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
