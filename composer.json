@@ -5,7 +5,8 @@
         "larapack/dd": "^1.1",
         "shuchkin/simplexlsx": "^1.1",
         "shuchkin/simplexlsxgen": "^1.4",
-        "symfony/console": "^5.4"
+        "symfony/console": "^5.4",
+        "league/csv": "^9.8"
     },
     "config": {
         "platform": {

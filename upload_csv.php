@@ -1,15 +1,24 @@
 <?php
 
+use League\Csv\Reader;
 use Shuchkin\SimpleXLSXGen;
+use Shuchkin\SimpleXLSX;
+
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
- header("Content-Type: application/json");
+header("Content-Type: application/json");
 
 require_once('vendor/autoload.php');
 require_once('config.php');
 require_once('class/Base.php');
 require_once('class/Prestashop.php');
+require_once('class/MySQLDB.php');
+
+$db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
+
+
+
 
 // Перевірка методу
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -48,26 +57,32 @@ $destination = $uploadDir . $uniqueName;
 if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
 
 
+    $csv = Reader::createFromPath('uploads/products_1c.csv', 'r');
+    $csv->setDelimiter(';');
+    $csv->setHeaderOffset(0); // перший рядок як заголовки
 
-    $prestashop = new Prestashop();
-    $getPreorderProducts = $prestashop->getPreorderProducts();
-    $preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
+    $records = $csv->getRecords();
 
-    $products1c = [];
-    if (($handle = fopen('uploads/'.$uniqueName, 'r')) !== false) {
-        while (($data = fgetcsv($handle, 1000, ';')) !== false) {
-            if( $preorderProducts [$data[0]] ){
-                $data[3] = $preorderProducts [$data[0]]['pre_order_product_quantity_limit'];
+    $data1C = array_column( iterator_to_array($csv->getRecords()), 'Quantity','SKU') ;
+
+    if ( $xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx') ) {
+        $rows = $xlsx->rows();
+        // Вивести усі рядки з першого аркуша
+        $rows[0][] = 'New Column';
+        foreach ($rows as $i => &$row) {
+            if ($i > 0) {
+                $row[6] = $data1C[$row[2]] ?? 0;
             }
-            $products1c[] = $data;
         }
-        fclose($handle);
+    } else {
+        echo SimpleXLSX::parseError();
     }
+    SimpleXLSXGen::fromArray($rows)->saveAs('uploads/prestashop_update_products_price_stock_1c.xlsx');
 
-    SimpleXLSXGen::fromArray($products1c)->saveAs('uploads/products_1c.xlsx');
 
-// Запуск імпорту через cron-URL
-    $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=10&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts";
+ //Запуск імпорту через cron-URL
+    $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=11&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts
+";
 
     // Варіант через file_get_contents (просто, але без таймаутів)
     // @file_get_contents($cronUrl);
