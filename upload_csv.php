@@ -81,8 +81,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
 
 
  //Запуск імпорту через cron-URL
-    $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=11&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts
-";
+    $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=11&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts";
 
     // Варіант через file_get_contents (просто, але без таймаутів)
     // @file_get_contents($cronUrl);
