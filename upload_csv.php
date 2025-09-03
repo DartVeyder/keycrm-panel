@@ -56,6 +56,9 @@ $destination = $uploadDir . $uniqueName;
 // Переміщення файлу
 if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
 
+    $prestashop = new Prestashop();
+    $getPreorderProducts = $prestashop->getPreorderProducts();
+    $preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
 
     $csv = Reader::createFromPath('uploads/products_1c.csv', 'r');
     $csv->setDelimiter(';');
@@ -71,7 +74,12 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
         $rows[0][] = 'New Column';
         foreach ($rows as $i => &$row) {
             if ($i > 0) {
-                $row[6] = $data1C[$row[2]] ?? 0;
+                if( $preorderProducts [$row[2]] ){
+                    $data[6] = $preorderProducts[$row[2]]['pre_order_product_quantity_limit'];
+                }else{
+                    $row[6] = $data1C[$row[2]] ?? 0;
+                }
+
             }
         }
     } else {
