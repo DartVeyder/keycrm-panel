@@ -66,6 +66,15 @@ class PrestaImportV2
                 $offer['stock'] = 20;
             }
 
+             if ($offer['stock'] > 0 && $current_parent_sku != $parentSku) {
+                // новий parentSku – скидаємо
+                $current_parent_sku = $parentSku;
+                $isDefault = ($offer['stock'] > 0) ? 1 : '';
+            } else {
+                // наступні варіанти того ж parentSku
+                $isDefault = '';
+            } 
+
             if(empty( $offer['product']['name'])){
                 continue;
             }
@@ -124,14 +133,7 @@ class PrestaImportV2
                 continue;
             }
           
-            if ($offer['stock'] > 0 && $current_parent_sku != $parentSku) {
-                // новий parentSku – скидаємо
-                $current_parent_sku = $parentSku;
-                $isDefault = ($offer['stock'] > 0) ? 1 : '';
-            } else {
-                // наступні варіанти того ж parentSku
-                $isDefault = '';
-            } 
+           
             $rows[] =  [
                 $offer['product_id'],
                 $offer['id'],
