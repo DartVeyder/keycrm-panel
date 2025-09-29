@@ -56,6 +56,11 @@ if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
 
 if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
+    $orderKS = $keyCrm->order($orderKC_id);
+
+    $custom_fields  = array_column($orderKS['custom_fields'], 'value', 'id');
+    
+    $orderKS_reference = $custom_fields[36];
     $orderLS = $looksize->getOrder($orderKS_reference);
     if($orderLS['list']){
         $keyCrm->addTagOrder($orderKC_id,265);

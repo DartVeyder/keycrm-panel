@@ -4,17 +4,21 @@ require_once('vendor/autoload.php');
 
 require_once('config.php');
 require_once ('class/Base.php');
-require_once ('class/KeyCrm.php');
+require_once ('class/KeyCrmV2.php');
 require_once ('class/LookSize.php');
 
 $looksize = new LookSize();
-$keyCrm = new KeyCrm();
+$keyCrm = new KeyCrmV2();
+$orderKC_id =  183841;
+$orderKS = $keyCrm->order(183841);
 
-$orderKS_reference = 'FKQALEIQT';
-$orderKC_id =  122614;
+$custom_fields  = array_column($orderKS['custom_fields'], 'value', 'id');
+ 
+$orderKS_reference = $custom_fields[36];
+
 
 $orderLS = $looksize->getOrder($orderKS_reference);
-
+dd($orderLS);
 $action_key = end($orderLS['list'])['action_key'] ;
 
 $looksize->getDataByKey($action_key);

@@ -12,15 +12,15 @@ class PrestaImportV2
         $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image', 'Date'];
-
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image','Default', 'Is Preorder','Date'];
+        $current_parent_sku = '';
         foreach ($offers as $offer){
-
+            $isDefault = '';
 
             $parentSku = $offer['product']['parentSku'];
             $isAdded = $offer['product']['isAddedPrestashop'] ?? 1;
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
-
+           
             $sku = $offer['sku'];
 
 //            $data = [
@@ -62,8 +62,8 @@ class PrestaImportV2
                 }
             }
 
-            if($offer['isPreorderOffer']){
-                $offer['stock'] = $offer['preorder_stock'];
+            if(@$offer['isPreorderOffer']){
+                $offer['stock'] = 20;
             }
 
             if(empty( $offer['product']['name'])){
@@ -112,7 +112,7 @@ class PrestaImportV2
             if(!$parentSku){
                 continue;
             }
-
+  
             if (strpos($offer['sku'], 'В') !== false) {
                 $parentSku =  $offer['sku'];
                 $offer['sku'] = '';
@@ -123,7 +123,15 @@ class PrestaImportV2
             if ($parentSku == '') {
                 continue;
             }
-
+          
+            if ($offer['stock'] > 0 && $current_parent_sku != $parentSku) {
+                // новий parentSku – скидаємо
+                $current_parent_sku = $parentSku;
+                $isDefault = ($offer['stock'] > 0) ? 1 : '';
+            } else {
+                // наступні варіанти того ж parentSku
+                $isDefault = '';
+            } 
             $rows[] =  [
                 $offer['product_id'],
                 $offer['id'],
@@ -143,8 +151,11 @@ class PrestaImportV2
                 'Twice',
                 '',
                 '',
+                $isDefault,
+                $offer['isPreorderOffer']   ?? '',
                 date("Y-m-d H:i:s")
             ]  ;
+            
         }
 
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $rows );
