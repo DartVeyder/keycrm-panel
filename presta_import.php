@@ -1,5 +1,6 @@
 <?php
-
+ini_set('display_errors', 1);  // Включаємо відображення помилок
+error_reporting(E_ERROR);      // Виводимо тільки фатальні помилки
 require_once('vendor/autoload.php');
 
 require_once('config.php');
