@@ -18,8 +18,9 @@ class Api {
     public function getQuantityBySku(string $sku) {
     $sql = "
         SELECT 
-             date_created AS date,
-            SUM(quantity) AS quantity
+            date_created AS date,
+            quantity,
+            quantity_1c
         FROM products_log
         WHERE sku = ?
         GROUP BY date_created 
