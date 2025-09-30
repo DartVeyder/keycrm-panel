@@ -157,19 +157,19 @@ class PrestaImportV2
                 $offer['isPreorderOffer']   ?? '',
                 date("Y-m-d H:i:s")
             ]  ;
-             $values = array_map(function($v) {
-    if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
-    if (is_numeric($v)) return $v;            // числа без лапок
-    return "'" . addslashes($v) . "'";        // екранізація рядків
-}, $row);
+//              $values = array_map(function($v) {
+//     if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
+//     if (is_numeric($v)) return $v;            // числа без лапок
+//     return "'" . addslashes($v) . "'";        // екранізація рядків
+// }, $row);
 
-$sql = "INSERT INTO products_log (
-    keycrm_parent_id, keycrm_id, sku, parent_sku, price, discount_price, quantity,
-    size, color, is_active, is_added, product_name,
-    short_description, description, images, main_category,
-    subcategory_1, image, is_default, is_preorder, created_at
-) VALUES (" . implode(",", $values) . ")"; 
-            $db->query($sql); 
+// $sql = "INSERT INTO products_log (
+//     keycrm_parent_id, keycrm_id, sku, parent_sku, price, discount_price, quantity,
+//     size, color, is_active, is_added, product_name,
+//     short_description, description, images, main_category,
+//     subcategory_1, image, is_default, is_preorder, created_at
+// ) VALUES (" . implode(",", $values) . ")"; 
+//             $db->query($sql); 
             $rows[] =  $row;
         }
 
