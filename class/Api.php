@@ -18,12 +18,12 @@ class Api {
     public function getQuantityBySku(string $sku) {
     $sql = "
         SELECT 
-            DATE(date_created) AS date,
+             date_created AS date,
             SUM(quantity) AS quantity
         FROM products_log
         WHERE sku = ?
-        GROUP BY DATE(date_created)
-        ORDER BY DATE(date_created) ASC
+        GROUP BY date_created 
+        ORDER BY date_created  ASC
     ";
 
     $data = $this->db->fetchAll($sql, [$sku]);
