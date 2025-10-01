@@ -67,7 +67,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     $records = $csv->getRecords();
 
     $data1C = array_column( iterator_to_array($csv->getRecords()), 'Quantity','SKU') ;
-
+    
     if ( $xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx') ) {
         $rows = $xlsx->rows();
         // Вивести усі рядки з першого аркуша
