@@ -22,8 +22,7 @@ class Api {
             quantity,
             quantity_1c
         FROM products_log
-        WHERE sku = ?
-        GROUP BY date_created 
+        WHERE sku = ? 
         ORDER BY date_created  ASC
     ";
 

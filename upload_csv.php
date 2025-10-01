@@ -77,7 +77,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                 if($row[19] == 1){
                     $row[] = 20;
                 } else {
-                    $row[] = $data1C[$row[2]] ?? 0; 
+                    $row[] = $data1C[$row[2]] ?? ''; 
                 }
                 $values = array_map(function($v) {
                 if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
