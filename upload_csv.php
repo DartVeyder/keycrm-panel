@@ -10,21 +10,33 @@ header("Access-Control-Allow-Methods: POST");
 header("Content-Type: application/json");
 
 $blockedIps = ['172.70.250.23'];
-
 if (in_array($_SERVER['REMOTE_ADDR'] ?? '', $blockedIps)) {
     http_response_code(403);
     echo json_encode(["error" => "Access denied for IP " . $_SERVER['REMOTE_ADDR']]);
-    
-    // Записуємо у лог спробу доступу
     $logDir = __DIR__ . '/logs/';
-    if (!is_dir($logDir)) {
-        mkdir($logDir, 0777, true);
-    }
-    $logFile = $logDir . 'log_upload_csv_1c.txt';
-    file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] BLOCKED ACCESS from " . $_SERVER['REMOTE_ADDR'] . "\n", FILE_APPEND);
-    
+    if (!is_dir($logDir)) mkdir($logDir, 0777, true);
+    file_put_contents($logDir . 'log_upload_csv_1c.txt', "[" . date('Y-m-d H:i:s') . "] BLOCKED ACCESS from " . $_SERVER['REMOTE_ADDR'] . "\n", FILE_APPEND);
     exit;
 }
+
+// 🕒 Обмеження на повторний запуск
+$lockFile = __DIR__ . '/logs/last_run_time.txt';
+$cooldownSeconds = 60;
+if (file_exists($lockFile)) {
+    $lastRun = (int) file_get_contents($lockFile);
+    $elapsed = time() - $lastRun;
+    if ($elapsed < $cooldownSeconds) {
+        $remaining = $cooldownSeconds - $elapsed;
+        file_put_contents(__DIR__ . '/logs/log_upload_csv_1c.txt',
+            sprintf("[%s] Attempted early run by %s (wait %d sec)\n", date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'] ?? 'unknown', $remaining),
+            FILE_APPEND
+        );
+        http_response_code(429);
+        echo json_encode(["error" => "Please wait {$remaining} seconds before next run."]);
+        exit;
+    }
+}
+file_put_contents($lockFile, time());
 
 require_once('vendor/autoload.php');
 require_once('config.php');
