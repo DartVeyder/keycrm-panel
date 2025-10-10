@@ -18,7 +18,15 @@ require_once('class/MySQLDB.php');
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 
-
+// === ЛОГ ЗАПУСКУ СКРИПТА ===
+$logFile = __DIR__ . '/logs/log_upload_csv_1c.txt';
+$logMessage = sprintf(
+    "[%s] Script started by %s (%s method)\n",
+    date('Y-m-d H:i:s'),
+    $_SERVER['REMOTE_ADDR'] ?? 'unknown IP',
+    $_SERVER['REQUEST_METHOD'] ?? 'unknown'
+);
+file_put_contents($logFile, $logMessage, FILE_APPEND);
 
 // Перевірка методу
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
