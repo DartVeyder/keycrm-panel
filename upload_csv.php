@@ -9,22 +9,22 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Content-Type: application/json");
 
-$blockedIps = ['172.70.250.23'];
+// $blockedIps = ['172.70.250.23'];
 
-if (in_array($_SERVER['REMOTE_ADDR'] ?? '', $blockedIps)) {
-    http_response_code(403);
-    echo json_encode(["error" => "Access denied for IP " . $_SERVER['REMOTE_ADDR']]);
+// if (in_array($_SERVER['REMOTE_ADDR'] ?? '', $blockedIps)) {
+//     http_response_code(403);
+//     echo json_encode(["error" => "Access denied for IP " . $_SERVER['REMOTE_ADDR']]);
     
-    // Записуємо у лог спробу доступу
-    $logDir = __DIR__ . '/logs/';
-    if (!is_dir($logDir)) {
-        mkdir($logDir, 0777, true);
-    }
-    $logFile = $logDir . 'log_upload_csv_1c.txt';
-    file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] BLOCKED ACCESS from " . $_SERVER['REMOTE_ADDR'] . "\n", FILE_APPEND);
+//     // Записуємо у лог спробу доступу
+//     $logDir = __DIR__ . '/logs/';
+//     if (!is_dir($logDir)) {
+//         mkdir($logDir, 0777, true);
+//     }
+//     $logFile = $logDir . 'log_upload_csv_1c.txt';
+//     file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] BLOCKED ACCESS from " . $_SERVER['REMOTE_ADDR'] . "\n", FILE_APPEND);
     
-    exit;
-}
+//     exit;
+// }
 
 require_once('vendor/autoload.php');
 require_once('config.php');
@@ -113,8 +113,8 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     $records = $csv->getRecords();
 
     $data1C = array_column(iterator_to_array($csv->getRecords()), 'Quantity','SKU');
-    if(count($data1C) > 4000){ 
-    if ($xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx') ) {
+ 
+    if ($xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx')) {
         $rows = $xlsx->rows();
         // Додаємо колонку
         $rows[0][] = 'quantity_1c';
@@ -148,7 +148,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     }
 
     SimpleXLSXGen::fromArray($rows)->saveAs('uploads/prestashop_update_products_price_stock_1c.xlsx');
-    }
+
     // === Запуск імпорту через cron-URL ===
     $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=11&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts";
 
@@ -167,7 +167,6 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
         "success" => true,
         "message" => "File uploaded successfully. Import executed.",
         "file" => $uniqueName,
-        "count_1c" => count($data1C),
         "path" => "/uploads/" . $uniqueName,
         "path_xlsx" => "/uploads/products_1c.xlsx",
         "history" => "/uploads/history/" . basename($historyFile),
