@@ -19,7 +19,11 @@ $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 
 // === ЛОГ ЗАПУСКУ СКРИПТА ===
-$logFile = __DIR__ . '/logs/log_upload_csv_1c.txt';
+$logDir = __DIR__ . '/logs/';
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0777, true);
+}
+$logFile = $logDir . 'log_upload_csv_1c.txt';
 $logMessage = sprintf(
     "[%s] Script started by %s (%s method)\n",
     date('Y-m-d H:i:s'),
@@ -27,6 +31,7 @@ $logMessage = sprintf(
     $_SERVER['REQUEST_METHOD'] ?? 'unknown'
 );
 file_put_contents($logFile, $logMessage, FILE_APPEND);
+
 
 // Перевірка методу
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -56,13 +61,29 @@ if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
 
+$historyDir = $uploadDir . 'history_products_1c/';
+if (!is_dir($historyDir)) {
+    mkdir($historyDir, 0777, true);
+}
+
 $originalName = basename($_FILES['file']['name']);
 $extension = pathinfo($originalName, PATHINFO_EXTENSION);
 $uniqueName = 'products_1c.' . $extension;
 $destination = $uploadDir . $uniqueName;
 
+// Ім’я файлу для історії
+$timestamp = date('Ymd_His');
+$historyFile = $historyDir . "products_1c_{$timestamp}." . $extension;
+
+
 // Переміщення файлу
 if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
+
+    // Копіюємо у папку історії
+    copy($destination, $historyFile);
+
+    // Логування завантаження
+    file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] File uploaded: {$originalName}, saved as {$uniqueName}, history copy: " . basename($historyFile) . "\n", FILE_APPEND);
 
     $prestashop = new Prestashop();
     $getPreorderProducts = $prestashop->getPreorderProducts();
@@ -74,53 +95,46 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
 
     $records = $csv->getRecords();
 
-    $data1C = array_column( iterator_to_array($csv->getRecords()), 'Quantity','SKU') ;
+    $data1C = array_column(iterator_to_array($csv->getRecords()), 'Quantity','SKU');
     
-    if ( $xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx') ) {
+    if ($xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx')) {
         $rows = $xlsx->rows();
-        // Вивести усі рядки з першого аркуша
+        // Додаємо колонку
         $rows[0][] = 'quantity_1c';
         foreach ($rows as $i => &$row) {
             if ($i > 0) {
-                if($row[19] == 1){
+                if ($row[19] == 1) {
                     $row[] = 20;
                 } else {
                     $row[] = $data1C[$row[2]] ?? ''; 
                 }
+
                 $values = array_map(function($v) {
-                if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
-                if (is_numeric($v)) return $v;            // числа без лапок
-                return "'" . addslashes($v) . "'";        // екранізація рядків
-            }, $row);
-                        $sql = "INSERT INTO products_log (
-                keycrm_parent_id, keycrm_id, sku, parent_sku, price, discount_price, quantity,
-                size, color, is_active, is_added, product_name,
-                short_description, description, images, main_category,
-                subcategory_1, image, is_default, is_preorder, created_at,quantity_1c
-            ) VALUES (" . implode(",", $values) . ")"; 
+                    if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
+                    if (is_numeric($v)) return $v;            // числа без лапок
+                    return "'" . addslashes($v) . "'";        // екранізація рядків
+                }, $row);
+
+                $sql = "INSERT INTO products_log (
+                    keycrm_parent_id, keycrm_id, sku, parent_sku, price, discount_price, quantity,
+                    size, color, is_active, is_added, product_name,
+                    short_description, description, images, main_category,
+                    subcategory_1, image, is_default, is_preorder, created_at, quantity_1c
+                ) VALUES (" . implode(",", $values) . ")";
            
-              $db->query($sql);  
+                $db->query($sql);  
             }
-             
-                      
-            
         }
-
-
 
     } else {
         echo SimpleXLSX::parseError();
     }
+
     SimpleXLSXGen::fromArray($rows)->saveAs('uploads/prestashop_update_products_price_stock_1c.xlsx');
 
-
- //Запуск імпорту через cron-URL
+    // === Запуск імпорту через cron-URL ===
     $cronUrl = "https://twice.com.ua/module/simpleimportproduct/ScheduledProductsImport?settings=11&id_shop_group=1&id_shop=1&secure_key=30aa0bdb68fa671e64a2ba3a4016aec0&action=importProducts";
 
-    // Варіант через file_get_contents (просто, але без таймаутів)
-    // @file_get_contents($cronUrl);
-
-    // Варіант через cURL (рекомендовано)
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $cronUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -129,16 +143,23 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
+    // Логування завершення
+    file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] Import executed. HTTP: {$httpCode}\n", FILE_APPEND);
+
     echo json_encode([
         "success" => true,
         "message" => "File uploaded successfully. Import executed.",
         "file" => $uniqueName,
         "path" => "/uploads/" . $uniqueName,
         "path_xlsx" => "/uploads/products_1c.xlsx",
+        "history" => "/uploads/history/" . basename($historyFile),
         "import_response" => $response,
         "import_status" => $httpCode
     ]);
+
 } else {
+    file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] ERROR: Failed to move uploaded file\n", FILE_APPEND);
     http_response_code(500);
     echo json_encode(["error" => "Failed to move uploaded file."]);
 }
+
