@@ -9,6 +9,23 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Content-Type: application/json");
 
+$blockedIps = ['172.70.250.23'];
+
+if (in_array($_SERVER['REMOTE_ADDR'] ?? '', $blockedIps)) {
+    http_response_code(403);
+    echo json_encode(["error" => "Access denied for IP " . $_SERVER['REMOTE_ADDR']]);
+    
+    // Записуємо у лог спробу доступу
+    $logDir = __DIR__ . '/logs/';
+    if (!is_dir($logDir)) {
+        mkdir($logDir, 0777, true);
+    }
+    $logFile = $logDir . 'log_upload_csv_1c.txt';
+    file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] BLOCKED ACCESS from " . $_SERVER['REMOTE_ADDR'] . "\n", FILE_APPEND);
+    
+    exit;
+}
+
 require_once('vendor/autoload.php');
 require_once('config.php');
 require_once('class/Base.php');
