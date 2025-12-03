@@ -191,7 +191,7 @@ class Intertop
                 'request' => $productIT,
                 'color' => $key,
                 'responseCreate' =>$responseCreate,
-                'responseUpdate' =>$responseUpdate
+               // 'responseUpdate' =>$responseUpdate
             ];
 
 

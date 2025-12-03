@@ -19,6 +19,8 @@ $statusPS = [
 ];
 $orderKC = $keyCrm->webhookOrder();
 
+//$order = $keyCrm->order(211443);
+
 
 
 if($orderKC){
@@ -50,9 +52,16 @@ if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
             $product_ids = implode(',',array_column(array_column($order['products'], 'offer'), 'product_id') ) ;
             include ('update_products_price_stock.php');
         }
-    }
+    } 
 }
+ 
 
+switch ( $orderStatusId ) {
+case 34:  
+    $order = $keyCrm->order($orderKC_id);
+    include ('refund.php');
+    break;
+}
 
 if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
