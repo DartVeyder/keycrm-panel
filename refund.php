@@ -39,7 +39,7 @@ try {
     // ------------------------------------------------------------
     // 1. Отримання замовлення та кастомних полів
     // ------------------------------------------------------------
-   
+   //$order = $keyCrm->order(211443);
     $orderId = $order['id'] ?? 'UNKNOWN';
  
     $order_custom_fields = array_map(
@@ -94,9 +94,9 @@ try {
         case 'privatbank':
             $api = new PrivatBankPayment($cfg['token']);
             $today = date('d.m.Y');
-
+            $document_number = "AC{$orderId}";
             $paymentData = [
-                "document_number"     => "autoclient",
+                "document_number" => $document_number,
                 "payer_account"       => $cfg['my_iban'],
                 "recipient_account"   => $iban,
                 "recipient_nceo"      => $edrpou,
@@ -113,7 +113,7 @@ try {
 
             if (!empty($result['payment_ref'])) {
                 $statusText  = "SUCCESS";
-                $commentText = "Ref: " . $result['payment_ref'];
+                $commentText = "Платіж №" . $document_number;
                 logMessage($orderId, "SUCCESS: Платіж успішно створено. Ref: " . $result['payment_ref'], $logFile);
             } else {
                 $statusText  = "SUCCESS";
