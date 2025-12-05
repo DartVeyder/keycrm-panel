@@ -17,7 +17,19 @@ $config = [
         'my_iban' => 'UA623052990000026008031050068',
         'my_name' => 'ФОП Райша Приват',
         'type' =>  'privatbank'
-    ]
+    ],
+    "ФОП Василишин М, Приват" => [
+        'token' => '7f692ec8-7a2e-4a21-a2c6-f2a826168233wyIlUUUAhFoiVZhbFLYBDHxBGym812qkpKMTII7Vz+Kwc7MeqMq1HP86T5npcZk7UnMecyS6bejB4lJkf0nk4sksUHeHMRMGv2IGTGhFuwJt3zvAd6zOp8S//p92yMT862N2mUv6g8XVG001wGRIAf6ax20cO38wwnuarkpn8ynfhmN7Qo+iAM1az6UVWYUcIoMQ7m04L8KmeKcRBuD3AQA134v2du/1s9nYyps2O+SYDZN+HtOAj0A9czs/85AxJBKHTxU=',
+        'my_iban' => 'UA893052990000026008031037360',
+        'my_name' => 'ФОП Василишин М, Приват',
+        'type' =>  'privatbank'
+    ], 
+    "ФОП Василишин С. Приват" => [
+        'token' => 'd9211b59-5596-4699-b874-446b895def5dkzVdnslRFLfbWIED00FRB1UOBp/PlbGO+x5clckyXkxoyj1ZTd2/UnLJTshFMKdd71VtTrAtAe3w9qOpFAZiGm8U5CRzt7lsn1KJBIqpJ90Q3bv2YPeKTczKD6BowaHasoqgGsQWV7iR8VJI+j+rLD5fuIASgkJAzLFmPhHxTWmx3GHsmaRSYGdx3G+QnQYPFGOrxbqqqlylQNW1m+/J8WdLMYcJXtZuFLy/B9tbszcvMp+/+sh2m9bsY2/s7Ncims8bZKo=',
+        'my_iban' => 'UA723052990000026006041048619',
+        'my_name' => 'ФОП Василишин С. Приват',
+        'type' =>  'privatbank'
+    ],
 ];
  
 $keyCrm = new KeyCrmV2();
