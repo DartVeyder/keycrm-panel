@@ -3,7 +3,10 @@ set_time_limit(0); // Знімає обмеження часу виконанн�
 ini_set('display_errors', 1);  // Включаємо відображення помилок
 error_reporting(E_ERROR);      // Виводимо тільки фатальні помилки
 require_once('vendor/autoload.php');
-
+include('../../config/config.inc.php');
+include('../../init.php');
+include('../../config/functions.php');
+include('../../config/header.inc.php');
 require_once('config.php');
 require_once ('class/Base.php');
 require_once ('class/KeyCrmV2.php');
