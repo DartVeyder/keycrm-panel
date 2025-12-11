@@ -3,6 +3,10 @@
 require_once('vendor/autoload.php');
 
 require_once('config.php');
+include('../../config/config.inc.php');
+include('../../init.php');
+include('../../config/functions.php');
+include('../../config/header.inc.php');
 require_once ('class/Base.php');
 require_once ('class/KeyCrmV2.php');
 require_once ('class/Prestashop.php');
