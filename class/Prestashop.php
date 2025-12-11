@@ -1,8 +1,4 @@
 <?php
-include('../../config/config.inc.php');
-include('../../init.php');
-include('/functions.php');
-include('/header.inc.php');
 
 use GuzzleHttp\Client;
 
