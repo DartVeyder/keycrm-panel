@@ -12,11 +12,13 @@ $keyCrm = new KeyCrmV2();
 $prestashop = new Prestashop();
 
 $statusPS = [
-    2 => 3, //Обробляється
-    4 => 4, //Відправлено
-    5 => 5, //Виконано
+    2 => 3, //Обробляється 
+    5 => 28, //Виконано
     6 => 6  //Скасовано
 ];
+
+
+
 $orderKC = $keyCrm->webhookOrder();
 
 //$order = $keyCrm->order(211443);
@@ -40,6 +42,12 @@ $kcClientId =  $orderKC['client_id'];
 //$idOrder = 8002;
 //$groupStatusId = 2;
 //$orderKS_reference = 'FKQALEIQT';
+
+if($groupStatusId == 4 && $orderStatusId == 10 ){
+    $statusPS[4] = 4; 
+}else if($groupStatusId == 4 && $orderStatusId == 20 ){
+    $statusPS[4] = 5;
+}
 
 
 $idOrderState = $statusPS[$groupStatusId];
