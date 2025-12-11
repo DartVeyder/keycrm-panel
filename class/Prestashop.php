@@ -207,7 +207,7 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         }
     }
 
-    public function adTrackingNumber($id_order, $tracking_number, $id_carrier = 22)
+    public function addTrackingNumber($id_order, $tracking_number, $id_carrier = 22)
 {
     // Захист даних (Sanitization)
     $safe_tracking_number = pSQL($tracking_number);
