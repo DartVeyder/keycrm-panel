@@ -395,6 +395,6 @@ class KeyCrmV2
     }
 
     public function order($orderId){
-        return $this->request("/order/$orderId?include=products.offer,status,custom_fields,buyer");
+        return $this->request("/order/$orderId?include=products.offer,status,custom_fields,buyer,shipping.deliveryService");
     }
 }

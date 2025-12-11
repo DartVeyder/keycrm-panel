@@ -44,7 +44,7 @@ $kcClientId =  $orderKC['client_id'];
 //$orderKS_reference = 'FKQALEIQT';
 
 if($groupStatusId == 4 && $orderStatusId == 10 ){
-    $statusPS[4] = 4; 
+    $statusPS[4] = 4;  //в дорозі
 }else if($groupStatusId == 4 && $orderStatusId == 20 ){
     $statusPS[4] = 5;
 }
@@ -74,6 +74,9 @@ case 34:
 if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
     $orderKS = $keyCrm->order($orderKC_id);
+    if($orderStatusId == 10 ){
+        $prestashop->adTrackingNumber((int)$idOrder, $orderKS['shipping']['tracking_code']);
+    }
 
     $custom_fields  = array_column($orderKS['custom_fields'], 'value', 'id');
     

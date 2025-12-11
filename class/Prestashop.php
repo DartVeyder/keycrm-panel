@@ -1,4 +1,8 @@
 <?php
+include('../../config/config.inc.php');
+include('../../init.php');
+include('/functions.php');
+include('/header.inc.php');
 
 use GuzzleHttp\Client;
 
@@ -202,6 +206,27 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
             return null;
         }
     }
+
+    public function adTrackingNumber($id_order, $tracking_number, $id_carrier = 22)
+{
+    // Захист даних (Sanitization)
+    $safe_tracking_number = pSQL($tracking_number);
+    $safe_id_order = (int)$id_order;
+    
+    // Формуємо базовий SQL
+    $sql = "UPDATE `" . _DB_PREFIX_ . "order_carrier` 
+            SET `tracking_number` = '$safe_tracking_number' 
+            WHERE `id_order` = $safe_id_order";
+
+    // Якщо передано ID перевізника, додаємо умову
+    if ($id_carrier) {
+        $safe_id_carrier = (int)$id_carrier;
+        $sql .= " AND `id_carrier` = $safe_id_carrier";
+    }
+
+    // Виконуємо запит
+    return Db::getInstance()->execute($sql);
+}
 
 
 }
