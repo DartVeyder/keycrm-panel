@@ -219,7 +219,14 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         $safe_id_carrier = (int)$id_carrier;
         $sql .= " AND `id_carrier` = $safe_id_carrier";
     }
-
+    Logger::addLog(
+        "Трек-номер {$tracking_number} додано до замовлення {$id_order}",
+        3,
+        null,
+        'Order',
+        $id_order,
+        true
+    );
     // Виконуємо запит
     return Db::getInstance()->execute($sql);
 }
