@@ -62,13 +62,12 @@ if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
         }
     } 
 }
- 
 
-switch ( $orderStatusId ) {
-case 34:  
+
+if($orderStatusId == 34 || $orderStatusId == 79 || $orderStatusId == 80 ){
+    //для повернення коштів і скасування замовлення в prestashop не змінюємо статус замовлення в prestashop{
     $order = $keyCrm->order($orderKC_id);
     include ('refund.php');
-    break;
 }
 
 if( $orderKC_source_id == 18) {
