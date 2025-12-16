@@ -74,9 +74,9 @@ if($orderStatusId == 34 || $orderStatusId == 79 || $orderStatusId == 80 ){
 if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
     $orderKS = $keyCrm->order($orderKC_id);
-    // if($orderStatusId == 10 ){
-    //     $prestashop->addTrackingNumber((int)$idOrder, $orderKS['shipping']['tracking_code']);
-    // }
+    if($orderStatusId == 10 ){
+        $prestashop->addTrackingNumber((int)$idOrder, $orderKS['shipping']['tracking_code']);
+    }
 
     $custom_fields  = array_column($orderKS['custom_fields'], 'value', 'id');
     
