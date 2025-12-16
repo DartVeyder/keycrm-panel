@@ -203,26 +203,26 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         }
     }
 
-//     public function addTrackingNumber($id_order, $tracking_number, $id_carrier = 22)
-// {
-//     // Захист даних (Sanitization)
-//     $safe_tracking_number = pSQL($tracking_number);
-//     $safe_id_order = (int)$id_order;
+    public function addTrackingNumber($id_order, $tracking_number, $id_carrier = 22)
+{
+    // Захист даних (Sanitization)
+    $safe_tracking_number = pSQL($tracking_number);
+    $safe_id_order = (int)$id_order;
     
-//     // Формуємо базовий SQL
-//     $sql = "UPDATE `" . _DB_PREFIX_ . "order_carrier` 
-//             SET `tracking_number` = '$safe_tracking_number' 
-//             WHERE `id_order` = $safe_id_order";
+    // Формуємо базовий SQL
+    $sql = "UPDATE `" . _DB_PREFIX_ . "order_carrier` 
+            SET `tracking_number` = '$safe_tracking_number' 
+            WHERE `id_order` = $safe_id_order";
 
-//     // Якщо передано ID перевізника, додаємо умову
-//     if ($id_carrier) {
-//         $safe_id_carrier = (int)$id_carrier;
-//         $sql .= " AND `id_carrier` = $safe_id_carrier";
-//     }
+    // Якщо передано ID перевізника, додаємо умову
+    if ($id_carrier) {
+        $safe_id_carrier = (int)$id_carrier;
+        $sql .= " AND `id_carrier` = $safe_id_carrier";
+    }
 
-//     // Виконуємо запит
-//     return Db::getInstance()->execute($sql);
-// }
+    // Виконуємо запит
+    return Db::getInstance()->execute($sql);
+}
 
 
 }
