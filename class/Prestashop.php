@@ -221,7 +221,7 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     }
     Logger::addLog(
         "Трек-номер {$tracking_number} додано до замовлення {$id_order}",
-        3,
+        1,
         null,
         'Order',
         $id_order,
