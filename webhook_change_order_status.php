@@ -75,7 +75,7 @@ if( $orderKC_source_id == 18) {
     $looksize = new LookSize();
     $orderKS = $keyCrm->order($orderKC_id);
     if($orderStatusId == 10 ){
-        $prestashop->addTrackingNumber((int)$idOrder, $orderKS['shipping']['tracking_code']);
+        $prestashop->addTrackingNumber((int)$idOrder, $orderKS['shipping']['tracking_code'], 22,$orderKC_id);
     }
 
     $custom_fields  = array_column($orderKS['custom_fields'], 'value', 'id');

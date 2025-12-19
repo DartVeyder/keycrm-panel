@@ -203,7 +203,7 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         }
     }
 
-    public function addTrackingNumber($id_order, $tracking_number, $id_carrier = 22)
+    public function addTrackingNumber($id_order, $tracking_number, $id_carrier = 22, $kc_order_id = null)
 {
     // Захист даних (Sanitization)
     $safe_tracking_number = pSQL($tracking_number);
@@ -220,7 +220,7 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         $sql .= " AND `id_carrier` = $safe_id_carrier";
     }
     Logger::addLog(
-        "Трек-номер {$tracking_number} додано до замовлення {$id_order}",
+        "Трек-номер {$tracking_number} додано до замовлення {$id_order} (KC ID: {$kc_order_id})",
         1,
         null,
         'Order',
