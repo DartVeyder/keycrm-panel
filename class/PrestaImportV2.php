@@ -12,7 +12,7 @@ class PrestaImportV2
         $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
         $rows = [];
-        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image','Default', 'Is Preorder','Date'];
+        $rows[] = ['Parent ID', 'ID','SKU','PARENT SKU', 'Price',  'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images',  'Main Category', 'Subcategory_1','Image','Default', 'Is Preorder','Date','sku color'];
         $current_parent_sku = '';
         foreach ($offers as $offer){
             $isDefault = '';
@@ -132,6 +132,8 @@ class PrestaImportV2
             if ($parentSku == '') {
                 continue;
             }
+
+            $skuColor =  $parentSku . abs(crc32($offer['color']));
           
            
             $row = [
@@ -155,7 +157,8 @@ class PrestaImportV2
                 '',
                 $isDefault,
                 $offer['isPreorderOffer']   ?? '',
-                date("Y-m-d H:i:s")
+                date("Y-m-d H:i:s"),
+                $skuColor 
             ]  ;
 //              $values = array_map(function($v) {
 //     if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
