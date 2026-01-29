@@ -18,7 +18,7 @@ class PrestaImportV2
             $isDefault = '';
 
             $parentSku = $offer['product']['parentSku'];
-            $isAdded = $offer['product']['isAddedPrestashop'] ?? 1;
+            $isAdded = $offer['product']['isAddedPrestashop'] ?? 0;
             $isActive = $offer['product']['isActivePrestashop'] ?? 0;
            
             $sku = $offer['sku'];
@@ -78,11 +78,12 @@ class PrestaImportV2
             if(empty( $offer['product']['name'])){
                 continue;
             }
+
             if (empty( $offer['size'])) {
-                continue;
+                $offer['size'] = '';
             }
             if (empty($offer['color'])) {
-                continue;
+                 continue;
             }
 
             if ($offer['sku'] == '') {
@@ -127,13 +128,16 @@ class PrestaImportV2
                 $offer['sku'] = '';
                 $offer['color'] = '';
                 $offer['size'] = '';
+                $skuColor = '';
+            }else{
+                $skuColor =  $parentSku . abs(crc32($offer['color']));
             }
 
             if ($parentSku == '') {
                 continue;
             }
 
-            $skuColor =  $parentSku . abs(crc32($offer['color']));
+            
           
            
             $row = [
