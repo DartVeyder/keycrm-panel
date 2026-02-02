@@ -106,43 +106,68 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     $getPreorderProducts = $prestashop->getPreorderProducts();
     //$preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
 
-    $csv = Reader::createFromPath('uploads/products_1c.csv', 'r');
+     $csv = Reader::createFromPath('uploads/products_1c.csv', 'r');
     $csv->setDelimiter(';');
-    $csv->setHeaderOffset(0); // перший рядок як заголовки
+    $csv->setHeaderOffset(0);
 
-    $records = $csv->getRecords();
-
-    $data1C = array_column(iterator_to_array($csv->getRecords()), 'Quantity','SKU');
+    $data1C = [];
+    foreach ($csv->getRecords() as $record) {
+        $data1C[$record['SKU']] = [
+            'quantity' => $record['Quantity'] ?? 0,
+            'whole_price' => $record['Whole price'] ?? 0
+        ];
+    }
  
     if ($xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx')) {
         $rows = $xlsx->rows();
-        // Додаємо колонку
+        
+        // Додаємо заголовки для трьох нових колонок
         $rows[0][] = 'quantity_1c';
+        $rows[0][] = 'whole_price';
+        $rows[0][] = 'whole_quantity';
+
         foreach ($rows as $i => &$row) {
             if ($i > 0) {
-                if ($row[19] == 1) {
-                    $row[] = 20;
+                $sku = $row[2];
+                $product1C = $data1C[$sku] ?? null;
+                
+                $wholePrice = (float)($product1C['whole_price'] ?? 0);
+                $originalQuantity = $product1C['quantity'] ?? 0;
+
+                // 1. Логіка для quantity_1c
+                if ($wholePrice <= 0) {
+                    $row[] = 0; // Ціни нема -> 0
+                } elseif ($row[19] == 1) {
+                    $row[] = 20; // Предзамовлення -> 20
                 } else {
-                    $row[] = $data1C[$row[2]] ?? ''; 
+                    $row[] = $originalQuantity;
                 }
 
+                // 2. Додаємо ціну (whole_price)
+                $row[] = $wholePrice;
+
+                // 3. Логіка для цільової колонки whole_quantity
+                // Якщо ціни нема або 0, то кількість 0, інакше беремо з 1С
+                $row[] = ($wholePrice <= 0) ? 0 : $originalQuantity;
+
+                // Форматування для SQL
                 $values = array_map(function($v) {
-                    if ($v === null || $v === '') return "''"; // порожні лапки для пустих значень
-                    if (is_numeric($v)) return $v;            // числа без лапок
-                    return "'" . addslashes($v) . "'";        // екранізація рядків
+                    if ($v === null || $v === '') return "''";
+                    if (is_numeric($v)) return $v;
+                    return "'" . addslashes($v) . "'";
                 }, $row);
 
                 $sql = "INSERT INTO products_log (
                     keycrm_parent_id, keycrm_id, sku, parent_sku, price, discount_price, quantity,
                     size, color, is_active, is_added, product_name,
                     short_description, description, images, main_category,
-                    subcategory_1, image, is_default, is_preorder, created_at, quantity_1c
+                    subcategory_1, image, is_default, is_preorder, created_at, 
+                    quantity_1c, whole_price, whole_quantity
                 ) VALUES (" . implode(",", $values) . ")";
            
                 $db->query($sql);  
             }
         }
-
     } else {
         echo SimpleXLSX::parseError();
     }
