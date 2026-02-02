@@ -106,63 +106,58 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     $getPreorderProducts = $prestashop->getPreorderProducts();
     //$preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
 
-     $csv = Reader::createFromPath('uploads/products_1c.csv', 'r');
+    $csv = Reader::createFromPath('uploads/products_1c.csv', 'r');
     $csv->setDelimiter(';');
     $csv->setHeaderOffset(0);
 
+    // Створюємо масив, де ключем є SKU, а значенням — масив з кількістю та оптовою ціною
     $data1C = [];
     foreach ($csv->getRecords() as $record) {
         $data1C[$record['SKU']] = [
             'quantity' => $record['Quantity'] ?? 0,
-            'whole_price' => $record['Whole price'] ?? 0
+            'whole_price' => $record['Whole price'] ?? 0 // Додаємо оптову ціну з CSV
         ];
     }
  
     if ($xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx')) {
         $rows = $xlsx->rows();
         
-        // Додаємо заголовки для трьох нових колонок
+        // Додаємо заголовки для нових колонок у масив $rows
         $rows[0][] = 'quantity_1c';
         $rows[0][] = 'whole_price';
-        $rows[0][] = 'whole_quantity';
+        $rows[0][] = 'whole_quantity_1c';
 
         foreach ($rows as $i => &$row) {
             if ($i > 0) {
                 $sku = $row[2];
                 $product1C = $data1C[$sku] ?? null;
-                
-                $wholePrice = (float)($product1C['whole_price'] ?? 0);
-                $originalQuantity = $product1C['quantity'] ?? 0;
 
                 // 1. Логіка для quantity_1c
-                if ($wholePrice <= 0) {
-                    $row[] = 0; // Ціни нема -> 0
-                } elseif ($row[19] == 1) {
-                    $row[] = 20; // Предзамовлення -> 20
-                } else {
-                    $row[] = $originalQuantity;
+                $row[] = $product1C['quantity'] ?? 0; 
+
+                // 2. Логіка для whole_price
+                $row[] = $product1C['whole_price'] ?? 0;
+
+                if($product1C['whole_price'] <= 0){
+                    $row[] = 0;
+                }else{
+                    $row[] = $product1C['quantity'] ?? 0; 
                 }
 
-                // 2. Додаємо ціну (whole_price)
-                $row[] = $wholePrice;
-
-                // 3. Логіка для цільової колонки whole_quantity
-                // Якщо ціни нема або 0, то кількість 0, інакше беремо з 1С
-                $row[] = ($wholePrice <= 0) ? 0 : $originalQuantity;
-
-                // Форматування для SQL
+                // Форматування значень для SQL
                 $values = array_map(function($v) {
                     if ($v === null || $v === '') return "''";
                     if (is_numeric($v)) return $v;
                     return "'" . addslashes($v) . "'";
                 }, $row);
 
+                // Додаємо whole_price в перелік колонок INSERT
                 $sql = "INSERT INTO products_log (
                     keycrm_parent_id, keycrm_id, sku, parent_sku, price, discount_price, quantity,
                     size, color, is_active, is_added, product_name,
                     short_description, description, images, main_category,
                     subcategory_1, image, is_default, is_preorder, created_at, 
-                    quantity_1c, whole_price, whole_quantity
+                    quantity_1c, whole_price
                 ) VALUES (" . implode(",", $values) . ")";
            
                 $db->query($sql);  
