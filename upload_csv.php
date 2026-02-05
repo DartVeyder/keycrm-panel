@@ -131,13 +131,26 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
             if ($i > 0) {
                 $sku = $row[2];
                 $product1C = $data1C[$sku] ?? null;
+                $price = $row[4];
+                $isPreorder = $row[20];
+                $quantity = $row[6];
 
-                // 1. Логіка для quantity_1c
-                $row[] = $product1C['quantity'] ?? 0; 
+                    // 1. Логіка для quantity_1c
+                if( $isPreorder){
+                    $row[] = $quantity ; 
+                }else{
+                    $row[] = $product1C['quantity'] ?? 0; 
+                }
+                
 
-                // 2. Логіка для whole_price
-                $row[] = $product1C['whole_price'] ?? 0;
-
+                if( $product1C['whole_price']){
+                      // 2. Логіка для whole_price
+                    $whole_price = $product1C['whole_price'] ?? 0;
+                    $row[] = $price - $whole_price;
+                } else {
+                    $row[] = 0;
+                }
+              
                 if($product1C['whole_price'] <= 0){
                     $row[] = 0;
                 }else{
