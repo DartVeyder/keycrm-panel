@@ -114,7 +114,7 @@ try {
                 "recipient_nceo"      => $edrpou,
                 "payment_naming"      => $buyer,
                 "payment_amount"      => $amount,
-                "payment_destination" => "Поверненя коштів за повернений товар",
+                "payment_destination" => "Повернення коштів за повернений товар замовлення {$orderId}",
                 "payment_ccy"         => "UAH",
                 "document_type"       => "cr",
                 "payment_date"        => $today,
