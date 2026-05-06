@@ -129,6 +129,7 @@ class PrestaImportV2
                 $offer['color'] = '';
                 $offer['size'] = '';
                 $skuColor = '';
+                $isActive = 0;
             }else{
                 $skuColor =  $parentSku . abs(crc32($offer['color']));
             }
