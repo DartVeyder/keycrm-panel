@@ -22,6 +22,9 @@ class PrestaImportV2
             $isActive     = $offer['product']['isActivePrestashop'] ?? 0;
 
             $sku = $offer['sku'];
+            if (!$parentSku) {
+                continue;
+            }
 
             //            $data = [
 //                'keycrm_offer_id' => $offer['id'],
@@ -125,6 +128,12 @@ class PrestaImportV2
             if (strpos($offer['size'], 'В') !== false) {
                 continue;
             }
+            if (mb_strpos($offer['size'], 'БРАК') !== false || mb_strpos($offer['size'], 'ФОТО') !== false) {
+                continue;
+            }
+            if (preg_match('/^[FX]\d+$/i', trim($offer['size'])) || preg_match('/^\d{6,}$/', trim($offer['size']))) {
+                continue;
+            }
 
             if (strpos($offer['color'], '_') !== false) {
                 continue;
@@ -140,9 +149,6 @@ class PrestaImportV2
                 continue;
             }
 
-            if (!$parentSku) {
-                continue;
-            }
 
             $isB = (strpos($offer['sku'], 'В') !== false);
 
