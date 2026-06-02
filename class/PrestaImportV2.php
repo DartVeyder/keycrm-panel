@@ -85,12 +85,12 @@ class PrestaImportV2
             if (empty($offer['size'])) {
                 $offer['size'] = '';
             } else {
-                $offer['size'] = trim(str_replace(['_8888', '8888_', ' 8888', '8888 ', '8888'], '', $offer['size']));
+                $offer['size'] = trim(str_replace(['_8888', '8888_', ' 8888', '8888 ', '8888', '_88', '88_', ' 88', '88 ', '88'], '', $offer['size']));
             }
             if (empty($offer['color'])) {
                 continue;
             } else {
-                $offer['color'] = trim(str_replace(['_8888', '8888_', ' 8888', '8888 ', '8888'], '', $offer['color']));
+                $offer['color'] = trim(str_replace(['_8888', '8888_', ' 8888', '8888 ', '8888', '_88', '88_', ' 88', '88 ', '88'], '', $offer['color']));
             }
 
             if ($offer['sku'] == '') {
@@ -105,6 +105,12 @@ class PrestaImportV2
                 $is8888 = true;
             } elseif (strpos($offer['sku'], '8888') === 0) {
                 $prefix = '8888';
+                $is8888 = true;
+            } elseif (strpos($offer['sku'], '88_') !== false) {
+                $prefix = '88_';
+                $is8888 = true;
+            } elseif (strpos($offer['sku'], '88') === 0) {
+                $prefix = '88';
                 $is8888 = true;
             } elseif (strpos($offer['sku'], 'В_') !== false) {
                 $prefix = 'В_';
