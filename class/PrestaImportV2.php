@@ -134,6 +134,32 @@ class PrestaImportV2
             if (preg_match('/^[FX]\d+$/i', trim($offer['size'])) || preg_match('/^\d{6,}$/', trim($offer['size']))) {
                 continue;
             }
+            // Видаляємо слова "ЗРАЗОК", "ВЗІРЕЦЬ", "ЧОРНИЙ", "СЕРТИФІКАТ" та цифри біля них (напр. "№1", "3")
+            $offer['size'] = preg_replace('/(?:ЗРАЗОК|ВЗІРЕЦЬ|ВЗІРЕЦІЬ|ЧОРНИЙ|СЕРТИФІКАТ)\s*№?\s*\d*/iu', '', $offer['size']);
+            // Видаляємо просто "№" з цифрою, якщо десь залишилось
+            $offer['size'] = preg_replace('/№\s*\d+/iu', '', $offer['size']);
+            
+            // Замінюємо кириличні букви розмірів на латиницю (це вирішить проблему змішаних "ХL", "М/L" тощо)
+            $offer['size'] = str_replace(
+                ['Х', 'х', 'С', 'с', 'М', 'м', 'Л', 'л'],
+                ['X', 'X', 'S', 'S', 'M', 'M', 'L', 'L'],
+                $offer['size']
+            );
+
+            // Виправляємо латинську "C", яку часто вводять замість "С"
+            $offer['size'] = str_ireplace('C/M', 'S/M', $offer['size']);
+            if (trim(strtoupper($offer['size'])) === 'C') $offer['size'] = 'S';
+            if (trim(strtoupper($offer['size'])) === 'CM') $offer['size'] = 'S/M';
+            if (trim(strtoupper($offer['size'])) === 'SM') $offer['size'] = 'S/M';
+            if (trim(strtoupper($offer['size'])) === 'ML') $offer['size'] = 'M/L';
+            if (trim(strtoupper($offer['size'])) === 'XSS') $offer['size'] = 'XS/S';
+            
+            // Видаляємо всі інші кириличні символи та знак №, якщо залишився
+            $offer['size'] = preg_replace('/[А-Яа-яЁёІіЇїЄєҐґ№]+/u', '', $offer['size']);
+            
+            // Замінюємо дефіси та дужки
+            $offer['size'] = str_replace(['-', '(', ')'], ['/', '', ''], $offer['size']);
+            $offer['size'] = trim(preg_replace('/\s+/', ' ', $offer['size']));
 
             if (strpos($offer['color'], '_') !== false) {
                 continue;
