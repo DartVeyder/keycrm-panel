@@ -117,13 +117,13 @@ if (!in_array('all', $customFilters)) {
         } elseif ($filter === 'dups') {
             $where[] = "has_duplicates = 1";
         } elseif ($filter === 'samples') {
-            $where[] = "(sku LIKE '%В%' OR sku LIKE '%B%')"; // Кирилична В або латинська B
+            $where[] = "product_type = 'sample'";
         } elseif ($filter === 'no-samples') {
-            $where[] = "(sku NOT LIKE '%В%' AND sku NOT LIKE '%B%')";
+            $where[] = "product_type != 'sample'";
         } elseif ($filter === 'defects') {
-            $where[] = "sku LIKE '%88%'";
+            $where[] = "product_type = 'defect'";
         } elseif ($filter === 'no-defects') {
-            $where[] = "sku NOT LIKE '%88%'";
+            $where[] = "product_type != 'defect'";
         }
     }
 }
@@ -135,7 +135,7 @@ if (!empty($where)) {
 
 // Get total records without filter
 $totalQuery = $db->fetchOne("SELECT COUNT(*) as cnt FROM check_products_cache");
-$recordsTotal = $totalQuery['cnt'];
+$recordsTotal = (int)($totalQuery['cnt'] ?? 0);
 
 // Get total records with filter
 if (!empty($whereSql)) {
@@ -209,9 +209,19 @@ foreach ($data as $row) {
         $activeHtml = '-';
     }
     
-    $skuHtml = htmlspecialchars($sku);
+    $prodType = $row['product_type'] ?? 'regular';
+    $typeBadge = '';
+    if ($prodType === 'defect') {
+        $typeBadge = '<span class="badge bg-dark ms-1" style="font-size:0.7rem;" title="Дефект">88</span>';
+    } elseif ($prodType === 'sample') {
+        $typeBadge = '<span class="badge bg-secondary ms-1" style="font-size:0.7rem;" title="Взірець">ВЗ</span>';
+    } else {
+        $typeBadge = '<span class="badge bg-light text-secondary border ms-1" style="font-size:0.7rem;" title="Звичайний товар">ЗВ</span>';
+    }
+
+    $skuHtml = '<strong>' . htmlspecialchars($sku) . '</strong> ' . $typeBadge;
     if ($hasDuplicates) {
-        $skuHtml .= ' <span class="badge bg-danger ms-1">Дублів Сайт: ' . count($apiList) . '</span>';
+        $skuHtml .= '<br><span class="badge bg-danger mt-1">Дублів Сайт: ' . count($apiList) . '</span>';
     }
     
     $name = !empty($row['name_1c']) ? $row['name_1c'] : (!empty($row['name_site']) ? $row['name_site'] : ($row['name_keycrm'] ?? 'Не знайдено'));

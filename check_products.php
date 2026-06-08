@@ -29,6 +29,7 @@ $csvPath = 'uploads/products_1c.csv';
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/rowgroup/1.1.4/css/rowGroup.bootstrap5.min.css">
     <style>
         body { background-color: #f8f9fa; padding: 20px; }
         .table-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -46,6 +47,17 @@ $csvPath = 'uploads/products_1c.csv';
                     <button class="btn btn-success" id="btnUpdateData">
                         <i class="bi bi-arrow-clockwise"></i> Синхронізувати
                     </button>
+                </div>
+            </div>
+
+            <!-- Progress Bar Container (Hidden by default) -->
+            <div id="syncProgressContainer" class="mb-4 d-none">
+                <div class="d-flex justify-content-between mb-1">
+                    <span id="syncProgressText" class="small fw-bold text-primary">Ініціалізація...</span>
+                    <span id="syncProgressPercent" class="small fw-bold text-primary">0%</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div id="syncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             </div>
 
@@ -121,6 +133,7 @@ $csvPath = 'uploads/products_1c.csv';
     <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/rowgroup/1.1.4/js/dataTables.rowGroup.min.js"></script>
     <script>
         $(document).ready( function () {
             // Clone the thead tr for column filters
@@ -144,7 +157,11 @@ $csvPath = 'uploads/products_1c.csv';
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/uk.json"
                 },
-                "order": [[ 13, "desc" ]], // Sort by difference (index 13)
+                "order": [[ 3, "asc" ]], // Sort by Product Ref by default to keep groups together
+                "rowGroup": {
+                    "dataSrc": 3,
+                    "className": "table-dark fw-bold text-light"
+                },
                 "orderCellsTop": true,
                 "fixedHeader": true,
                 initComplete: function () {
@@ -241,19 +258,54 @@ $csvPath = 'uploads/products_1c.csv';
                 table.draw();
             });
 
-            $('#btnUpdateData').on('click', function() {
+            // Update Data
+            $('#btnUpdateData').click(function() {
                 var btn = $(this);
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Оновлюємо (може зайняти кілька хвилин)...');
+                btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Оновлюється...');
+                btn.prop('disabled', true);
+                
+                // Show Progress Bar
+                $('#syncProgressContainer').removeClass('d-none');
+                $('#syncProgressBar').css('width', '0%').attr('aria-valuenow', 0);
+                $('#syncProgressText').text('Ініціалізація...');
+                $('#syncProgressPercent').text('0%');
+
+                // Start polling progress
+                var progressInterval = setInterval(function() {
+                    $.ajax({
+                        url: 'ajax_get_progress.php',
+                        method: 'GET',
+                        dataType: 'json',
+                        success: function(res) {
+                            if (res.percent !== undefined) {
+                                $('#syncProgressBar').css('width', res.percent + '%').attr('aria-valuenow', res.percent);
+                                $('#syncProgressPercent').text(res.percent + '%');
+                                $('#syncProgressText').text(res.text || 'Оновлення...');
+                                
+                                if (res.percent >= 100) {
+                                    clearInterval(progressInterval);
+                                    setTimeout(function() {
+                                        $('#syncProgressContainer').addClass('d-none');
+                                        table.ajax.reload();
+                                        btn.html('<i class="bi bi-arrow-clockwise"></i> Синхронізувати');
+                                        btn.prop('disabled', false);
+                                    }, 2000);
+                                }
+                            }
+                        }
+                    });
+                }, 1000); // Check every 1 second
                 
                 $.ajax({
                     url: 'update_check_products.php',
-                    method: 'GET',
-                    success: function(response) {
-                        alert('Дані успішно оновлено!');
-                        location.reload();
+                    method: 'POST',
+                    success: function(res) {
+                        // Процес успішно запущено у фоні, чекаємо поки progressInterval не дійде до 100%
                     },
                     error: function() {
+                        clearInterval(progressInterval);
                         alert('Сталася помилка під час оновлення.');
+                        $('#syncProgressContainer').addClass('d-none');
                         btn.prop('disabled', false).html('<i class="bi bi-arrow-clockwise"></i> Оновити дані');
                     }
                 });
