@@ -118,12 +118,21 @@ class PrestaImportV2
                 $prefix = 'В';
             }
 
+            $isB_size = false;
+            if (preg_match('/(?:^|_|\s)В\d*(?!\p{L})/u', $offer['size'], $matches)) {
+                $isB_size = true;
+                $offer['size'] = trim(str_replace($matches[0], '', $offer['size']));
+                if ($prefix === '') {
+                    $prefix = 'В';
+                }
+            }
+
             if ($prefix !== '' && strpos($parentSku, $prefix) !== 0) {
                 $parentSku = $prefix . $parentSku;
             }
 
             if (strpos($offer['sku'], '_') !== false) {
-                if (strpos($offer['sku'], 'В') === false && !$is8888) {
+                if (strpos($offer['sku'], 'В') === false && !$is8888 && !$isB_size) {
                     continue;
                 }
             }
@@ -182,7 +191,7 @@ class PrestaImportV2
             }
 
 
-            $isB = (strpos($offer['sku'], 'В') !== false);
+            $isB = (strpos($offer['sku'], 'В') !== false || $isB_size);
 
             if ($isB) {
                 $isActive     = 0;
