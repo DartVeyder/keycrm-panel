@@ -369,29 +369,35 @@ class KeyCrmV2
         return $this->request("/order/$orderId",'PUT',$data);
     }
 
-    public function orders($filter = ''){
+    public function orders($filter = '', $numPages = null){
         $page = 1;
         $limit = 50;
         $allData = [];
 
         do {
-            $url = "/orders?limit={$limit}&include=payments&$filter&page={$page}";
+            $url = "/order?limit={$limit}&include=payments,custom_fields&$filter&page={$page}";
 
             $response = $this->request($url);
 
             if (isset($response['data'])) {
                 foreach ($response['data'] as &$product){
-                    if($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])){
-                        $product = array_merge($product,  $getProductCustomFields);
+                    if (isset($product['custom_fields'])) {
+                        if($getProductCustomFields = $this->getProductCustomFields($product['custom_fields'])){
+                            $product = array_merge($product,  $getProductCustomFields);
+                        }
                     }
                 }
                 $allData = array_merge($allData,  $response['data']);
             }
 
             $nextPageUrl = $response['next_page_url'] ?? null;
-
+            if ($numPages && $page >= $numPages) {
+                break;
+            }
             $page++;
         } while ($nextPageUrl);
+        
+        return $allData;
     }
 
     public function order($orderId){

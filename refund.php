@@ -22,10 +22,11 @@ $commentField = 'OR_1046'; // Повернення коментар
 // Файл для логів
 $logFile = __DIR__ . '/logs/refund.log';
 
-// Функція логування
-function logMessage($orderId, $message, $logFile) {
-    $time = date('Y-m-d H:i:s');
-    file_put_contents($logFile, "[$time] [Order #{$orderId}] $message\n", FILE_APPEND);
+if (!function_exists('logMessage')) {
+    function logMessage($orderId, $message, $logFile) {
+        $time = date('Y-m-d H:i:s');
+        file_put_contents($logFile, "[$time] [Order #{$orderId}] $message\n", FILE_APPEND);
+    }
 }
 
 try {
@@ -49,17 +50,19 @@ try {
  
         logMessage($orderId, "INFO: {$commentText}", $logFile);
         echo $statusText . " | " . $commentText;
-        exit;
+        return;
     }
 
     // ------------------------------------------------------------
     // 3. Валідація вхідних полів
     // ------------------------------------------------------------
-    function requireField($array, $key, $fieldName) {
-        if (!isset($array[$key]) || $array[$key] === '' || $array[$key] === null) {
-            throw new Exception("Відсутнє або пусте поле: {$fieldName}");
+    if (!function_exists('requireField')) {
+        function requireField($array, $key, $fieldName) {
+            if (!isset($array[$key]) || $array[$key] === '' || $array[$key] === null) {
+                throw new Exception("Відсутнє або пусте поле: {$fieldName}");
+            }
+            return $array[$key];
         }
-        return $array[$key];
     }
 
     $ibanKey  = requireField($order_custom_fields, 'OR_1047', 'Ключ ФОП (OR_1047)');
