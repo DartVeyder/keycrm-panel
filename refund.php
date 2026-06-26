@@ -62,7 +62,7 @@ try {
         return $array[$key];
     }
 
-    $ibanKey  = requireField($order_custom_fields, 'OR_1041', 'IBAN ключ (OR_1041)');
+    $ibanKey  = requireField($order_custom_fields, 'OR_1047', 'Ключ ФОП (OR_1047)');
     $iban     = requireField($order_custom_fields, 'OR_1039', 'Рахунок отримувача (OR_1039)');
     $edrpou   = requireField($order_custom_fields, 'OR_1043', 'ЄДРПОУ отримувача (OR_1043)');
     $amount   = requireField($order_custom_fields, 'OR_1038', 'Сума платежу (OR_1038)');

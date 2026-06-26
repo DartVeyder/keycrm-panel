@@ -1,17 +1,27 @@
 <?php
-use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Output\ConsoleOutput;
+require_once('vendor/autoload.php');
+require_once('config.php');
+require_once('class/KeyCrmV2.php');
 
-require 'vendor/autoload.php';
+$keyCrm = new KeyCrmV2();
 
-$output = new ConsoleOutput();
-$progressBar = new ProgressBar($output, 100);
-$progressBar->start();
+// ТУТ ВКАЖІТЬ ID ВАШОГО ТЕСТОВОГО ЗАМОВЛЕННЯ В KEYCRM
+$testOrderId = 289117;
 
-for ($i = 0; $i < 100; $i++) {
-    usleep(50000);
-    $progressBar->advance();
+echo "<h1>Тестування повернення для замовлення #{$testOrderId}</h1>";
+echo "<pre>";
+
+$order = $keyCrm->order($testOrderId);
+
+if (!$order || !isset($order['id'])) {
+    die("Помилка: Замовлення #{$testOrderId} не знайдено в KeyCRM.");
 }
 
-$progressBar->finish();
-echo "\nГотово!\n";
+
+
+echo "Замовлення знайдено. Запускаємо refund.php...\n\n";
+
+// Викликаємо скрипт повернення
+require_once('refund.php');
+
+echo "\n\nТестування завершено.</pre>";
