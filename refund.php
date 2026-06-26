@@ -11,26 +11,7 @@ require_once('class/KeyCrmV2.php');
 
 
 // 1. Налаштування (наприклад, зчитані з конфігураційного файлу)
-$config = [
-    "ФОП Райша Приват" => [
-        'token' => '58d21a4f-01cf-414b-89a4-04cb656756bfQDssXEBHAW7j6Zas5tFeTZUq+xVHu86Auu5yH5mDZ/49MH8hnaELflMmhXUmKB/APLotDv6I7TDntOb8GIrxsVnmKAWo+3tNtUNWFdk7VuXu4jb1xzch77UCYA/wyUy0El6mYHmltNAlORXi8B9dO7BSz1xkoq3mBNcusqRLUE7a2KqlyaYy863DtJROaPQErgpqYgeV/+wjLoU+oeu8rQJO+5cI4g9lZDs9Sm6kdb4yeB8K2JYvdSe19CpXL4g=',
-        'my_iban' => 'UA623052990000026008031050068',
-        'my_name' => 'ФОП Райша Приват',
-        'type' =>  'privatbank'
-    ],
-    "ФОП Василишин М, Приват" => [
-        'token' => '7f692ec8-7a2e-4a21-a2c6-f2a826168233wyIlUUUAhFoiVZhbFLYBDHxBGym812qkpKMTII7Vz+Kwc7MeqMq1HP86T5npcZk7UnMecyS6bejB4lJkf0nk4sksUHeHMRMGv2IGTGhFuwJt3zvAd6zOp8S//p92yMT862N2mUv6g8XVG001wGRIAf6ax20cO38wwnuarkpn8ynfhmN7Qo+iAM1az6UVWYUcIoMQ7m04L8KmeKcRBuD3AQA134v2du/1s9nYyps2O+SYDZN+HtOAj0A9czs/85AxJBKHTxU=',
-        'my_iban' => 'UA893052990000026008031037360',
-        'my_name' => 'ФОП Василишин М, Приват',
-        'type' =>  'privatbank'
-    ], 
-    "ФОП Василишин С. Приват" => [
-        'token' => 'd9211b59-5596-4699-b874-446b895def5dkzVdnslRFLfbWIED00FRB1UOBp/PlbGO+x5clckyXkxoyj1ZTd2/UnLJTshFMKdd71VtTrAtAe3w9qOpFAZiGm8U5CRzt7lsn1KJBIqpJ90Q3bv2YPeKTczKD6BowaHasoqgGsQWV7iR8VJI+j+rLD5fuIASgkJAzLFmPhHxTWmx3GHsmaRSYGdx3G+QnQYPFGOrxbqqqlylQNW1m+/J8WdLMYcJXtZuFLy/B9tbszcvMp+/+sh2m9bsY2/s7Ncims8bZKo=',
-        'my_iban' => 'UA723052990000026006041048619',
-        'my_name' => 'ФОП Василишин С. Приват',
-        'type' =>  'privatbank'
-    ],
-];
+require_once('refund_config.php');
  
 $keyCrm = new KeyCrmV2();
 
