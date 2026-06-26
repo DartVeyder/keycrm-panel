@@ -1,6 +1,13 @@
 <?php
 $configFile = __DIR__ . '/refund_config.php';
 
+// Завантаження старих налаштувань для збереження токенів
+$oldConfig = [];
+if (file_exists($configFile)) {
+    require($configFile);
+    $oldConfig = $config ?? [];
+}
+
 // Обробка AJAX POST запиту для збереження конфігурації
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save') {
     $input = file_get_contents('php://input');
@@ -13,8 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             $key = trim($item['key'] ?? '');
             if (empty($key)) continue;
             
+            $token = trim($item['token'] ?? '');
+            // Якщо токен замаскований або порожній, залишаємо старий
+            if ($token === '********' || $token === '') {
+                $token = $oldConfig[$key]['token'] ?? '';
+            }
+            
             $newConfig[$key] = [
-                'token' => trim($item['token'] ?? ''),
+                'token' => $token,
                 'my_iban' => trim($item['my_iban'] ?? ''),
                 'my_name' => trim($item['my_name'] ?? ''),
                 'type' => trim($item['type'] ?? 'privatbank')
@@ -44,6 +57,14 @@ if (file_exists($configFile)) {
 }
 if (!isset($config) || !is_array($config)) {
     $config = [];
+}
+
+// Маскуємо токени для безпеки на фронтенді
+$safeConfig = $config;
+foreach ($safeConfig as &$c) {
+    if (!empty($c['token'])) {
+        $c['token'] = '********';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -103,7 +124,7 @@ if (!isset($config) || !is_array($config)) {
                 </div>
                 <div class="col-md-12">
                     <label class="form-label fw-bold">Токен API (Автоклієнт ПриватБанку)</label>
-                    <input type="text" class="form-control fop-token" required>
+                    <input type="password" class="form-control fop-token" placeholder="Введіть новий токен для зміни">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Ваш IBAN (Рахунок ФОП)</label>
@@ -119,8 +140,8 @@ if (!isset($config) || !is_array($config)) {
 </template>
 
 <script>
-    // Завантажуємо поточні конфіги з PHP
-    const currentConfig = <?php echo json_encode($config); ?>;
+    // Завантажуємо безпечні (замасковані) конфіги з PHP
+    const currentConfig = <?php echo json_encode($safeConfig); ?>;
     
     const fopList = document.getElementById('fopList');
     const template = document.getElementById('fopTemplate');
