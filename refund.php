@@ -1,17 +1,17 @@
 <?php
 
-require_once('vendor/autoload.php');
+require_once(__DIR__ . '/vendor/autoload.php');
 
-require_once('config.php');
-require_once('class/Base.php');
-require_once('class/PrivatBankPayment.php');
-require_once('class/KeyCrmV2.php');
+require_once(__DIR__ . '/config.php');
+require_once(__DIR__ . '/class/Base.php');
+require_once(__DIR__ . '/class/PrivatBankPayment.php');
+require_once(__DIR__ . '/class/KeyCrmV2.php');
 
 // --- ПРИКЛАД ВИКОРИСТАННЯ ---
 
 
 // 1. Налаштування (наприклад, зчитані з конфігураційного файлу)
-require_once('refund_config.php');
+require_once(__DIR__ . '/refund_config.php');
  
 $keyCrm = new KeyCrmV2();
 

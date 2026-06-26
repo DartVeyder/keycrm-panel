@@ -1,7 +1,7 @@
 <?php
-require_once('vendor/autoload.php');
-require_once('config.php');
-require_once('class/KeyCrmV2.php');
+require_once(__DIR__ . '/vendor/autoload.php');
+require_once(__DIR__ . '/config.php');
+require_once(__DIR__ . '/class/KeyCrmV2.php');
 
 $keyCrm = new KeyCrmV2();
 
@@ -81,7 +81,7 @@ foreach ($ordersList as $orderData) {
     // Перехоплюємо вивід скрипта, щоб він не зупинив цикл
     ob_start();
     try {
-        require('refund.php');
+        require(__DIR__ . '/refund.php');
     } catch (Exception $e) {
         echo "Помилка при обробці #{$orderId}: " . $e->getMessage() . "\n";
     }

@@ -1,6 +1,6 @@
 <?php
 
-require 'vendor/autoload.php'; // Переконайтеся, що підключено автозавантажувач Composer
+require_once dirname(__DIR__) . '/vendor/autoload.php'; // Переконайтеся, що підключено автозавантажувач Composer
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
