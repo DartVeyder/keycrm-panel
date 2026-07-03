@@ -112,10 +112,22 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
 
     // Створюємо масив, де ключем є SKU, а значенням — масив з кількістю та оптовою ціною
     $data1C = [];
+    $calc_discount = function($price, $discount_price) {
+        if (empty($discount_price) || (float)$discount_price <= 0) return '';
+        $diff = $price - (float)$discount_price;
+        return $diff > 0 ? $diff : '';
+    };
+
     foreach ($csv->getRecords() as $record) {
+        $price_1c = (float)($record['Price'] ?? 0);
         $data1C[$record['SKU']] = [
             'quantity' => $record['Quantity'] ?? 0,
-            'whole_price' => $record['Whole price'] ?? 0 // Додаємо оптову ціну з CSV
+            'whole_price' => $record['Whole price'] ?? 0, // Додаємо оптову ціну з CSV
+            'price_1c' => $price_1c,
+            'discount1_1c' => $calc_discount($price_1c, $record['Price1'] ?? 0),
+            'discount2_1c' => $calc_discount($price_1c, $record['Price2'] ?? 0),
+            'discount3_1c' => $calc_discount($price_1c, $record['Price3'] ?? 0),
+            'discount4_1c' => $calc_discount($price_1c, $record['Price4'] ?? 0)
         ];
     }
  
@@ -126,6 +138,11 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
         $rows[0][] = 'quantity_1c';
         $rows[0][] = 'whole_price';
         $rows[0][] = 'whole_quantity_1c';
+        $rows[0][] = 'price_1c';
+        $rows[0][] = 'discount1_1c';
+        $rows[0][] = 'discount2_1c';
+        $rows[0][] = 'discount3_1c';
+        $rows[0][] = 'discount4_1c';
 
         foreach ($rows as $i => &$row) {
             if ($i > 0) {
@@ -157,6 +174,12 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                     $row[] = $product1C['quantity'] ?? 0; 
                 }
 
+                $row[] = $product1C['price_1c'] ?? 0;
+                $row[] = $product1C['discount1_1c'] ?? '';
+                $row[] = $product1C['discount2_1c'] ?? '';
+                $row[] = $product1C['discount3_1c'] ?? '';
+                $row[] = $product1C['discount4_1c'] ?? '';
+
                 // Форматування значень для SQL
                 $values = array_map(function($v) {
                     if ($v === null || $v === '') return "''";
@@ -170,7 +193,8 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                     size, color, is_active, is_added, product_name,
                     short_description, description, images, main_category,
                     subcategory_1, image, is_default, is_preorder, created_at, 
-                    quantity_1c, whole_price
+                    quantity_1c, whole_price, whole_quantity_1c,
+                    price_1c, discount1_1c, discount2_1c, discount3_1c, discount4_1c
                 ) VALUES (" . implode(",", $values) . ")";
            
                 $db->query($sql);  
