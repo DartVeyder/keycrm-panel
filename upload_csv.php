@@ -114,7 +114,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
     $data1C = [];
     $calc_discount = function($price, $discount_price) {
         if (empty($discount_price) || (float)$discount_price <= 0) return '';
-        $diff = $price - (float)$discount_price;
+        $diff = (float)$price - (float)$discount_price;
         return $diff > 0 ? $diff : '';
     };
 
@@ -124,10 +124,10 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
             'quantity' => $record['Quantity'] ?? 0,
             'whole_price' => $record['Whole price'] ?? 0, // Додаємо оптову ціну з CSV
             'price_1c' => $price_1c,
-            'discount1_1c' => $calc_discount($price_1c, $record['Price1'] ?? 0),
-            'discount2_1c' => $calc_discount($price_1c, $record['Price2'] ?? 0),
-            'discount3_1c' => $calc_discount($price_1c, $record['Price3'] ?? 0),
-            'discount4_1c' => $calc_discount($price_1c, $record['Price4'] ?? 0)
+            'price1_val' => $record['Price1'] ?? 0,
+            'price2_val' => $record['Price2'] ?? 0,
+            'price3_val' => $record['Price3'] ?? 0,
+            'price4_val' => $record['Price4'] ?? 0
         ];
     }
  
@@ -175,10 +175,10 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                 }
 
                 $row[] = $product1C['price_1c'] ?? 0;
-                $row[] = $product1C['discount1_1c'] ?? '';
-                $row[] = $product1C['discount2_1c'] ?? '';
-                $row[] = $product1C['discount3_1c'] ?? '';
-                $row[] = $product1C['discount4_1c'] ?? '';
+                $row[] = $product1C ? $calc_discount((float)$price, $product1C['price1_val']) : '';
+                $row[] = $product1C ? $calc_discount((float)$price, $product1C['price2_val']) : '';
+                $row[] = $product1C ? $calc_discount((float)$price, $product1C['price3_val']) : '';
+                $row[] = $product1C ? $calc_discount((float)$price, $product1C['price4_val']) : '';
 
                 // Форматування значень для SQL
                 $values = array_map(function($v) {
