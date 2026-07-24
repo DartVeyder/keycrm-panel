@@ -68,11 +68,10 @@ if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
 }
  
 
-switch ( $orderStatusId ) {
-case 34:  
+$statusIds = [34, 79, 80, 115, 11, 38, 40, 117, 116];
+if (in_array($orderStatusId, $statusIds)) {
     $order = $keyCrm->order($orderKC_id);
     include ('refund.php');
-    break;
 }
 
 if( $orderKC_source_id == 18) {
