@@ -65,7 +65,8 @@ if(UPDATE_STOCK_PRICE_CHANGE_STATUS){
 }
 
 
-if($orderStatusId == 34 || $orderStatusId == 79 || $orderStatusId == 80 ){
+$statusIds = [34, 79, 80, 115, 11, 38, 40];
+if(in_array($orderStatusId, $statusIds)){
     //для повернення коштів і скасування замовлення в prestashop не змінюємо статус замовлення в prestashop{
     $order = $keyCrm->order($orderKC_id);
     include ('refund.php');

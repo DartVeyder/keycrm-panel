@@ -6,9 +6,9 @@ require_once(__DIR__ . '/class/KeyCrmV2.php');
 $keyCrm = new KeyCrmV2();
 
 // Статуси, що означають "Повернення" (згідно webhook_change_order_status.php)
-$statusIds = [34, 79, 80];
+$statusIds = [34, 79, 80, 115, 11, 38, 40];
 // Додаємо сортування за часом оновлення, щоб найсвіжіші були першими
-$filter    = "filter[status_id]=" . implode(',', $statusIds) . "&sort=-updated_at";
+$filter = "filter[status_id]=" . implode(',', $statusIds) . "&sort=-updated_at";
 
 echo "Запуск CRON перевірки повернень: " . date('Y-m-d H:i:s') . "\n";
 echo "Шукаємо замовлення зі статусами: " . implode(', ', $statusIds) . "\n";
@@ -42,9 +42,9 @@ if (empty($ordersList)) {
 $foundIds = array_column($ordersList, 'id');
 echo "Всього знайдено замовлень за СЬОГОДНІ та ВЧОРА: " . count($ordersList) . " (ID: " . implode(', ', $foundIds) . ")\n\n";
 $processedCount = 0;
-$statusField    = 'OR_1042'; // Поле "Повернення статус"
-$fopField       = 'OR_1047'; // Тип оплати ФОП 1
-$commentField   = 'OR_1046'; // Поле "Повернення коментар"
+$statusField = 'OR_1042'; // Поле "Повернення статус"
+$fopField = 'OR_1047'; // Тип оплати ФОП 1
+$commentField = 'OR_1046'; // Поле "Повернення коментар"
 
 foreach ($ordersList as $orderData) {
     // Збираємо кастомні поля ПРЯМО зі списку, щоб не робити 50 зайвих запитів
