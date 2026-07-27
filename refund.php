@@ -71,6 +71,10 @@ try {
     $amount   = requireField($order_custom_fields, 'OR_1038', 'Сума платежу (OR_1038)');
     $buyer    = requireField($order['buyer'], 'full_name', 'ПІБ покупця');
 
+    // Очищення даних від зайвих пробілів
+    $iban = preg_replace('/\s+/', '', $iban);
+    $edrpou = preg_replace('/\s+/', '', $edrpou);
+
     logMessage($orderId, "INFO: Вхідні дані успішно перевірені", $logFile);
 
     // ------------------------------------------------------------
