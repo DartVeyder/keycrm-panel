@@ -6,7 +6,7 @@ require_once(__DIR__ . '/class/KeyCrmV2.php');
 $keyCrm = new KeyCrmV2();
 
 // Статуси, що означають "Повернення" (згідно webhook_change_order_status.php)
-$statusIds = [34, 79, 80, 115, 11, 38, 40, 117, 116];
+$statusIds = [31, 33, 34, 39, 79, 80, 115, 11, 38, 40, 117, 116];
 // Додаємо сортування за часом оновлення, щоб найсвіжіші були першими
 $filter = "filter[status_id]=" . implode(',', $statusIds) . "&sort=-updated_at";
 

@@ -65,7 +65,7 @@ if ($orderKC) {
     }
 
 
-    $statusIds = [34, 79, 80, 115, 11, 38, 40, 117, 116];
+    $statusIds = [31, 33, 34, 39, 79, 80, 115, 11, 38, 40, 117, 116];
     if (in_array($orderStatusId, $statusIds)) {
         //для повернення коштів і скасування замовлення в prestashop не змінюємо статус замовлення в prestashop{
         $order = $keyCrm->order($orderKC_id);
