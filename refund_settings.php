@@ -1,11 +1,25 @@
 <?php
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/class/KeyCrmV2.php';
+
+$keyCrm = new KeyCrmV2();
+$crmStatuses = [];
+try {
+    $crmStatuses = $keyCrm->statuses();
+} catch (Exception $e) {
+    // fallback if API fails
+}
+
 $configFile = __DIR__ . '/refund_config.php';
 
 // Завантаження старих налаштувань для збереження токенів
 $oldConfig = [];
+$oldRefundStatuses = [31, 33, 34, 39, 79, 80, 115, 11, 38, 40, 117, 116];
 if (file_exists($configFile)) {
     require($configFile);
     $oldConfig = $config ?? [];
+    $oldRefundStatuses = $refund_statuses ?? $oldRefundStatuses;
 }
 
 // Обробка AJAX POST запиту для збереження конфігурації
@@ -16,7 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     if (is_array($data)) {
         // Перезбираємо масив для безпеки та правильного форматування
         $newConfig = [];
-        foreach ($data as $item) {
+        $fopsData = $data['fops'] ?? [];
+        $refundStatusesData = $data['refund_statuses'] ?? [];
+
+        foreach ($fopsData as $item) {
             $key = trim($item['key'] ?? '');
             if (empty($key)) continue;
             
@@ -34,8 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             ];
         }
         
+        $newRefundStatuses = array_map('intval', $refundStatusesData);
+        
         // Генеруємо PHP код
         $phpCode = "<?php\n\n\$config = " . var_export($newConfig, true) . ";\n";
+        $phpCode .= "\n\$refund_statuses = " . var_export($newRefundStatuses, true) . ";\n";
         
         // Зберігаємо у файл
         if (file_put_contents($configFile, $phpCode) !== false) {
@@ -66,6 +86,7 @@ foreach ($safeConfig as &$c) {
         $c['token'] = '********';
     }
 }
+$currentRefundStatuses = $oldRefundStatuses;
 ?>
 <!DOCTYPE html>
 <html lang="uk">
@@ -96,6 +117,23 @@ foreach ($safeConfig as &$c) {
     </div>
     
     <div id="alertContainer"></div>
+
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-header bg-white py-3 fw-bold text-primary">
+            Загальні налаштування
+        </div>
+        <div class="card-body">
+            <label class="form-label fw-bold">Статуси замовлень для автоповернення</label>
+            <select id="refundStatuses" class="form-select" multiple size="10">
+                <?php foreach ($crmStatuses as $status): ?>
+                    <option value="<?= $status['id'] ?>" <?= in_array($status['id'], $currentRefundStatuses) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($status['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <div class="form-text">Оберіть один або декілька статусів (утримуйте Ctrl або Cmd). При переході замовлення в ці статуси буде здійснюватись повернення коштів.</div>
+        </div>
+    </div>
 
     <div id="fopList">
         <!-- Сюди будуть додаватися картки ФОП -->
@@ -220,6 +258,14 @@ foreach ($safeConfig as &$c) {
             return;
         }
 
+        const statusSelect = document.getElementById('refundStatuses');
+        const selectedStatuses = Array.from(statusSelect.selectedOptions).map(opt => opt.value);
+
+        const payload = {
+            fops: dataToSave,
+            refund_statuses: selectedStatuses
+        };
+
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Збереження...';
         
@@ -227,7 +273,7 @@ foreach ($safeConfig as &$c) {
             const response = await fetch('?action=save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSave)
+                body: JSON.stringify(payload)
             });
             
             const result = await response.json();

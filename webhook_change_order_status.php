@@ -66,6 +66,12 @@ if ($orderKC) {
 
 
     $statusIds = [31, 33, 34, 39, 79, 80, 115, 11, 38, 40, 117, 116];
+    if (file_exists(__DIR__ . '/refund_config.php')) {
+        require(__DIR__ . '/refund_config.php');
+        if (isset($refund_statuses) && is_array($refund_statuses)) {
+            $statusIds = $refund_statuses;
+        }
+    }
     if (in_array($orderStatusId, $statusIds)) {
         //для повернення коштів і скасування замовлення в prestashop не змінюємо статус замовлення в prestashop{
         $order = $keyCrm->order($orderKC_id);

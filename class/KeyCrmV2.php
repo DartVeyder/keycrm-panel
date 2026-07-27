@@ -403,4 +403,36 @@ class KeyCrmV2
     public function order($orderId){
         return $this->request("/order/$orderId?include=products.offer,status,custom_fields,buyer,shipping.deliveryService");
     }
+
+    public function statuses($filter = '', $numPages = null) {
+        $page = 1;
+        $limit = 50;
+        $allData = [];
+
+        do {
+            $url = "/order/status?limit={$limit}&page={$page}";
+            if ($filter) {
+                $url .= "&" . $filter;
+            }
+
+            try {
+                $response = $this->request($url);
+            } catch (Exception $e) {
+                echo "Помилка при отриманні статусів: " . $e->getMessage();
+                break;
+            }
+
+            if (isset($response['data'])) {
+                $allData = array_merge($allData, $response['data']);
+            }
+
+            $nextPageUrl = $response['next_page_url'] ?? null;
+            if ($numPages && $page >= $numPages) {
+                break;
+            }
+            $page++;
+        } while ($nextPageUrl);
+
+        return $allData;
+    }
 }
