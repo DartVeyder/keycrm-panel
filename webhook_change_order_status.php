@@ -28,6 +28,18 @@ $orderKC = $keyCrm->webhookOrder();
 
 if ($orderKC) {
 
+    // --- Автоматичне додавання UTM-мітки для копій замовлень ---
+    if (!empty($orderKC['parent_id'])) {
+        $currentUtmSource = $orderKC['utm_source'] ?? '';
+        if (strpos($currentUtmSource, '-- copy') === false) {
+            $newUtmSource = trim($currentUtmSource . ' -- copy');
+            $keyCrm->updateOrder($orderKC['id'], [
+                'utm_source' => $newUtmSource
+            ]);
+        }
+    }
+    // ------------------------------------------------------------
+
     $global_source_uuid = explode('-', $orderKC['global_source_uuid']);
 
     $orderKC_id = $orderKC['id'];

@@ -5,6 +5,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 require_once(__DIR__ . '/config.php');
 require_once(__DIR__ . '/class/Base.php');
 require_once(__DIR__ . '/class/PrivatBankPayment.php');
+require_once(__DIR__ . '/class/LiqPayPayment.php');
 require_once(__DIR__ . '/class/KeyCrmV2.php');
 
 // --- ПРИКЛАД ВИКОРИСТАННЯ ---
@@ -66,31 +67,38 @@ try {
     }
 
     $ibanKey  = requireField($order_custom_fields, 'OR_1047', 'Ключ ФОП (OR_1047)');
-    $iban     = requireField($order_custom_fields, 'OR_1039', 'Рахунок отримувача (OR_1039)');
-    $edrpou   = requireField($order_custom_fields, 'OR_1043', 'ЄДРПОУ отримувача (OR_1043)');
     $amount   = requireField($order_custom_fields, 'OR_1038', 'Сума платежу (OR_1038)');
-    $buyer    = requireField($order['buyer'], 'full_name', 'ПІБ покупця');
-
-    // Очищення даних від зайвих пробілів
-    $iban = preg_replace('/\s+/', '', $iban);
-    $edrpou = preg_replace('/\s+/', '', $edrpou);
-
-    logMessage($orderId, "INFO: Вхідні дані успішно перевірені", $logFile);
-
+    
     // ------------------------------------------------------------
     // 4. Конфігурація
     // ------------------------------------------------------------
     $cfg = $config[$ibanKey] ?? null;
     if (!$cfg) throw new Exception("Конфіг не знайдено для ключа: {$ibanKey}");
-    if (empty($cfg['token']))   throw new Exception("Порожній токен API у конфігу");
-    if (empty($cfg['my_iban'])) throw new Exception("Порожній мій IBAN у конфігу");
+    
+    $type = $cfg['type'] ?? 'privatbank';
+    
+    if ($type === 'privatbank') {
+        $iban     = requireField($order_custom_fields, 'OR_1039', 'Рахунок отримувача (OR_1039)');
+        $edrpou   = requireField($order_custom_fields, 'OR_1043', 'ЄДРПОУ отримувача (OR_1043)');
+        $buyer    = requireField($order['buyer'], 'full_name', 'ПІБ покупця');
+        
+        // Очищення даних від зайвих пробілів
+        $iban = preg_replace('/\s+/', '', $iban);
+        $edrpou = preg_replace('/\s+/', '', $edrpou);
+        
+        if (empty($cfg['token']))   throw new Exception("Порожній токен API у конфігу");
+        if (empty($cfg['my_iban'])) throw new Exception("Порожній мій IBAN у конфігу");
+    } elseif ($type === 'liqpay') {
+        if (empty($cfg['public_key'])) throw new Exception("Порожній public_key у конфігу");
+        if (empty($cfg['private_key'])) throw new Exception("Порожній private_key у конфігу");
+    }
 
-    logMessage($orderId, "INFO: Конфіг для {$ibanKey} успішно знайдено", $logFile);
+    logMessage($orderId, "INFO: Вхідні дані успішно перевірені", $logFile);
 
     // ------------------------------------------------------------
     // 5. Створення платежу
     // ------------------------------------------------------------
-    switch ($cfg['type']) {
+    switch ($type) {
         case 'privatbank':
             $api = new PrivatBankPayment($cfg['token']);
             $today = date('d.m.Y');
@@ -122,8 +130,38 @@ try {
             }
             break;
 
+        case 'liqpay':
+            $api = new LiqPayPayment($cfg['public_key'], $cfg['private_key']);
+            
+            // Спробуємо знайти SOID у коментарях до оплат (щоб повернути саме ту транзакцію)
+            $liqpayOrderId = $orderId;
+            if (!empty($order['payments']) && is_array($order['payments'])) {
+                foreach ($order['payments'] as $payment) {
+                    $comment = $payment['description'] ?? $payment['comment'] ?? '';
+                    if (preg_match('/SOID\s+([A-Za-z0-9\-]+)/i', $comment, $matches)) {
+                        $liqpayOrderId = $matches[1];
+                        logMessage($orderId, "INFO: Знайдено SOID для LiqPay: {$liqpayOrderId}", $logFile);
+                        break;
+                    }
+                }
+            }
+
+            $result = $api->refund($liqpayOrderId, $amount);
+
+            if (isset($result['status']) && in_array($result['status'], ['reversed', 'success', 'wait_accept'])) {
+                $statusText  = "SUCCESS";
+                $paymentId = $result['payment_id'] ?? $result['order_id'] ?? 'N/A';
+                $commentText = "Повернення LiqPay успішне (ID: {$paymentId})";
+                logMessage($orderId, "SUCCESS: Повернення LiqPay успішне. Ref: {$paymentId}", $logFile);
+            } else {
+                $statusText  = "SUCCESS";
+                $commentText = "Запит відправлено LiqPay, статус: " . ($result['status'] ?? 'unknown');
+                logMessage($orderId, "WARNING: LiqPay повернув статус " . ($result['status'] ?? 'unknown'), $logFile);
+            }
+            break;
+
         default:
-            throw new Exception("Непідтримуваний тип конфігу: {$cfg['type']}");
+            throw new Exception("Непідтримуваний тип конфігу: {$type}");
     }
 
     // ------------------------------------------------------------

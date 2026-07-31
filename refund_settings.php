@@ -43,8 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 $token = $oldConfig[$key]['token'] ?? '';
             }
             
+            $publicKey = trim($item['public_key'] ?? '');
+            if ($publicKey === '********' || $publicKey === '') {
+                $publicKey = $oldConfig[$key]['public_key'] ?? '';
+            }
+
+            $privateKey = trim($item['private_key'] ?? '');
+            if ($privateKey === '********' || $privateKey === '') {
+                $privateKey = $oldConfig[$key]['private_key'] ?? '';
+            }
+            
             $newConfig[$key] = [
                 'token' => $token,
+                'public_key' => $publicKey,
+                'private_key' => $privateKey,
                 'my_iban' => trim($item['my_iban'] ?? ''),
                 'my_name' => trim($item['my_name'] ?? ''),
                 'type' => trim($item['type'] ?? 'privatbank')
@@ -84,6 +96,9 @@ $safeConfig = $config;
 foreach ($safeConfig as &$c) {
     if (!empty($c['token'])) {
         $c['token'] = '********';
+    }
+    if (!empty($c['private_key'])) {
+        $c['private_key'] = '********';
     }
 }
 $currentRefundStatuses = $oldRefundStatuses;
@@ -158,11 +173,20 @@ $currentRefundStatuses = $oldRefundStatuses;
                     <label class="form-label fw-bold">Тип банку</label>
                     <select class="form-select fop-type">
                         <option value="privatbank">ПриватБанк</option>
+                        <option value="liqpay">LiqPay</option>
                     </select>
                 </div>
-                <div class="col-md-12">
+                <div class="col-md-12 privatbank-fields">
                     <label class="form-label fw-bold">Токен API (Автоклієнт ПриватБанку)</label>
                     <input type="password" class="form-control fop-token" placeholder="Введіть новий токен для зміни">
+                </div>
+                <div class="col-md-6 liqpay-fields" style="display: none;">
+                    <label class="form-label fw-bold">Public Key (LiqPay)</label>
+                    <input type="text" class="form-control fop-public-key" placeholder="public_key">
+                </div>
+                <div class="col-md-6 liqpay-fields" style="display: none;">
+                    <label class="form-label fw-bold">Private Key (LiqPay)</label>
+                    <input type="password" class="form-control fop-private-key" placeholder="Введіть новий ключ для зміни">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Ваш IBAN (Рахунок ФОП)</label>
@@ -188,16 +212,34 @@ $currentRefundStatuses = $oldRefundStatuses;
     const alertContainer = document.getElementById('alertContainer');
 
     // Функція створення нової картки на основі шаблону
-    function createFopCard(key = '', data = {token: '', my_iban: '', my_name: '', type: 'privatbank'}) {
+    function createFopCard(key = '', data = {token: '', public_key: '', private_key: '', my_iban: '', my_name: '', type: 'privatbank'}) {
         const clone = template.content.cloneNode(true);
         const card = clone.querySelector('.card');
         
         const keyInput = clone.querySelector('.fop-key');
         keyInput.value = key;
         clone.querySelector('.fop-token').value = data.token || '';
+        clone.querySelector('.fop-public-key').value = data.public_key || '';
+        clone.querySelector('.fop-private-key').value = data.private_key || '';
         clone.querySelector('.fop-iban').value = data.my_iban || '';
         clone.querySelector('.fop-name').value = data.my_name || '';
         clone.querySelector('.fop-type').value = data.type || 'privatbank';
+        
+        const typeSelect = clone.querySelector('.fop-type');
+        const privatFields = clone.querySelectorAll('.privatbank-fields');
+        const liqpayFields = clone.querySelectorAll('.liqpay-fields');
+        
+        function toggleFields() {
+            if (typeSelect.value === 'liqpay') {
+                privatFields.forEach(f => f.style.display = 'none');
+                liqpayFields.forEach(f => f.style.display = 'block');
+            } else {
+                privatFields.forEach(f => f.style.display = 'block');
+                liqpayFields.forEach(f => f.style.display = 'none');
+            }
+        }
+        typeSelect.addEventListener('change', toggleFields);
+        toggleFields();
         
         // Оновлюємо заголовок картки при введенні ключа
         const titleElement = clone.querySelector('.fop-title');
@@ -237,6 +279,8 @@ $currentRefundStatuses = $oldRefundStatuses;
         cards.forEach(card => {
             const key = card.querySelector('.fop-key').value.trim();
             const token = card.querySelector('.fop-token').value.trim();
+            const public_key = card.querySelector('.fop-public-key').value.trim();
+            const private_key = card.querySelector('.fop-private-key').value.trim();
             const my_iban = card.querySelector('.fop-iban').value.trim();
             const my_name = card.querySelector('.fop-name').value.trim();
             const type = card.querySelector('.fop-type').value;
@@ -249,7 +293,7 @@ $currentRefundStatuses = $oldRefundStatuses;
             }
             
             if(key) {
-                dataToSave.push({ key, token, my_iban, my_name, type });
+                dataToSave.push({ key, token, public_key, private_key, my_iban, my_name, type });
             }
         });
         
