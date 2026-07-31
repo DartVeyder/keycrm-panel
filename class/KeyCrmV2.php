@@ -98,7 +98,8 @@ class KeyCrmV2
         $allData = [];
         $prestashop = new Prestashop();
         $getPreorderProducts = $prestashop->getPreorderProducts();
-        $preorderProducts = array_column($getPreorderProducts['response'], null, 'reference');
+        $preorderProductsData = $getPreorderProducts['response'] ?? [];
+        $preorderProducts = is_array($preorderProductsData) ? array_column($preorderProductsData, null, 'reference') : [];
 
         do {
             $url = "/offers?limit={$limit}&filter[is_archived]=false&include=product&sort=-product_id&$filter&page={$page}";
@@ -326,9 +327,11 @@ class KeyCrmV2
         return $categories ;
     }
 
-    private function request($endpoint, $method = "GET", $body = [])
+    private function request($endpoint, $method = "GET", $body = [], $retry = 0)
     {
-        $client = new Client();
+        $client = new Client([
+            'timeout' => 60, // Збільшуємо таймаут для уникнення cURL error 28
+        ]);
 
         try {
             // Виконуємо запит до API
@@ -342,15 +345,20 @@ class KeyCrmV2
         } catch (ClientException $e) {
             // Обробка помилки клієнта (наприклад, 400 чи 429)
             if ($e->getCode() == 429) {
-                echo date("Y-m-d H:i:s")." API перевищено ліміт запитів. Чекаємо перед повтором..." . "</br>";
+                echo date("Y-m-d H:i:s")." API перевищено ліміт запитів. Чекаємо перед повтором..." . "\n";
                 sleep(20); // Затримка перед повтором
-                return $this->request($endpoint, $method, $body); // Повторюємо запит
+                return $this->request($endpoint, $method, $body, $retry); // Повторюємо запит
             } else {
                 throw new Exception("Помилка запиту до API: " . $e->getMessage());
             }
-        } catch (RequestException $e) {
-            // Загальна обробка помилок запиту
-            throw new Exception("Помилка при виконанні запиту: " . $e->getMessage());
+        } catch (\Exception $e) {
+            // Загальна обробка помилок запиту (в т.ч. обрив з'єднання cURL 56, 28)
+            if ($retry < 5) {
+                echo date("Y-m-d H:i:s")." Мережева помилка або помилка сервера (cURL). Повторна спроба " . ($retry + 1) . " з 5 через 10 секунд...\n";
+                sleep(10);
+                return $this->request($endpoint, $method, $body, $retry + 1);
+            }
+            throw new Exception("Помилка при виконанні запиту після 5 спроб: " . $e->getMessage());
         }
 
 
