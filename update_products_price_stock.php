@@ -28,8 +28,9 @@ $prom = new Prom();
 
 $fileNameXLSX = 'uploads/prestashop_update_products_price_stock.xlsx';
 
+$product_ids  = $_GET['product_ids'] ?? '';
+
 if(empty($product_ids)){
-    $product_ids  = $_GET['product_ids'] ?? '';
     echo "Обновлення всіх залишків і цін ";
 }else{
     echo "Обновлення залишків і цін при зміні статусу";
