@@ -147,7 +147,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
         foreach ($rows as $i => &$row) {
             if ($i > 0) {
                 $sku = $row[2];
-                $product1C = $data1C[$sku] ?? null;
+                $product1C = $data1C[$sku] ?? [];
                 $price = $row[4];
                 $isPreorder = $row[19];
                 $quantity = $row[6];
@@ -160,7 +160,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                 }
                 
 
-                if( $product1C['whole_price']){
+                if(!empty($product1C['whole_price'])){
                       // 2. Логіка для whole_price
                     $whole_price = $product1C['whole_price'] ?? 0;
                     $row[] = $price - $whole_price;
@@ -168,7 +168,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                     $row[] = 0;
                 }
               
-                if($product1C['whole_price'] <= 0){
+                if(empty($product1C['whole_price']) || $product1C['whole_price'] <= 0){
                     $row[] = 0;
                 }else{
                     $row[] = $product1C['quantity'] ?? 0; 
