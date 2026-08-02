@@ -149,7 +149,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
                 $sku = $row[2];
                 $product1C = $data1C[$sku] ?? null;
                 $price = $row[4];
-                $isPreorder = $row[20];
+                $isPreorder = $row[19];
                 $quantity = $row[6];
 
                     // 1. Логіка для quantity_1c
