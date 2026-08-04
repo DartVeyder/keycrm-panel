@@ -231,5 +231,63 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     return Db::getInstance()->execute($sql);
 }
 
+    public function hasOrderMessage($id_order, $search_text)
+    {
+        $id_order = (int)$id_order;
+        $sql = "SELECT `message` FROM `" . _DB_PREFIX_ . "message` WHERE `id_order` = $id_order";
+        $messages = Db::getInstance()->executeS($sql);
+        if ($messages) {
+            foreach ($messages as $msg) {
+                if (mb_strpos($msg['message'], $search_text) !== false) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
+    public function addOrderMessage($id_order, $messageText)
+    {
+        $id_order = (int)$id_order;
+        $order = new Order($id_order);
+        if (!Validate::isLoadedObject($order)) {
+            return false;
+        }
+
+        $message = new Message();
+        $message->message = $messageText;
+        $message->id_order = $id_order;
+        $message->id_employee = 1; // Assuming ID 1 for admin
+        $message->private = 0;
+        if (!$message->add()) {
+            return false;
+        }
+
+        $customer = new Customer((int)$order->id_customer);
+        if (Validate::isLoadedObject($customer)) {
+            $varsTpl = [
+                '{lastname}' => $customer->lastname,
+                '{firstname}' => $customer->firstname,
+                '{id_order}' => $order->id,
+                '{order_name}' => $order->getUniqReference(),
+                '{message}' => $messageText,
+            ];
+            
+            // В Prestashop тема листа часто береться з мовних файлів, 
+            // але можна передати свою (бажано перекладену, але залишимо просту)
+            $subject = 'Повідомлення щодо вашого замовлення'; 
+            
+            Mail::Send(
+                (int)$order->id_lang,
+                'order_merchant_comment',
+                $subject,
+                $varsTpl,
+                $customer->email,
+                $customer->firstname . ' ' . $customer->lastname,
+                null, null, null, null, _PS_MAIL_DIR_, true, (int)$order->id_shop
+            );
+        }
+        
+        return true;
+    }
 }
