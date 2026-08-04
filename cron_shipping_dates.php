@@ -1,4 +1,10 @@
 <?php
+if (php_sapi_name() === 'cli') {
+    $_SERVER['REQUEST_METHOD'] = 'GET';
+    $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+    $_SERVER['REQUEST_URI'] = '/';
+    $_SERVER['HTTP_USER_AGENT'] = 'CLI';
+}
 require_once __DIR__ . '/../../config/config.inc.php';
 require_once __DIR__ . '/../../init.php';
 require_once('vendor/autoload.php');
