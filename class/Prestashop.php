@@ -233,15 +233,28 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 
     public function hasOrderMessage($id_order, $search_text)
     {
-        $id_order = (int)$id_order;
-        $sql = "SELECT `message` FROM `" . _DB_PREFIX_ . "message` WHERE `id_order` = $id_order";
-        $messages = Db::getInstance()->executeS($sql);
-        if ($messages) {
-            foreach ($messages as $msg) {
-                if (mb_strpos($msg['message'], $search_text) !== false) {
-                    return true;
+        try {
+            $response = $this->client->request('GET', 'messages', [
+                'query' => [
+                    'ws_key' => PRESTASHOP_API_KEY,
+                    'filter[id_order]' => (int)$id_order,
+                    'display' => 'full',
+                    'output_format' => 'JSON',
+                ]
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                $data = json_decode($response->getBody(), true);
+                if (isset($data['messages']) && is_array($data['messages'])) {
+                    foreach ($data['messages'] as $msg) {
+                        if (mb_strpos($msg['message'], $search_text) !== false) {
+                            return true;
+                        }
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
         }
         return false;
     }
@@ -249,45 +262,64 @@ $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     public function addOrderMessage($id_order, $messageText)
     {
         $id_order = (int)$id_order;
-        $order = new Order($id_order);
-        if (!Validate::isLoadedObject($order)) {
+        $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<prestashop xmlns:xlink=\"http://www.w3.org/1999/xlink\">
+    <message>
+        <id_order>$id_order</id_order>
+        <message><![CDATA[$messageText]]></message>
+        <private>0</private>
+    </message>
+</prestashop>";
+
+        try {
+            $response = $this->client->request('POST', 'messages', [
+                'query' => [
+                    'ws_key' => PRESTASHOP_API_KEY
+                ],
+                'headers' => [
+                    'Content-Type' => 'text/xml',
+                ],
+                'body' => $xmlData
+            ]);
+
+            $success = ($response->getStatusCode() === 201 || $response->getStatusCode() === 200);
+            
+            if ($success) {
+                try {
+                    $order = new Order($id_order);
+                    if (Validate::isLoadedObject($order)) {
+                        $customer = new Customer((int)$order->id_customer);
+                        if (Validate::isLoadedObject($customer)) {
+                            $varsTpl = [
+                                '{lastname}' => $customer->lastname,
+                                '{firstname}' => $customer->firstname,
+                                '{id_order}' => $order->id,
+                                '{order_name}' => $order->getUniqReference(),
+                                '{message}' => $messageText,
+                            ];
+                            
+                            $subject = 'Повідомлення щодо вашого замовлення'; 
+                            
+                            Mail::Send(
+                                (int)$order->id_lang,
+                                'order_merchant_comment',
+                                $subject,
+                                $varsTpl,
+                                $customer->email,
+                                $customer->firstname . ' ' . $customer->lastname,
+                                null, null, null, null, _PS_MAIL_DIR_, true, (int)$order->id_shop
+                            );
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log("Email sending error: " . $e->getMessage());
+                }
+            }
+
+            return $success;
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
             return false;
         }
-
-        $message = new Message();
-        $message->message = $messageText;
-        $message->id_order = $id_order;
-        $message->id_employee = 1; // Assuming ID 1 for admin
-        $message->private = 0;
-        if (!$message->add()) {
-            return false;
-        }
-
-        $customer = new Customer((int)$order->id_customer);
-        if (Validate::isLoadedObject($customer)) {
-            $varsTpl = [
-                '{lastname}' => $customer->lastname,
-                '{firstname}' => $customer->firstname,
-                '{id_order}' => $order->id,
-                '{order_name}' => $order->getUniqReference(),
-                '{message}' => $messageText,
-            ];
-            
-            // В Prestashop тема листа часто береться з мовних файлів, 
-            // але можна передати свою (бажано перекладену, але залишимо просту)
-            $subject = 'Повідомлення щодо вашого замовлення'; 
-            
-            Mail::Send(
-                (int)$order->id_lang,
-                'order_merchant_comment',
-                $subject,
-                $varsTpl,
-                $customer->email,
-                $customer->firstname . ' ' . $customer->lastname,
-                null, null, null, null, _PS_MAIL_DIR_, true, (int)$order->id_shop
-            );
-        }
-        
-        return true;
     }
 }

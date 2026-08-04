@@ -6,7 +6,8 @@ if (php_sapi_name() === 'cli') {
     $_SERVER['HTTP_USER_AGENT'] = 'CLI';
 }
 require_once __DIR__ . '/../../config/config.inc.php';
-require_once __DIR__ . '/../../init.php';
+// require_once __DIR__ . '/../../init.php'; // Not needed for CLI scripts, causes silent exit
+
 require_once('vendor/autoload.php');
 
 require_once('config.php');
