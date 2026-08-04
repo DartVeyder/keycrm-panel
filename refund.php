@@ -133,15 +133,21 @@ try {
         case 'liqpay':
             $api = new LiqPayPayment($cfg['public_key'], $cfg['private_key']);
             
-            // Спробуємо знайти SOID у коментарях до оплат (щоб повернути саме ту транзакцію)
             $liqpayOrderId = $orderId;
-            if (!empty($order['payments']) && is_array($order['payments'])) {
-                foreach ($order['payments'] as $payment) {
-                    $comment = $payment['description'] ?? $payment['comment'] ?? '';
-                    if (preg_match('/SOID\s+([A-Za-z0-9\-]+)/i', $comment, $matches)) {
-                        $liqpayOrderId = $matches[1];
-                        logMessage($orderId, "INFO: Знайдено SOID для LiqPay: {$liqpayOrderId}", $logFile);
-                        break;
+            
+            if (!empty($order_custom_fields['OR_1034'])) {
+                $liqpayOrderId = trim($order_custom_fields['OR_1034']);
+                logMessage($orderId, "INFO: Знайдено ID LiqPay у полі OR_1034: {$liqpayOrderId}", $logFile);
+            } else {
+                // Спробуємо знайти SOID у коментарях до оплат (щоб повернути саме ту транзакцію)
+                if (!empty($order['payments']) && is_array($order['payments'])) {
+                    foreach ($order['payments'] as $payment) {
+                        $comment = $payment['description'] ?? $payment['comment'] ?? '';
+                        if (preg_match('/SOID\s+([A-Za-z0-9\-]+)/i', $comment, $matches)) {
+                            $liqpayOrderId = $matches[1];
+                            logMessage($orderId, "INFO: Знайдено SOID для LiqPay: {$liqpayOrderId}", $logFile);
+                            break;
+                        }
                     }
                 }
             }
