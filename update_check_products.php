@@ -103,7 +103,7 @@ echo "PrestaShop fetched: " . count($apiData) . " unique SKUs.\n";
 // 3. Fetch 1C
 setProgress(60, "Зчитування файлу залишків 1С...");
 echo "Fetching 1C products...\n";
-$csvPath = 'uploads/products_1c.csv';
+$csvPath = __DIR__ . '/uploads/products_1c.csv';
 $data1C = [];
 if (file_exists($csvPath)) {
     $csv = Reader::createFromPath($csvPath, 'r');
