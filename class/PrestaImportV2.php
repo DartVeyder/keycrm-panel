@@ -100,6 +100,10 @@ class PrestaImportV2
             $is8888 = false;
             $prefix = '';
 
+            if (strpos($offer['sku'], '5555_') !== false || strpos($offer['sku'], '5555') === 0) {
+                continue;
+            }
+
             if (strpos($offer['sku'], '8888_') !== false) {
                 $prefix = '8888_';
                 $is8888 = true;
