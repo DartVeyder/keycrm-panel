@@ -14,6 +14,8 @@ class PrestaImportV2
         $rows               = [];
         $rows[]             = ['Parent ID', 'ID', 'SKU', 'PARENT SKU', 'Price', 'Discount Price', 'Quantity', 'Size', 'Color', 'Is active', 'Is added', 'Product name', 'Short description', 'Description', 'Images', 'Main Category', 'Subcategory_1', 'Image', 'Default', 'Is Preorder', 'Date', 'sku color'];
         $current_parent_sku = '';
+        $totalProducts = count($offers);
+        $processedCount = 0;
         foreach ($offers as $offer) {
             $isDefault    = '';
             $categoryName = '';
@@ -255,6 +257,14 @@ class PrestaImportV2
 // ) VALUES (" . implode(",", $values) . ")"; 
 //             $db->query($sql); 
             $rows[] = $row;
+            
+            $processedCount++;
+            if ($processedCount % 100 == 0) {
+                file_put_contents(__DIR__ . '/../sync_progress.json', json_encode([
+                    'percent' => 40 + round(($processedCount / $totalProducts) * 20),
+                    'text' => "Формування XLSX: оброблено $processedCount з $totalProducts товарів..."
+                ], JSON_UNESCAPED_UNICODE));
+            }
         }
 
         $xlsx = Shuchkin\SimpleXLSXGen::fromArray($rows);

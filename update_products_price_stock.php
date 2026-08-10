@@ -104,8 +104,12 @@ if(isset($product_ids)) {
         $offers = $intertop->getDataToUpdateQuantity();
 
         $groups = array_chunk($offers, 1000);
+        $totalGroups = count($groups);
+        $currentGroup = 0;
 
         foreach ($groups as $group) {
+            $currentGroup++;
+            setProgress(85 + round(($currentGroup / $totalGroups) * 10), "Оновлення Intertop: партія $currentGroup з $totalGroups...");
             $updateQuantity = $intertop->updateQuantity($group);
             $updatePrice = $intertop->updatePrice($group);
             $response['Quantity'] = $updateQuantity;

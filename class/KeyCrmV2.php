@@ -41,6 +41,7 @@ class KeyCrmV2
         $page = 1;
         $limit = 50;
         $allData = [];
+        $totalItems = 0;
 
         do {
             $url = "/offers/stocks?limit={$limit}&filter[details]=true&$filter&page={$page}";
@@ -65,6 +66,16 @@ class KeyCrmV2
                 // Об'єднуємо дані з усіма отриманими записами
                 $allData = array_merge($allData, $response['data']);
             }
+            
+            if (isset($response['total'])) {
+                $totalItems = (int) $response['total'];
+            }
+            $totalText = $totalItems > 0 ? " з {$totalItems}" : "";
+            
+            file_put_contents(__DIR__ . '/../sync_progress.json', json_encode([
+                'percent' => 35,
+                'text' => "Отримання складу з KeyCRM... (Завантажено " . count($allData) . "{$totalText} шт.)"
+            ], JSON_UNESCAPED_UNICODE));
 
             // Перевіряємо наявність наступної сторінки
             $nextPageUrl = $response['next_page_url'] ?? null;
@@ -100,6 +111,7 @@ class KeyCrmV2
         $page = 1;
         $limit = 50;
         $allData = [];
+        $totalItems = 0;
         $prestashop = new Prestashop();
         $getPreorderProducts = $prestashop->getPreorderProducts();
         $preorderProductsData = $getPreorderProducts['response'] ?? [];
@@ -137,9 +149,17 @@ class KeyCrmV2
 
                 // Об'єднуємо дані з усіма отриманими записами
                 $allData = array_merge($allData, $response['data']);
-
-
             }
+            
+            if (isset($response['total'])) {
+                $totalItems = (int) $response['total'];
+            }
+            $totalText = $totalItems > 0 ? " з {$totalItems}" : "";
+            
+            file_put_contents(__DIR__ . '/../sync_progress.json', json_encode([
+                'percent' => 15,
+                'text' => "Отримання пропозицій з KeyCRM... (Завантажено " . count($allData) . "{$totalText} шт.)"
+            ], JSON_UNESCAPED_UNICODE));
 
             // Перевіряємо, чи є наступна сторінка
             $nextPageUrl = $response['next_page_url'] ?? null;
@@ -178,6 +198,7 @@ class KeyCrmV2
         $page = 1;
         $limit = 50;
         $allData = [];
+        $totalItems = 0;
         $categories = $this->categories();
 
         do {
@@ -210,6 +231,16 @@ class KeyCrmV2
                 // Об'єднуємо з уже отриманими даними
                 $allData = array_merge($allData, $response['data']);
             }
+            
+            if (isset($response['total'])) {
+                $totalItems = (int) $response['total'];
+            }
+            $totalText = $totalItems > 0 ? " з {$totalItems}" : "";
+            
+            file_put_contents(__DIR__ . '/../sync_progress.json', json_encode([
+                'percent' => 25,
+                'text' => "Отримання товарів з KeyCRM... (Завантажено " . count($allData) . "{$totalText} шт.)"
+            ], JSON_UNESCAPED_UNICODE));
 
             // Перевіряємо, чи є наступна сторінка
             $nextPageUrl = $response['next_page_url'] ?? null;

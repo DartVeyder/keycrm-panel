@@ -1,4 +1,6 @@
 <?php
+ignore_user_abort(true);
+set_time_limit(0);
 header('Content-Type: application/json; charset=utf-8');
 
 $action = $_GET['action'] ?? '';
@@ -106,6 +108,44 @@ if ($action === 'set_stop_flag') {
     // Оновлюємо прогрес, щоб фронтенд відразу побачив
     file_put_contents(__DIR__ . '/sync_progress.json', json_encode(['percent' => 100, 'text' => 'Переривання процесу...'], JSON_UNESCAPED_UNICODE));
     echo json_encode(['success' => true]);
+    exit;
+}
+
+if ($action === 'get_settings') {
+    require_once __DIR__ . '/config.php';
+    echo json_encode([
+        'success' => true,
+        'settings' => [
+            'KASTA' => defined('KASTA') ? KASTA : false,
+            'INTERTOP' => defined('INTERTOP') ? INTERTOP : false,
+            'PRESTASHOP' => defined('PRESTASHOP') ? PRESTASHOP : false,
+            'PRESTASHOP_UPDATE_PRICE' => defined('PRESTASHOP_UPDATE_PRICE') ? PRESTASHOP_UPDATE_PRICE : false,
+            'PRESTASHOP_IMPORT_PRODUCT' => defined('PRESTASHOP_IMPORT_PRODUCT') ? PRESTASHOP_IMPORT_PRODUCT : false,
+            'UPDATE_STOCK_PRICE_CHANGE_STATUS' => defined('UPDATE_STOCK_PRICE_CHANGE_STATUS') ? UPDATE_STOCK_PRICE_CHANGE_STATUS : false,
+        ]
+    ]);
+    exit;
+}
+
+if ($action === 'save_settings') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if ($input && isset($input['settings'])) {
+        $configFile = __DIR__ . '/config.php';
+        $content = file_get_contents($configFile);
+        
+        $keys = ['KASTA', 'INTERTOP', 'PRESTASHOP', 'PRESTASHOP_UPDATE_PRICE', 'PRESTASHOP_IMPORT_PRODUCT', 'UPDATE_STOCK_PRICE_CHANGE_STATUS'];
+        foreach ($keys as $key) {
+            if (isset($input['settings'][$key])) {
+                $val = $input['settings'][$key] ? 'true' : 'false';
+                $content = preg_replace("/const\s+{$key}\s*=\s*(true|false);/i", "const {$key} = {$val};", $content);
+            }
+        }
+        
+        file_put_contents($configFile, $content);
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Некоректні дані']);
+    }
     exit;
 }
 

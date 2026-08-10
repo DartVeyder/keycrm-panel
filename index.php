@@ -138,7 +138,7 @@
             <li><a href="check_products.php" target="_blank" class="nav-link"><i class="fas fa-search"></i> Перевірка товарів</a></li>
             <li><a href="#" class="nav-link" data-target="logs" onclick="loadLogs()"><i class="fas fa-file-alt"></i> Логи</a></li>
             <li><a href="#" class="nav-link" data-target="uploads" onclick="loadUploads()"><i class="fas fa-folder-open"></i> Файли</a></li>
-            <li><a href="#" class="nav-link" data-target="settings"><i class="fas fa-sliders-h"></i> Налаштування</a></li>
+            <li><a href="#" class="nav-link" data-target="settings" onclick="loadSettings()"><i class="fas fa-sliders-h"></i> Налаштування</a></li>
         </ul>
     </nav>
 
@@ -348,6 +348,44 @@
                         </div>
                     </div>
                 </div>
+                <!-- Маркетплейси (Налаштування) -->
+                <div class="col-md-12 mt-4">
+                    <h2 class="mb-4">Налаштування маркетплейсів</h2>
+                    <div class="card">
+                        <div class="card-header bg-dark text-white"><i class="fas fa-cogs"></i> Виберіть, куди потрібно вивантажувати/оновлювати товари</div>
+                        <div class="card-body">
+                            <form id="settingsForm">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="setting_KASTA">
+                                    <label class="form-check-label" for="setting_KASTA">Kasta (оновлення залишків і цін)</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="setting_INTERTOP">
+                                    <label class="form-check-label" for="setting_INTERTOP">Intertop (оновлення залишків і цін)</label>
+                                </div>
+                                <hr>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="setting_PRESTASHOP">
+                                    <label class="form-check-label" for="setting_PRESTASHOP"><strong>PrestaShop (Глобальне увімкнення)</strong></label>
+                                </div>
+                                <div class="form-check form-switch mb-2 ms-4">
+                                    <input class="form-check-input" type="checkbox" id="setting_PRESTASHOP_UPDATE_PRICE">
+                                    <label class="form-check-label text-muted" for="setting_PRESTASHOP_UPDATE_PRICE">Оновлення цін</label>
+                                </div>
+                                <div class="form-check form-switch mb-4 ms-4">
+                                    <input class="form-check-input" type="checkbox" id="setting_PRESTASHOP_IMPORT_PRODUCT">
+                                    <label class="form-check-label text-muted" for="setting_PRESTASHOP_IMPORT_PRODUCT">Імпорт нових товарів</label>
+                                </div>
+                                <hr>
+                                <div class="form-check form-switch mb-4">
+                                    <input class="form-check-input" type="checkbox" id="setting_UPDATE_STOCK_PRICE_CHANGE_STATUS">
+                                    <label class="form-check-label" for="setting_UPDATE_STOCK_PRICE_CHANGE_STATUS">Оновлювати статус при зміні цін/залишків (UPDATE_STOCK_PRICE_CHANGE_STATUS)</label>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Зберегти налаштування</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -518,6 +556,44 @@
                 } catch (err) {
                     showToast('Помилка при очищенні логу', 'danger');
                 }
+            }
+        }
+        
+        function loadSettings() {
+            fetch(`${API_URL}?action=get_settings`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.settings) {
+                        for (const key in data.settings) {
+                            const el = document.getElementById('setting_' + key);
+                            if (el) el.checked = data.settings[key];
+                        }
+                    }
+                });
+        }
+        
+        async function saveSettings() {
+            const keys = ['KASTA', 'INTERTOP', 'PRESTASHOP', 'PRESTASHOP_UPDATE_PRICE', 'PRESTASHOP_IMPORT_PRODUCT', 'UPDATE_STOCK_PRICE_CHANGE_STATUS'];
+            let settings = {};
+            keys.forEach(k => {
+                const el = document.getElementById('setting_' + k);
+                if (el) settings[k] = el.checked;
+            });
+            
+            try {
+                const res = await fetch(`${API_URL}?action=save_settings`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({settings})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Налаштування успішно збережено!', 'success');
+                } else {
+                    showToast('Помилка: ' + data.message, 'danger');
+                }
+            } catch(e) {
+                showToast('Помилка збереження', 'danger');
             }
         }
 
@@ -699,6 +775,7 @@
                 const originalHtml = btnElement.innerHTML;
                 let seconds = 0;
                 let currentProgressText = '';
+                let currentBaseText = '';
                 btnElement.disabled = true;
                 
                 const stopBtn = btnElement.parentElement.querySelector('.stop-script-btn');
@@ -713,11 +790,11 @@
                 outputCard.style.display = 'block';
                 
                 outputEl.innerHTML = `
-                    <div id="scriptStages" class="mb-3" style="min-height: 50px;">
-                        <div class="text-info"><i class="fas fa-spinner fa-spin me-2"></i>Запуск ${scriptName}... Очікуйте...</div>
-                    </div>
-                    <div class="progress mt-2" style="height: 10px;">
+                    <div class="progress mb-3" style="height: 15px;">
                         <div id="scriptProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                    </div>
+                    <div id="scriptStages" class="mb-3" style="min-height: 50px; max-height: 250px; overflow-y: auto; font-family: monospace;">
+                        <div class="text-info mb-2"><i class="fas fa-spinner fa-spin me-2"></i>Запуск ${scriptName}... Очікуйте...</div>
                     </div>
                     <div id="scriptFinalOutput" class="mt-3 text-muted" style="border-top: 1px dashed #555; padding-top: 10px; display: none;"></div>
                 `;
@@ -744,7 +821,17 @@
                                 if (data.text && data.text !== currentProgressText) {
                                     currentProgressText = data.text;
                                     const time = new Date().toLocaleTimeString('uk-UA');
-                                    stagesDiv.innerHTML += `<div><span class="text-secondary">[${time}]</span> <span class="text-light">${data.text}</span> <span class="badge bg-secondary ms-1">${data.percent}%</span></div>`;
+                                    const baseText = data.text.replace(/[0-9]+/g, '');
+                                    
+                                    if (baseText === currentBaseText && stagesDiv.lastElementChild) {
+                                        // Update the existing last element
+                                        stagesDiv.lastElementChild.innerHTML = `<span class="text-secondary">[${time}]</span> <span class="text-light">${data.text}</span> <span class="badge bg-secondary ms-1">${data.percent}%</span>`;
+                                    } else {
+                                        // Append a new element
+                                        currentBaseText = baseText;
+                                        stagesDiv.innerHTML += `<div><span class="text-secondary">[${time}]</span> <span class="text-light">${data.text}</span> <span class="badge bg-secondary ms-1">${data.percent}%</span></div>`;
+                                        stagesDiv.scrollTop = stagesDiv.scrollHeight;
+                                    }
                                 }
                             }
                             btnElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${timeStr}${pctStr}`;
