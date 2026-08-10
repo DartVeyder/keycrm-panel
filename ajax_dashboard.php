@@ -13,6 +13,35 @@ function formatSizeUnits($bytes) {
     return $bytes;
 }
 
+function addScriptLog($scriptName, $status, $duration) {
+    $file = __DIR__ . '/logs/script_history.json';
+    $history = [];
+    if (file_exists($file)) {
+        $history = json_decode(file_get_contents($file), true) ?: [];
+    }
+    
+    array_unshift($history, [
+        'script' => $scriptName,
+        'date' => date('Y-m-d H:i:s'),
+        'duration' => $duration,
+        'status' => $status
+    ]);
+    
+    // Зберігаємо тільки останні 1000 записів для економії місця
+    $history = array_slice($history, 0, 1000);
+    file_put_contents($file, json_encode($history, JSON_UNESCAPED_UNICODE));
+}
+
+if ($action === 'get_script_history') {
+    $file = __DIR__ . '/logs/script_history.json';
+    $history = [];
+    if (file_exists($file)) {
+        $history = json_decode(file_get_contents($file), true) ?: [];
+    }
+    echo json_encode(['success' => true, 'history' => $history]);
+    exit;
+}
+
 if ($action === 'get_logs') {
     $logDir = __DIR__ . '/logs';
     $logs = [];
@@ -60,6 +89,23 @@ if ($action === 'clear_log') {
     } else {
         echo json_encode(['success' => false, 'message' => 'File not found.']);
     }
+    exit;
+}
+
+if ($action === 'clear_stop_flag') {
+    $flag = __DIR__ . '/stop.flag';
+    if (file_exists($flag)) {
+        unlink($flag);
+    }
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+if ($action === 'set_stop_flag') {
+    file_put_contents(__DIR__ . '/stop.flag', 'stop');
+    // Оновлюємо прогрес, щоб фронтенд відразу побачив
+    file_put_contents(__DIR__ . '/sync_progress.json', json_encode(['percent' => 100, 'text' => 'Переривання процесу...'], JSON_UNESCAPED_UNICODE));
+    echo json_encode(['success' => true]);
     exit;
 }
 
@@ -176,14 +222,27 @@ if ($action === 'run_script') {
         $scriptPath = __DIR__ . '/' . $script;
         if (file_exists($scriptPath)) {
             ob_start();
+            $startTime = microtime(true);
             try {
                 // Use shell_exec to prevent script's exit() from killing this request
                 $output = shell_exec("php " . escapeshellarg($scriptPath) . " 2>&1");
             } catch (Exception $e) {
                 $output = "Error: " . $e->getMessage();
             }
+            $duration = round(microtime(true) - $startTime);
+            
             $buffer = ob_get_clean();
             $output = $buffer . "\n" . $output;
+            
+            $status = 'success';
+            if (strpos($output, '[ABORTED]') !== false) {
+                $status = 'aborted';
+            } elseif (strpos(strtolower($output), 'error') !== false || strpos(strtolower($output), 'fatal') !== false || strpos(strtolower($output), 'помилка') !== false || strpos(strtolower($output), 'exception') !== false) {
+                $status = 'error';
+            }
+            
+            addScriptLog($script, $status, $duration);
+            
             echo json_encode(['success' => true, 'output' => htmlspecialchars(trim($output))]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Script not found.']);

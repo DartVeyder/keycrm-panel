@@ -46,6 +46,10 @@ class KeyCrmV2
             $url = "/offers/stocks?limit={$limit}&filter[details]=true&$filter&page={$page}";
 
             try {
+                if (file_exists(__DIR__ . '/../stop.flag')) {
+                    unlink(__DIR__ . '/../stop.flag');
+                    exit("\n[ABORTED] Зупинено користувачем під час отримання акцій!\n");
+                }
                 $response = $this->request($url); // Викликаємо метод request для отримання даних
             } catch (Exception $e) {
                 // Логування помилки, якщо запит не вдався
@@ -105,6 +109,10 @@ class KeyCrmV2
             $url = "/offers?limit={$limit}&filter[is_archived]=false&include=product&sort=-product_id&$filter&page={$page}";
 
             try {
+                if (file_exists(__DIR__ . '/../stop.flag')) {
+                    unlink(__DIR__ . '/../stop.flag');
+                    exit("\n[ABORTED] Зупинено користувачем під час отримання пропозицій!\n");
+                }
                 $response = $this->request($url); // Assuming this method sends the request and returns the response
             } catch (Exception $e) {
                 // Логування помилки
@@ -177,6 +185,10 @@ class KeyCrmV2
 
             // Викликаємо запит і обробляємо помилки
             try {
+                if (file_exists(__DIR__ . '/../stop.flag')) {
+                    unlink(__DIR__ . '/../stop.flag');
+                    exit("\n[ABORTED] Зупинено користувачем під час отримання товарів!\n");
+                }
                 $response = $this->request($url);
             } catch (Exception $e) {
                 // Логування помилки

@@ -17,6 +17,20 @@ require_once('class/PrestaImportV2.php');
 require_once('class/KastaV2.php');
 require_once ('class/IntertopV2.php');
 
+function setProgress($percent, $text) {
+    file_put_contents(__DIR__ . '/sync_progress.json', json_encode(['percent' => $percent, 'text' => $text], JSON_UNESCAPED_UNICODE));
+}
+
+function checkStopFlag() {
+    if (file_exists(__DIR__ . '/stop.flag')) {
+        echo "\n[ABORTED] Виконання зупинено користувачем!\n";
+        unlink(__DIR__ . '/stop.flag');
+        exit;
+    }
+}
+
+setProgress(5, "Ініціалізація оновлення...");
+checkStopFlag();
 
 $keyCrm = new KeyCrmV2();
 $prestaImport = new PrestaImportV2();
@@ -31,32 +45,41 @@ $fileNameXLSX = __DIR__ . '/uploads/prestashop_update_products_price_stock.xlsx'
 $product_ids  = $_GET['product_ids'] ?? '';
 
 if(empty($product_ids)){
-    echo "Обновлення всіх залишків і цін ";
+    echo "Обновлення всіх залишків і цін\n";
+    setProgress(10, "Отримання списку всіх товарів з KeyCRM...");
 }else{
-    echo "Обновлення залишків і цін при зміні статусу";
+    echo "Обновлення залишків і цін при зміні статусу\n";
     $fileNameXLSX = __DIR__ . '/uploads/prestashop_update_products_price_stock_change_status.xlsx';
+    setProgress(10, "Отримання змінених товарів з KeyCRM...");
 }
-
 
 $listProducts = $keyCrm->listProducts($product_ids );
 
+checkStopFlag();
+
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
+setProgress(40, "Формування XLSX файлу для PrestaShop...");
 
 if(PRESTASHOP){
-
+    checkStopFlag();
     $prestaImport->generateListProductsXLSX($listProducts, $fileNameXLSX ,'update');
 
     if(PRESTASHOP_UPDATE_PRICE){
+        checkStopFlag();
+        setProgress(70, "Відправка даних на сайт (PrestaShop)... Це може зайняти кілька хвилин.");
         if(empty($product_ids)){
-            echo "Обновлення всіх залишків і цін на сайті";
+            echo "Обновлення всіх залишків і цін на сайті\n";
             $startImport = $prestaImport->startUpdatePriceStock();
         }else{
-            echo "Обновлення залишків і цін на сайті при зміні статусу";
+            echo "Обновлення залишків і цін на сайті при зміні статусу\n";
             $startImport = $prestaImport->startUpdatePriceStockChangeStatus();
         }
     }
 }
+
+checkStopFlag();
+setProgress(85, "Оновлення інших маркетплейсів (Kasta, Intertop)...");
 
 if(isset($product_ids)) {
 
@@ -90,6 +113,8 @@ if(isset($product_ids)) {
         }
     }
 }
+
+setProgress(100, "Оновлення завершено!");
 
 $endTime = microtime(true);
 $executionTime = $endTime - $startTime;

@@ -189,26 +189,21 @@
                     <div class="card">
                         <div class="card-header text-primary"><i class="fas fa-clock"></i> Крон Задачі (Автоматичні)</div>
                         <ul class="list-group list-group-flush">
+                            <?php
+                            $cronScripts = ['cron_refund.php', 'cron_shipping_dates.php', 'cron_update_products.php', 'update_products_price_stock.php', 'update_stock.php'];
+                            foreach($cronScripts as $sc) { ?>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                cron_refund.php
-                                <button class="btn btn-sm btn-outline-primary" onclick="runScript('cron_refund.php', this)">Запустити</button>
+                                <div>
+                                    <strong><?php echo $sc; ?></strong><br>
+                                    <small class="text-muted last-run-date" data-script="<?php echo $sc; ?>">Останній запуск: Невідомо</small>
+                                </div>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewHistory('<?php echo $sc; ?>')" title="Історія запусків"><i class="fas fa-history"></i></button>
+                                    <button class="btn btn-sm btn-outline-primary run-script-btn" onclick="runScript('<?php echo $sc; ?>', this)"><i class="fas fa-play"></i> Запустити</button>
+                                    <button class="btn btn-sm btn-outline-danger stop-script-btn" style="display:none;" onclick="stopScript()" title="Зупинити"><i class="fas fa-stop"></i></button>
+                                </div>
                             </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                cron_shipping_dates.php
-                                <button class="btn btn-sm btn-outline-primary" onclick="runScript('cron_shipping_dates.php', this)">Запустити</button>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                cron_update_products.php
-                                <button class="btn btn-sm btn-outline-primary" onclick="runScript('cron_update_products.php', this)">Запустити</button>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                update_products_price_stock.php
-                                <button class="btn btn-sm btn-outline-primary" onclick="runScript('update_products_price_stock.php', this)">Запустити</button>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                update_stock.php
-                                <button class="btn btn-sm btn-outline-primary" onclick="runScript('update_stock.php', this)">Запустити</button>
-                            </li>
+                            <?php } ?>
                         </ul>
                     </div>
                 </div>
@@ -217,26 +212,21 @@
                     <div class="card">
                         <div class="card-header text-success"><i class="fas fa-download"></i> Імпорт та Інтеграції</div>
                         <ul class="list-group list-group-flush">
+                            <?php
+                            $importScripts = ['presta_import.php', 'presta_update_price.php', 'import_products.php', 'import_products_intertop.php', 'import_products_kasta.php', 'import_products_prestashop.php'];
+                            foreach($importScripts as $sc) { ?>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                presta_import.php
-                                <button class="btn btn-sm btn-outline-success" onclick="runScript('presta_import.php', this)">Запустити</button>
+                                <div>
+                                    <strong><?php echo $sc; ?></strong><br>
+                                    <small class="text-muted last-run-date" data-script="<?php echo $sc; ?>">Останній запуск: Невідомо</small>
+                                </div>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewHistory('<?php echo $sc; ?>')" title="Історія запусків"><i class="fas fa-history"></i></button>
+                                    <button class="btn btn-sm btn-outline-success run-script-btn" onclick="runScript('<?php echo $sc; ?>', this)"><i class="fas fa-play"></i> Запустити</button>
+                                    <button class="btn btn-sm btn-outline-danger stop-script-btn" style="display:none;" onclick="stopScript()" title="Зупинити"><i class="fas fa-stop"></i></button>
+                                </div>
                             </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                presta_update_price.php
-                                <button class="btn btn-sm btn-outline-success" onclick="runScript('presta_update_price.php', this)">Запустити</button>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                import_products.php
-                                <button class="btn btn-sm btn-outline-success" onclick="runScript('import_products.php', this)">Запустити</button>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                import_products_intertop.php
-                                <button class="btn btn-sm btn-outline-success" onclick="runScript('import_products_intertop.php', this)">Запустити</button>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                import_products_kasta.php
-                                <button class="btn btn-sm btn-outline-success" onclick="runScript('import_products_kasta.php', this)">Запустити</button>
-                            </li>
+                            <?php } ?>
                         </ul>
                     </div>
                 </div>
@@ -373,6 +363,37 @@
                 </div>
                 <div class="modal-body p-0">
                     <div id="logModalContent" class="log-modal-content">Завантаження...</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalTitle">Історія запусків</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Дата та Час</th>
+                                    <th>Статус</th>
+                                    <th>Тривалість</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- History loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
@@ -580,36 +601,198 @@
         }
 
         // Scripts Management
+        let progressInterval = null;
+        let timerInterval = null;
+        let currentAbortController = null;
+        let globalScriptHistory = [];
+
+        async function updateLastRunDates() {
+            try {
+                const res = await fetch(`${API_URL}?action=get_script_history`);
+                const data = await res.json();
+                if (data.success) {
+                    globalScriptHistory = data.history;
+                    
+                    // Group by script to find the latest run
+                    const latestRuns = {};
+                    globalScriptHistory.forEach(log => {
+                        if (!latestRuns[log.script]) {
+                            latestRuns[log.script] = log;
+                        }
+                    });
+                    
+                    // Update DOM
+                    document.querySelectorAll('.last-run-date').forEach(el => {
+                        const scriptName = el.getAttribute('data-script');
+                        if (latestRuns[scriptName]) {
+                            const log = latestRuns[scriptName];
+                            let statusIcon = '';
+                            if (log.status === 'success') statusIcon = '<i class="fas fa-check-circle text-success"></i>';
+                            else if (log.status === 'error') statusIcon = '<i class="fas fa-times-circle text-danger"></i>';
+                            else if (log.status === 'aborted') statusIcon = '<i class="fas fa-ban text-warning"></i>';
+                            
+                            el.innerHTML = `Останній запуск: ${log.date} ${statusIcon}`;
+                        } else {
+                            el.innerHTML = 'Останній запуск: Ніколи';
+                        }
+                    });
+                }
+            } catch(e) {
+                console.error("Помилка завантаження історії", e);
+            }
+        }
+        
+        // Initial load
+        updateLastRunDates();
+
+        function viewHistory(scriptName) {
+            const modal = new bootstrap.Modal(document.getElementById('historyModal'));
+            document.getElementById('historyModalTitle').innerText = `Історія запусків: ${scriptName}`;
+            const tbody = document.getElementById('historyTableBody');
+            
+            const logs = globalScriptHistory.filter(l => l.script === scriptName);
+            
+            tbody.innerHTML = '';
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">Історія порожня</td></tr>';
+            } else {
+                logs.forEach(log => {
+                    let statusBadge = '';
+                    if (log.status === 'success') statusBadge = '<span class="badge bg-success">Успішно</span>';
+                    else if (log.status === 'error') statusBadge = '<span class="badge bg-danger">Помилка</span>';
+                    else if (log.status === 'aborted') statusBadge = '<span class="badge bg-warning text-dark">Зупинено</span>';
+                    
+                    const m = Math.floor(log.duration / 60).toString().padStart(2, '0');
+                    const s = (log.duration % 60).toString().padStart(2, '0');
+                    const durStr = log.duration > 0 ? `${m}:${s}` : '-';
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${log.date}</td>
+                            <td>${statusBadge}</td>
+                            <td>${durStr}</td>
+                        </tr>
+                    `;
+                });
+            }
+            modal.show();
+        }
+
+        async function stopScript() {
+            if (!confirm('Ви впевнені, що хочете перервати виконання?')) return;
+            
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+            
+            try {
+                await fetch(`${API_URL}?action=set_stop_flag`);
+                showToast('Надіслано команду на зупинку...', 'warning');
+            } catch(e) {}
+        }
+
         async function runScript(scriptName, btnElement) {
             if (confirm(`Ви впевнені, що хочете запустити скрипт ${scriptName}?`)) {
+                
+                await fetch(`${API_URL}?action=clear_stop_flag`);
+                
                 const originalHtml = btnElement.innerHTML;
-                btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Запуск...';
+                let seconds = 0;
+                let currentProgressText = '';
                 btnElement.disabled = true;
+                
+                const stopBtn = btnElement.parentElement.querySelector('.stop-script-btn');
+                if (stopBtn) stopBtn.style.display = 'inline-block';
+                
+                document.querySelectorAll('.run-script-btn').forEach(b => {
+                    if (b !== btnElement) b.disabled = true;
+                });
                 
                 const outputCard = document.getElementById('scriptOutputCard');
                 const outputEl = document.getElementById('scriptOutput');
                 outputCard.style.display = 'block';
-                outputEl.innerHTML = `<span class="text-info">Запуск ${scriptName}... Очікуйте...</span>`;
                 
-                // Scroll to output
+                outputEl.innerHTML = `
+                    <div id="scriptStages" class="mb-3" style="min-height: 50px;">
+                        <div class="text-info"><i class="fas fa-spinner fa-spin me-2"></i>Запуск ${scriptName}... Очікуйте...</div>
+                    </div>
+                    <div class="progress mt-2" style="height: 10px;">
+                        <div id="scriptProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                    </div>
+                    <div id="scriptFinalOutput" class="mt-3 text-muted" style="border-top: 1px dashed #555; padding-top: 10px; display: none;"></div>
+                `;
                 outputCard.scrollIntoView({ behavior: 'smooth' });
 
+                const stagesDiv = document.getElementById('scriptStages');
+                const progressBar = document.getElementById('scriptProgressBar');
+                const finalOutput = document.getElementById('scriptFinalOutput');
+
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const s = (seconds % 60).toString().padStart(2, '0');
+                    const timeStr = `${m}:${s}`;
+                    
+                    fetch('ajax_get_progress.php')
+                        .then(res => res.json())
+                        .then(data => {
+                            let pctStr = '';
+                            if (data.percent > 0) {
+                                pctStr = ` ${data.percent}%`;
+                                progressBar.style.width = data.percent + '%';
+                                
+                                if (data.text && data.text !== currentProgressText) {
+                                    currentProgressText = data.text;
+                                    const time = new Date().toLocaleTimeString('uk-UA');
+                                    stagesDiv.innerHTML += `<div><span class="text-secondary">[${time}]</span> <span class="text-light">${data.text}</span> <span class="badge bg-secondary ms-1">${data.percent}%</span></div>`;
+                                }
+                            }
+                            btnElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${timeStr}${pctStr}`;
+                        }).catch(e => {
+                            btnElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${timeStr}`;
+                        });
+                }, 1000);
+
+                currentAbortController = new AbortController();
+                const signal = currentAbortController.signal;
+
                 try {
-                    const res = await fetch(`${API_URL}?action=run_script&script=${encodeURIComponent(scriptName)}`);
+                    const res = await fetch(`${API_URL}?action=run_script&script=${encodeURIComponent(scriptName)}`, { signal });
                     const data = await res.json();
+                    
+                    clearInterval(timerInterval);
+                    progressBar.classList.remove('progress-bar-animated');
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-success');
+                    
                     if (data.success) {
-                        outputEl.innerHTML = data.output || '<span class="text-success">Скрипт виконано успішно, виводу немає.</span>';
+                        finalOutput.style.display = 'block';
+                        finalOutput.innerHTML = `<strong class="text-success">Скрипт завершив роботу.</strong><br>${data.output || 'Виводу немає.'}`;
                         showToast(`Скрипт ${scriptName} завершив роботу`, 'success');
                     } else {
-                        outputEl.innerHTML = `<span class="text-danger">Помилка: ${data.message}</span>`;
+                        finalOutput.style.display = 'block';
+                        finalOutput.innerHTML = `<strong class="text-danger">Помилка:</strong><br>${data.message}`;
                         showToast(data.message, 'danger');
                     }
                 } catch (err) {
-                    outputEl.innerHTML = `<span class="text-danger">Помилка мережі або таймаут виконання.</span>`;
-                    showToast('Сталася помилка при запиті', 'danger');
+                    clearInterval(timerInterval);
+                    progressBar.classList.remove('progress-bar-animated');
+                    finalOutput.style.display = 'block';
+                    if (err.name === 'AbortError') {
+                        finalOutput.innerHTML = `<strong class="text-warning">Скрипт перервано користувачем.</strong>`;
+                        progressBar.classList.add('bg-warning');
+                        showToast('Виконання зупинено', 'warning');
+                    } else {
+                        finalOutput.innerHTML = `<span class="text-danger">Помилка мережі або таймаут виконання.</span>`;
+                        progressBar.classList.add('bg-danger');
+                        showToast('Сталася помилка при запиті', 'danger');
+                    }
                 } finally {
+                    currentAbortController = null;
+                    if (stopBtn) stopBtn.style.display = 'none';
+                    document.querySelectorAll('.run-script-btn').forEach(b => b.disabled = false);
                     btnElement.innerHTML = originalHtml;
-                    btnElement.disabled = false;
+                    updateLastRunDates(); // Refresh history
                 }
             }
         }
