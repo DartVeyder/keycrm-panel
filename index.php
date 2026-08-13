@@ -137,6 +137,7 @@
             <li><a href="#" class="nav-link" data-target="scripts"><i class="fas fa-play-circle"></i> Скрипти</a></li>
             <li><a href="check_products.php" target="_blank" class="nav-link"><i class="fas fa-search"></i> Перевірка товарів</a></li>
             <li><a href="#" class="nav-link" data-target="logs" onclick="loadLogs()"><i class="fas fa-file-alt"></i> Логи</a></li>
+            <li><a href="#" class="nav-link" data-target="refunds" onclick="loadRefundHistory()"><i class="fas fa-undo-alt"></i> Історія повернень</a></li>
             <li><a href="#" class="nav-link" data-target="uploads" onclick="loadUploads()"><i class="fas fa-folder-open"></i> Файли</a></li>
             <li><a href="#" class="nav-link" data-target="settings" onclick="loadSettings()"><i class="fas fa-sliders-h"></i> Налаштування</a></li>
         </ul>
@@ -293,6 +294,36 @@
                             </thead>
                             <tbody id="uploadsTableBody">
                                 <!-- Uploads will be loaded here via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refund History Section -->
+        <div id="refunds" class="content-section">
+            <h2 class="mb-4">Історія повернень</h2>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Останні операції з поверненнями</span>
+                    <button class="btn btn-sm btn-primary" onclick="loadRefundHistory()"><i class="fas fa-sync"></i> Оновити</button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Останнє оновлення</th>
+                                    <th>Замовлення</th>
+                                    <th>Система</th>
+                                    <th>Статус</th>
+                                    <th>Повідомлення</th>
+                                    <th>Деталі</th>
+                                </tr>
+                            </thead>
+                            <tbody id="refundsTableBody">
+                                <!-- Refund history will be loaded here via AJAX -->
                             </tbody>
                         </table>
                     </div>
@@ -594,6 +625,71 @@
                 }
             } catch(e) {
                 showToast('Помилка збереження', 'danger');
+            }
+        }
+
+        // Refund History Management
+        async function loadRefundHistory() {
+            const tbody = document.getElementById('refundsTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+            try {
+                const res = await fetch(`${API_URL}?action=get_refund_history`);
+                const data = await res.json();
+                if (data.success) {
+                    tbody.innerHTML = '';
+                    if (data.history.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Історія порожня</td></tr>';
+                    } else {
+                        data.history.forEach(item => {
+                            let statusBadge = `<span class="badge bg-secondary">${item.status}</span>`;
+                            if (item.status === 'SUCCESS') statusBadge = '<span class="badge bg-success">Успішно</span>';
+                            else if (item.status === 'ERROR') statusBadge = '<span class="badge bg-danger">Помилка</span>';
+                            else if (item.status === 'INFO') statusBadge = '<span class="badge bg-info text-dark">Інфо</span>';
+                            else if (item.status === 'WARNING') statusBadge = '<span class="badge bg-warning text-dark">Увага</span>';
+                            
+                            let systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-question-circle text-muted"></i> ${item.system}</span>`;
+                            if (item.system === 'LiqPay') systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-credit-card text-success"></i> LiqPay</span>`;
+                            else if (item.system === 'ПриватБанк') systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-success"></i> ПриватБанк</span>`;
+                            else if (item.system === 'Monobank') systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-dark"></i> Monobank</span>`;
+                            else if (item.system.includes('ФОП')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-briefcase text-primary"></i> ${item.system}</span>`;
+                            
+                            // Generate detailed logs HTML
+                            let detailsHtml = item.messages.map(msg => {
+                                let badge = msg.status;
+                                if (msg.status === 'SUCCESS') badge = '<span class="badge bg-success" style="width: 60px; display: inline-block; text-align: center;">SUCCESS</span>';
+                                else if (msg.status === 'ERROR') badge = '<span class="badge bg-danger" style="width: 60px; display: inline-block; text-align: center;">ERROR</span>';
+                                else if (msg.status === 'WARNING') badge = '<span class="badge bg-warning text-dark" style="width: 60px; display: inline-block; text-align: center;">WARN</span>';
+                                else badge = '<span class="badge bg-info text-dark" style="width: 60px; display: inline-block; text-align: center;">INFO</span>';
+                                return `<div class="mb-1"><small class="text-muted" style="font-family: monospace;">[${msg.date}]</small> ${badge} <small>${msg.text}</small></div>`;
+                            }).join('');
+                            
+                            const detailsId = 'details_' + item.order_id;
+                            
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td class="text-nowrap">${item.date}</td>
+                                    <td><strong><a href="https://crm.keycrm.app/orders/${item.order_id}" target="_blank" class="text-decoration-none">#${item.order_id} <i class="fas fa-external-link-alt small"></i></a></strong></td>
+                                    <td>${systemBadge}</td>
+                                    <td>${statusBadge}</td>
+                                    <td class="text-break">${item.latest_msg}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#${detailsId}" title="Показати всю історію">
+                                            <i class="fas fa-list"></i> Деталі
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="collapse" id="${detailsId}">
+                                    <td colspan="6" class="bg-light p-3 border-bottom">
+                                        <div class="mb-2"><strong>Усі логі по замовленню #${item.order_id}:</strong></div>
+                                        ${detailsHtml}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+            } catch (err) {
+                showToast('Помилка завантаження історії повернень', 'danger');
             }
         }
 

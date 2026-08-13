@@ -65,6 +65,71 @@ if ($action === 'get_logs') {
     exit;
 }
 
+if ($action === 'get_refund_history') {
+    $logFile = __DIR__ . '/logs/refund.log';
+    $orders = [];
+    if (file_exists($logFile)) {
+        $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines !== false) {
+            // Читаємо з кінця (найновіші перші)
+            $lines = array_reverse($lines);
+            // Беремо останні 2000 записів для пошуку
+            $lines = array_slice($lines, 0, 2000);
+            
+            foreach ($lines as $line) {
+                if (preg_match('/^\[(.*?)\] \[Order #(.*?)\] (.*?): (.*)$/', $line, $matches) || preg_match('/^\[(.*?)\] \[Order #(.*?)\] (.*)$/', $line, $matches)) {
+                    $date = $matches[1];
+                    $order_id = $matches[2];
+                    $status = isset($matches[4]) ? $matches[3] : 'INFO';
+                    $message = isset($matches[4]) ? $matches[4] : $matches[3];
+                    
+                    if (!isset($orders[$order_id])) {
+                        $orders[$order_id] = [
+                            'order_id' => $order_id,
+                            'date' => $date, // найновіша дата
+                            'status' => $status,
+                            'system' => 'Невідомо',
+                            'latest_msg' => $message,
+                            'messages' => []
+                        ];
+                    }
+                    
+                    // Визначаємо систему, якщо ще невідома
+                    $lowerMsg = mb_strtolower($message);
+                    if (strpos($lowerMsg, 'liqpay') !== false) {
+                        $orders[$order_id]['system'] = 'LiqPay';
+                    } elseif (strpos($lowerMsg, 'приват') !== false || strpos($lowerMsg, 'платіж №ac') !== false) {
+                        $orders[$order_id]['system'] = 'ПриватБанк';
+                    } elseif (strpos($lowerMsg, 'моно') !== false) {
+                        $orders[$order_id]['system'] = 'Monobank';
+                    } elseif (strpos($lowerMsg, 'фоп') !== false && $orders[$order_id]['system'] === 'Невідомо') {
+                        preg_match('/ключ.*?: (.*)/ui', $message, $m);
+                        if (isset($m[1])) $orders[$order_id]['system'] = trim($m[1]);
+                        else $orders[$order_id]['system'] = 'ФОП (Інше)';
+                    }
+
+                    // Зберігаємо важливіший статус як основний, якщо поточний INFO
+                    if ($orders[$order_id]['status'] === 'INFO' && $status !== 'INFO') {
+                        $orders[$order_id]['status'] = $status;
+                        $orders[$order_id]['latest_msg'] = $message;
+                    }
+                    
+                    $orders[$order_id]['messages'][] = [
+                        'date' => $date,
+                        'status' => $status,
+                        'text' => $message
+                    ];
+                }
+            }
+        }
+    }
+    
+    // Перетворюємо асоціативний масив у звичайний
+    $history = array_values($orders);
+    echo json_encode(['success' => true, 'history' => $history]);
+    exit;
+}
+
 if ($action === 'read_log') {
     $file = $_GET['file'] ?? '';
     $file = basename($file); // Prevent directory traversal
