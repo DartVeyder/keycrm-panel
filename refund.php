@@ -36,6 +36,18 @@ try {
     // ------------------------------------------------------------
    //$order = $keyCrm->order(211443);
     $orderId = $order['id'] ?? 'UNKNOWN';
+
+    // Захист від паралельного (одночасного) виконання повернення для одного замовлення
+    if ($orderId !== 'UNKNOWN') {
+        $lockFile = sys_get_temp_dir() . '/keycrm_refund_' . $orderId . '.lock';
+        $fpLock = fopen($lockFile, "c+");
+        if (!$fpLock || !flock($fpLock, LOCK_EX | LOCK_NB)) {
+            $msg = "WARNING: Процес повернення вже виконується іншим запитом (race condition)";
+            logMessage($orderId, $msg, $logFile);
+            echo $msg;
+            return;
+        }
+    }
  
     $order_custom_fields = array_map(
         fn($v) => is_array($v) ? reset($v) : $v,
@@ -52,6 +64,17 @@ try {
         logMessage($orderId, "INFO: {$commentText}", $logFile);
         echo $statusText . " | " . $commentText;
         return;
+    }
+
+    if (isset($order_custom_fields[$commentField])) {
+        $comment = $order_custom_fields[$commentField];
+        if (strpos($comment, 'Платіж №AC') !== false || strpos($comment, 'Повернення LiqPay') !== false || strpos($comment, 'Запит відправлено LiqPay') !== false) {
+            $statusText  = "SUCCESS";
+            $commentText = "Платіж вже було ініційовано раніше (знайдено в коментарі). Новий платіж не створюється.";
+            logMessage($orderId, "INFO: {$commentText}", $logFile);
+            echo $statusText . " | " . $commentText;
+            return;
+        }
     }
 
     // ------------------------------------------------------------

@@ -64,9 +64,12 @@ foreach ($ordersList as $orderData) {
         continue;
     }
 
-    // 3. Додаткова перевірка: якщо статус не зберігся, але є коментар "Платіж №AC..."
-    if (isset($order_custom_fields[$commentField]) && strpos($order_custom_fields[$commentField], 'Платіж №AC') !== false) {
-        continue;
+    // 3. Додаткова перевірка: якщо статус не зберігся, але є коментар про успішний платіж
+    if (isset($order_custom_fields[$commentField])) {
+        $comment = $order_custom_fields[$commentField];
+        if (strpos($comment, 'Платіж №AC') !== false || strpos($comment, 'Повернення LiqPay') !== false || strpos($comment, 'Запит відправлено LiqPay') !== false) {
+            continue;
+        }
     }
 
     // Якщо дійшли сюди - замовлення підходить! Отримуємо повні дані (покупець і тд)
