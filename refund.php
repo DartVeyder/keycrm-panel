@@ -221,6 +221,11 @@ try {
         ]
     ]);
 
-    logMessage($orderIdForError, "ERROR: {$commentText}", $logFile);
+    $logText = $commentText;
+    if (!empty($ibanKey)) {
+        $logText .= " | ФОП: {$ibanKey}";
+    }
+    
+    logMessage($orderIdForError, "ERROR: {$logText}", $logFile);
     echo $statusText . " | " . $commentText;
 }
