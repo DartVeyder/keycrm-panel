@@ -647,11 +647,12 @@
                             else if (item.status === 'INFO') statusBadge = '<span class="badge bg-info text-dark">Інфо</span>';
                             else if (item.status === 'WARNING') statusBadge = '<span class="badge bg-warning text-dark">Увага</span>';
                             
+                            let sysLower = item.system.toLowerCase();
                             let systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-question-circle text-muted"></i> ${item.system}</span>`;
-                            if (item.system === 'LiqPay') systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-credit-card text-success"></i> LiqPay</span>`;
-                            else if (item.system === 'ПриватБанк') systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-success"></i> ПриватБанк</span>`;
-                            else if (item.system === 'Monobank') systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-dark"></i> Monobank</span>`;
-                            else if (item.system.includes('ФОП')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-briefcase text-primary"></i> ${item.system}</span>`;
+                            if (sysLower.includes('liqpay')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-credit-card text-success"></i> ${item.system}</span>`;
+                            else if (sysLower.includes('приват')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-success"></i> ${item.system}</span>`;
+                            else if (sysLower.includes('моно') || sysLower.includes('monobank')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-dark"></i> ${item.system}</span>`;
+                            else if (sysLower.includes('фоп')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-briefcase text-primary"></i> ${item.system}</span>`;
                             
                             // Generate detailed logs HTML
                             let detailsHtml = item.messages.map(msg => {

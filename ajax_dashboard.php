@@ -95,17 +95,19 @@ if ($action === 'get_refund_history') {
                     }
                     
                     // Визначаємо систему, якщо ще невідома
-                    $lowerMsg = mb_strtolower($message);
-                    if (strpos($lowerMsg, 'liqpay') !== false) {
-                        $orders[$order_id]['system'] = 'LiqPay';
-                    } elseif (strpos($lowerMsg, 'приват') !== false || strpos($lowerMsg, 'платіж №ac') !== false) {
-                        $orders[$order_id]['system'] = 'ПриватБанк';
-                    } elseif (strpos($lowerMsg, 'моно') !== false) {
-                        $orders[$order_id]['system'] = 'Monobank';
-                    } elseif (strpos($lowerMsg, 'фоп') !== false && $orders[$order_id]['system'] === 'Невідомо') {
-                        preg_match('/ключ.*?: (.*)/ui', $message, $m);
-                        if (isset($m[1])) $orders[$order_id]['system'] = trim($m[1]);
-                        else $orders[$order_id]['system'] = 'ФОП (Інше)';
+                    if (preg_match('/ФОП: (.*?)$/ui', $message, $m)) {
+                        $orders[$order_id]['system'] = trim($m[1]);
+                    } elseif (preg_match('/ключ.*?: (.*?)$/ui', $message, $m)) {
+                        $orders[$order_id]['system'] = trim($m[1]);
+                    } else {
+                        $lowerMsg = mb_strtolower($message);
+                        if (strpos($lowerMsg, 'liqpay') !== false) {
+                            $orders[$order_id]['system'] = 'LiqPay';
+                        } elseif (strpos($lowerMsg, 'приват') !== false || strpos($lowerMsg, 'платіж №ac') !== false) {
+                            $orders[$order_id]['system'] = 'ПриватБанк';
+                        } elseif (strpos($lowerMsg, 'моно') !== false) {
+                            $orders[$order_id]['system'] = 'Monobank';
+                        }
                     }
 
                     // Зберігаємо важливіший статус як основний, якщо поточний INFO

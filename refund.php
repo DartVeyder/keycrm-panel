@@ -116,7 +116,7 @@ try {
         if (empty($cfg['private_key'])) throw new Exception("Порожній private_key у конфігу");
     }
 
-    logMessage($orderId, "INFO: Вхідні дані успішно перевірені", $logFile);
+    logMessage($orderId, "INFO: Вхідні дані перевірені. ФОП: {$ibanKey}", $logFile);
 
     // ------------------------------------------------------------
     // 5. Створення платежу
