@@ -68,6 +68,12 @@ if ($action === 'get_logs') {
 if ($action === 'get_refund_history') {
     $logFile = __DIR__ . '/logs/refund.log';
     $orders = [];
+    $refundConfig = [];
+    if (file_exists(__DIR__ . '/refund_config.php')) {
+        require __DIR__ . '/refund_config.php';
+        $refundConfig = $config ?? [];
+    }
+
     if (file_exists($logFile)) {
         $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         if ($lines !== false) {
@@ -89,24 +95,36 @@ if ($action === 'get_refund_history') {
                             'date' => $date, // найновіша дата
                             'status' => $status,
                             'system' => 'Невідомо',
+                            'system_type' => 'unknown',
                             'latest_msg' => $message,
                             'messages' => []
                         ];
                     }
                     
                     // Визначаємо систему, якщо ще невідома
+                    $foundFop = null;
                     if (preg_match('/ФОП: (.*?)$/ui', $message, $m)) {
-                        $orders[$order_id]['system'] = trim($m[1]);
+                        $foundFop = trim($m[1]);
                     } elseif (preg_match('/ключ.*?: (.*?)$/ui', $message, $m)) {
-                        $orders[$order_id]['system'] = trim($m[1]);
-                    } else {
+                        $foundFop = trim($m[1]);
+                    } 
+                    
+                    if ($foundFop) {
+                        $orders[$order_id]['system'] = $foundFop;
+                        if (isset($refundConfig[$foundFop])) {
+                            $orders[$order_id]['system_type'] = $refundConfig[$foundFop]['type'] ?? 'unknown';
+                        }
+                    } else if ($orders[$order_id]['system'] === 'Невідомо') {
                         $lowerMsg = mb_strtolower($message);
                         if (strpos($lowerMsg, 'liqpay') !== false) {
                             $orders[$order_id]['system'] = 'LiqPay';
+                            $orders[$order_id]['system_type'] = 'liqpay';
                         } elseif (strpos($lowerMsg, 'приват') !== false || strpos($lowerMsg, 'платіж №ac') !== false) {
                             $orders[$order_id]['system'] = 'ПриватБанк';
+                            $orders[$order_id]['system_type'] = 'privatbank';
                         } elseif (strpos($lowerMsg, 'моно') !== false) {
                             $orders[$order_id]['system'] = 'Monobank';
+                            $orders[$order_id]['system_type'] = 'monobank';
                         }
                     }
 

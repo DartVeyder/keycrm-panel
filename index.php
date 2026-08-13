@@ -648,11 +648,19 @@
                             else if (item.status === 'WARNING') statusBadge = '<span class="badge bg-warning text-dark">Увага</span>';
                             
                             let sysLower = item.system.toLowerCase();
+                            let sType = item.system_type || 'unknown';
+                            
                             let systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-question-circle text-muted"></i> ${item.system}</span>`;
-                            if (sysLower.includes('liqpay')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-credit-card text-success"></i> ${item.system}</span>`;
-                            else if (sysLower.includes('приват')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-success"></i> ${item.system}</span>`;
-                            else if (sysLower.includes('моно') || sysLower.includes('monobank')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-dark"></i> ${item.system}</span>`;
-                            else if (sysLower.includes('фоп')) systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-briefcase text-primary"></i> ${item.system}</span>`;
+                            
+                            if (sType === 'liqpay' || sysLower.includes('liqpay')) {
+                                systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-credit-card text-success"></i> ${item.system}</span>`;
+                            } else if (sType === 'privatbank' || sysLower.includes('приват')) {
+                                systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-success"></i> ${item.system}</span>`;
+                            } else if (sType === 'monobank' || sysLower.includes('моно') || sysLower.includes('monobank')) {
+                                systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-dark"></i> ${item.system}</span>`;
+                            } else if (sysLower.includes('фоп')) {
+                                systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-briefcase text-primary"></i> ${item.system}</span>`;
+                            }
                             
                             // Generate detailed logs HTML
                             let detailsHtml = item.messages.map(msg => {
