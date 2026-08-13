@@ -677,7 +677,7 @@
                             tbody.innerHTML += `
                                 <tr>
                                     <td class="text-nowrap">${item.date}</td>
-                                    <td><strong><a href="https://twice1.keycrm.app/orders/${item.order_id}" target="_blank" class="text-decoration-none">#${item.order_id} <i class="fas fa-external-link-alt small"></i></a></strong></td>
+                                    <td><strong><a href="https://twice1.keycrm.app/app/orders/view/${item.order_id}" target="_blank" class="text-decoration-none">#${item.order_id} <i class="fas fa-external-link-alt small"></i></a></strong></td>
                                     <td>${systemBadge}</td>
                                     <td>${statusBadge}</td>
                                     <td class="text-break">${item.latest_msg}</td>
