@@ -369,6 +369,17 @@
                     </div>
                 </div>
                 <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-1 text-primary"><i class="fas fa-list-alt me-2"></i>Кабінет LiqPay</h5>
+                                <p class="text-muted mb-0 small">liqpay_logs.php</p>
+                            </div>
+                            <a href="liqpay_logs.php" target="_blank" class="btn btn-outline-primary">Відкрити</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
                     <div class="card">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -681,10 +692,13 @@
                                     <td>${systemBadge}</td>
                                     <td>${statusBadge}</td>
                                     <td class="text-break">${item.latest_msg}</td>
-                                    <td>
+                                    <td class="text-nowrap">
                                         <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#${detailsId}" title="Показати всю історію">
                                             <i class="fas fa-list"></i> Деталі
                                         </button>
+                                        <a href="manual_refund.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-primary ms-1" title="Запустити вручну">
+                                            <i class="fas fa-redo"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 <tr class="collapse" id="${detailsId}">

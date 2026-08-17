@@ -44,19 +44,49 @@ echo "Всього знайдено замовлень за СЬОГОДНІ т�
 $processedCount = 0;
 $statusField = 'OR_1042'; // Поле "Повернення статус"
 $fopField = 'OR_1047'; // Тип оплати ФОП 1
+$amountField = 'OR_1038'; // Повернення сума ФОП 1
 $commentField = 'OR_1046'; // Поле "Повернення коментар"
 
+$processedLogFile = __DIR__ . '/logs/cron_processed_orders.txt';
+$processedIds = file_exists($processedLogFile) ? file($processedLogFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
+
 foreach ($ordersList as $orderData) {
+    if (in_array((string)$orderData['id'], $processedIds)) {
+        continue; // Вже пробували обробити через крон
+    }
+
     // Збираємо кастомні поля ПРЯМО зі списку, щоб не робити 50 зайвих запитів
     $order_custom_fields = array_map(
         fn($v) => is_array($v) ? reset($v) : $v,
         array_column($orderData['custom_fields'] ?? [], 'value', 'uuid')
     );
 
-    // 1. Перевіряємо, чи вказано ФОП (поле OR_1047 не пусте)
-    if (empty($order_custom_fields[$fopField])) {
-        // Пропускаємо старі замовлення мовчки, щоб не засмічувати консоль
+    // 0. Головне правило: має бути вказана сума повернення!
+    if (empty($order_custom_fields[$amountField])) {
         continue;
+    }
+
+    // 1. Перевіряємо, чи вказано ФОП (поле OR_1047 не пусте)
+    $hasFop = !empty($order_custom_fields[$fopField]);
+    if (!$hasFop) {
+        $hasAutoFop = false;
+        if (!empty($orderData['payments'])) {
+            foreach ($orderData['payments'] as $payment) {
+                // Визначаємо тільки для LiqPay (id 61) або по наявності PBK
+                if (($payment['payment_method_id'] ?? 0) == 61 || strpos($payment['description'] ?? '', 'PBK') !== false) {
+                    $hasAutoFop = true;
+                    break;
+                }
+            }
+        }
+        if (!$hasAutoFop && !empty($orderData['buyer_comment']) && preg_match('/^\d+,([A-Za-z0-9\-]+)$/', trim($orderData['buyer_comment']))) {
+            $hasAutoFop = true;
+        }
+
+        if (!$hasAutoFop) {
+            // Пропускаємо старі замовлення мовчки, щоб не засмічувати консоль
+            continue;
+        }
     }
 
     // 2. Перевіряємо, чи вже був успішний платіж (через статус)
@@ -92,6 +122,9 @@ foreach ($ordersList as $orderData) {
 
     echo "Результат: " . trim($output) . "\n\n";
     $processedCount++;
+
+    // Зберігаємо ID замовлення, щоб крон не намагався обробити його повторно
+    file_put_contents(__DIR__ . '/logs/cron_processed_orders.txt', $orderId . "\n", FILE_APPEND);
 
     // Невелика затримка, щоб не спамити API ПриватБанку та KeyCRM
     sleep(1);

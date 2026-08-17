@@ -486,4 +486,36 @@ class KeyCrmV2
 
         return $allData;
     }
+
+    public function paymentMethods($filter = '', $numPages = null) {
+        $page = 1;
+        $limit = 50;
+        $allData = [];
+
+        do {
+            $url = "/order/payment-method?limit={$limit}&page={$page}";
+            if ($filter) {
+                $url .= "&" . $filter;
+            }
+
+            try {
+                $response = $this->request($url);
+            } catch (Exception $e) {
+                echo "Помилка при отриманні методів оплати: " . $e->getMessage();
+                break;
+            }
+
+            if (isset($response['data'])) {
+                $allData = array_merge($allData, $response['data']);
+            }
+
+            $nextPageUrl = $response['next_page_url'] ?? null;
+            if ($numPages && $page >= $numPages) {
+                break;
+            }
+            $page++;
+        } while ($nextPageUrl);
+
+        return $allData;
+    }
 }

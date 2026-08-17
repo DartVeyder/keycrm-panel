@@ -37,48 +37,119 @@ $orderId = $_GET['order_id'] ?? null;
             </div>
             <div class="card-body p-4 pt-0">
                 <?php if (!$orderId): ?>
-                    <div class="alert alert-danger">
-                        <strong>Помилка:</strong> Не передано ID замовлення (відсутній параметр order_id у посиланні).
+                    <div class="text-center py-3">
+                        <p class="text-muted">Введіть ID замовлення з KeyCRM для ручного запуску процесу повернення.</p>
+                        <form method="GET" action="manual_refund.php" class="d-flex justify-content-center gap-2 mt-3 mb-4">
+                            <input type="number" name="order_id" class="form-control w-50" placeholder="Наприклад: 12345" required>
+                            <button type="submit" class="btn btn-primary">Запустити</button>
+                        </form>
+                    </div>
+
+                    <hr>
+                    <h5 class="mb-3 text-secondary">Останні замовлення на повернення</h5>
+                    <?php
+                        $statusIds = [31, 33, 34, 39, 79, 80, 115, 11, 38, 40, 117, 116];
+                        $filter = "filter[status_id]=" . implode(',', $statusIds) . "&sort=-updated_at";
+                        $keyCrm = new KeyCrmV2();
+                        $recentOrders = $keyCrm->orders($filter, 1); // Завантажуємо тільки першу сторінку (до 50 замовлень)
+                        
+                        $statusField = 'OR_1042'; 
+                        $fopField = 'OR_1047';
+                        $amountField = 'OR_1038';
+                    ?>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Сума</th>
+                                    <th>ФОП</th>
+                                    <th>Статус</th>
+                                    <th>Оновлено</th>
+                                    <th class="text-end">Дія</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach($recentOrders as $ro): 
+                                    $cFields = array_map(fn($v) => is_array($v) ? reset($v) : $v, array_column($ro['custom_fields'] ?? [], 'value', 'uuid'));
+                                    $isSuccess = ($cFields[$statusField] ?? '') === 'SUCCESS';
+                                    $amount = $cFields[$amountField] ?? '-';
+                                    $fop = $cFields[$fopField] ?? '-';
+                                    $updated = date('d.m H:i', strtotime($ro['updated_at']));
+                                ?>
+                                <tr>
+                                    <td><strong><a href="https://twice1.keycrm.app/app/orders/view/<?= $ro['id'] ?>" target="_blank" class="text-decoration-none">#<?= $ro['id'] ?></a></strong></td>
+                                    <td><?= htmlspecialchars($amount) ?></td>
+                                    <td>
+                                        <small class="text-muted text-truncate d-inline-block" style="max-width: 150px;" title="<?= htmlspecialchars($fop) ?>">
+                                            <?= htmlspecialchars($fop) ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <?php if ($isSuccess): ?>
+                                            <span class="badge bg-success">Повернуто</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-warning text-dark">Очікує</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><small class="text-muted"><?= $updated ?></small></td>
+                                    <td class="text-end">
+                                        <?php if (!$isSuccess && $amount !== '-'): ?>
+                                            <a href="manual_refund.php?order_id=<?= $ro['id'] ?>" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">Запустити</a>
+                                        <?php elseif (!$isSuccess): ?>
+                                            <span class="text-muted small" title="Не вказана сума">Немає суми</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($recentOrders)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-3">Замовлень не знайдено</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 <?php else: ?>
                     <p class="text-muted mb-2">Замовлення ID: <strong><?= htmlspecialchars($orderId) ?></strong></p>
+                    <?php
+                    $keyCrm = new KeyCrmV2();
+                    $order = $keyCrm->order($orderId);
                     
-                    <div class="result-box mb-4">
-<?php
-// Отримуємо замовлення
-$keyCrm = new KeyCrmV2();
-$order = $keyCrm->order($orderId);
+                    if (!$order || !isset($order['id'])) {
+                        echo "<div class='alert alert-danger'><i class='fas fa-exclamation-triangle me-2'></i>Помилка: Замовлення не знайдено в KeyCRM. Перевірте ID.</div>";
+                    } else {
+                        ob_start();
+                        try {
+                            require_once('refund.php');
+                        } catch (Exception $e) {
+                            echo "КРИТИЧНА ПОМИЛКА: " . $e->getMessage();
+                        }
+                        
+                        $output = trim(ob_get_clean());
+                        
+                        $isError = (strpos($output, 'ERROR') !== false || strpos($output, 'Відсутнє або пусте') !== false || strpos($output, 'Помилка') !== false || strpos($output, 'КРИТИЧНА ПОМИЛКА') !== false);
+                        $isSuccess = (strpos($output, 'SUCCESS') !== false);
+                        
+                        if ($isSuccess) {
+                            echo '<div class="alert alert-success fs-5 shadow-sm" style="border-left: 5px solid #198754;"><i class="fas fa-check-circle me-2"></i><strong>Успішно!</strong> Повернення пройшло вдало.</div>';
+                        } elseif ($isError) {
+                            echo '<div class="alert alert-danger fs-5 shadow-sm" style="border-left: 5px solid #dc3545;"><i class="fas fa-times-circle me-2"></i><strong>Помилка!</strong> Не вдалося виконати повернення.</div>';
+                        }
+                        ?>
+                        <div class="result-box mb-4">
+Замовлення знайдено.
+Ініціюємо процес транзакції...
 
-if (!$order || !isset($order['id'])) {
-    echo "<span class='text-danger-custom'>Помилка: Замовлення не знайдено в KeyCRM. Перевірте ID.</span>";
-} else {
-    echo "Замовлення знайдено.\nІніціюємо процес транзакції...\n\n";
-    echo "----------------------------------------\n";
-    
-    // Запускаємо логіку повернення
-    ob_start();
-    try {
-        require_once('refund.php');
-    } catch (Exception $e) {
-        echo "<span class='text-danger-custom'>КРИТИЧНА ПОМИЛКА: " . $e->getMessage() . "</span>";
-    }
-    
-    $output = ob_get_clean();
-    $output = trim($output);
-    
-    // Робимо вивід красивішим
-    if (strpos($output, 'ERROR') !== false || strpos($output, 'Відсутнє або пусте') !== false || strpos($output, 'Помилка') !== false) {
-        echo "<span class='text-danger-custom'>" . htmlspecialchars($output) . "</span>";
-    } else if (strpos($output, 'SUCCESS') !== false) {
-        echo "<span class='text-success-custom'>" . htmlspecialchars($output) . "</span>";
-    } else {
-        echo htmlspecialchars($output);
-    }
-    
-    echo "\n----------------------------------------\n";
-    echo "Процес завершено.";
-}
-?>
+----------------------------------------
+<?= htmlspecialchars($output) ?>
+
+----------------------------------------
+Процес завершено.
+                        </div>
+                    <?php } ?>
+                    <div class="text-center mb-3">
+                        <a href="manual_refund.php" class="btn btn-outline-primary">Повернутися до списку</a>
                     </div>
                 <?php endif; ?>
                 

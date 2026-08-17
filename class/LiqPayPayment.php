@@ -49,13 +49,25 @@ class LiqPayPayment {
         
         if (isset($result['result']) && $result['result'] === 'error') {
             $err = $result['err_description'] ?? 'Unknown error';
+            $rawJson = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            echo "\n[Детальна відповідь LiqPay (order_id: {$orderId})]:\n" . $rawJson . "\n";
+            $logMsg = date('[Y-m-d H:i:s]') . " LiqPay Error for order_id {$orderId}: " . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
+            file_put_contents(__DIR__ . '/../logs/liqpay_debug.log', $logMsg, FILE_APPEND);
             throw new Exception("LiqPay Error: " . $err);
         }
         
         if (isset($result['status']) && in_array($result['status'], ['error', 'failure'])) {
             $err = $result['err_description'] ?? 'Unknown error';
+            $rawJson = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            echo "\n[Детальна відповідь LiqPay (order_id: {$orderId})]:\n" . $rawJson . "\n";
+            $logMsg = date('[Y-m-d H:i:s]') . " LiqPay Error for order_id {$orderId}: " . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
+            file_put_contents(__DIR__ . '/../logs/liqpay_debug.log', $logMsg, FILE_APPEND);
             throw new Exception("LiqPay Error: " . $err);
         }
+
+        // Логуємо успішні відповіді теж для розуміння
+        $logMsg = date('[Y-m-d H:i:s]') . " LiqPay Success for order_id {$orderId}: " . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
+        file_put_contents(__DIR__ . '/../logs/liqpay_debug.log', $logMsg, FILE_APPEND);
 
         return $result;
     }

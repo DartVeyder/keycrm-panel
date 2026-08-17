@@ -89,9 +89,79 @@ try {
         }
     }
 
-    $ibanKey  = requireField($order_custom_fields, 'OR_1047', 'Ключ ФОП (OR_1047)');
+    $ibanKey = $order_custom_fields['OR_1047'] ?? null;
+    $liqpayOrderIdFromComment = null;
+    $liqpayPaymentIdFromComment = null;
+    $buyerComment = $order['buyer_comment'] ?? '';
+
+    // Парсинг buyer_comment (може бути "LiqPayID,SOID" або детальний "LIQPAY ID ... SOID ... PBK ...")
+    if (!empty($buyerComment)) {
+        $trimmedComment = trim($buyerComment);
+        if (preg_match('/^(\d+),([A-Za-z0-9\-]+)$/', $trimmedComment, $m)) {
+            $liqpayPaymentIdFromComment = $m[1];
+            $liqpayOrderIdFromComment = $m[2];
+        } else {
+            if (preg_match('/LIQPAY\s*ID\s+(\d+)/i', $trimmedComment, $m)) {
+                $liqpayPaymentIdFromComment = $m[1];
+            }
+            if (preg_match('/SOID\s+([A-Za-z0-9\-]+)/i', $trimmedComment, $m)) {
+                $liqpayOrderIdFromComment = $m[1];
+            }
+            if (preg_match('/PBK\s+([a-zA-Z0-9]+)/i', $trimmedComment, $m)) {
+                $pbk = $m[1];
+                foreach ($config as $fopName => $cfg) {
+                    if (($cfg['type'] ?? '') === 'liqpay' && ($cfg['public_key'] ?? '') === $pbk) {
+                        if (strpos($fopName, 'Передоплата') === false) {
+                            $ibanKey = $fopName;
+                            break;
+                        } else {
+                            $ibanKey = $fopName; // Fallback
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (empty($ibanKey) && !empty($order['payments']) && is_array($order['payments'])) {
+        // Спроба автоматично визначити ФОП
+        foreach ($order['payments'] as $payment) {
+            $desc = $payment['description'] ?? $payment['comment'] ?? '';
+            $paymentMethodId = $payment['payment_method_id'] ?? null;
+
+            // 1. Пошук по PBK для LiqPay (PBK i31151286400) (тільки для LiqPay)
+            if (($paymentMethodId == 61 || strpos($desc, 'PBK') !== false) && preg_match('/PBK\s+([a-zA-Z0-9]+)/i', $desc, $pbkMatches)) {
+                $pbk = $pbkMatches[1];
+                foreach ($config as $fopName => $cfg) {
+                    if (($cfg['type'] ?? '') === 'liqpay' && ($cfg['public_key'] ?? '') === $pbk) {
+                        if (strpos($fopName, 'Передоплата') === false) {
+                            $ibanKey = $fopName;
+                            break 2;
+                        } else {
+                            $ibanKey = $fopName; // Fallback
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (empty($ibanKey)) {
+        throw new Exception("Відсутнє або пусте поле: Ключ ФОП (OR_1047) і не вдалося визначити автоматично з оплат");
+    }
     $amount   = requireField($order_custom_fields, 'OR_1038', 'Сума платежу (OR_1038)');
     
+    // ------------------------------------------------------------
+    // 3.5. Захист від повторного повернення однакової суми
+    // ------------------------------------------------------------
+    $amountLockFile = __DIR__ . '/logs/refund_amounts_history.json';
+    $amountsHistory = file_exists($amountLockFile) ? json_decode(file_get_contents($amountLockFile), true) : [];
+    if (isset($amountsHistory[$orderId]) && in_array((string)$amount, $amountsHistory[$orderId])) {
+        $msg = "Сума {$amount} вже була успішно повернена для замовлення {$orderId} раніше. Повторне повернення тієї ж самої суми заблоковано системою.";
+        logMessage($orderId, "ERROR: {$msg}", $logFile);
+        throw new Exception($msg);
+    }
+
     // ------------------------------------------------------------
     // 4. Конфігурація
     // ------------------------------------------------------------
@@ -157,8 +227,14 @@ try {
             $api = new LiqPayPayment($cfg['public_key'], $cfg['private_key']);
             
             $liqpayOrderId = $orderId;
+            $liqpayFallbackId = null;
+            $usePaymentId = false;
             
-            if (!empty($order_custom_fields['OR_1034'])) {
+            if (!empty($liqpayOrderIdFromComment) && !empty($liqpayPaymentIdFromComment)) {
+                $liqpayOrderId = $liqpayOrderIdFromComment;
+                $liqpayFallbackId = $liqpayPaymentIdFromComment;
+                logMessage($orderId, "INFO: Знайдено SOID ({$liqpayOrderId}) та LiqPayID ({$liqpayFallbackId}) у buyer_comment", $logFile);
+            } elseif (!empty($order_custom_fields['OR_1034'])) {
                 $liqpayOrderId = trim($order_custom_fields['OR_1034']);
                 logMessage($orderId, "INFO: Знайдено ID LiqPay у полі OR_1034: {$liqpayOrderId}", $logFile);
             } else {
@@ -175,7 +251,17 @@ try {
                 }
             }
 
-            $result = $api->refund($liqpayOrderId, $amount);
+            try {
+                $result = $api->refund($liqpayOrderId, $amount);
+            } catch (Exception $e) {
+                // Якщо платіж не знайдено по order_id, спробуємо по payment_id (перша частина)
+                if ($liqpayFallbackId && strpos($e->getMessage(), 'Платіж не знайдено') !== false) {
+                    logMessage($orderId, "WARNING: SOID не знайдено, пробуємо використати payment_id: {$liqpayFallbackId}", $logFile);
+                    $result = $api->refund($liqpayFallbackId, $amount);
+                } else {
+                    throw $e;
+                }
+            }
 
             if (isset($result['status']) && in_array($result['status'], ['reversed', 'success', 'wait_accept'])) {
                 $statusText  = "SUCCESS";
@@ -194,8 +280,12 @@ try {
     }
 
     // ------------------------------------------------------------
-    // 6. Запис успіху у KeyCRM
+    // 6. Запис успіху у KeyCRM та збереження суми
     // ------------------------------------------------------------
+    if ($statusText === 'SUCCESS') {
+        $amountsHistory[$orderId][] = (string)$amount;
+        file_put_contents($amountLockFile, json_encode($amountsHistory));
+    }
     $keyCrm->updateOrder($orderId, [
         'custom_fields' => [
             ["uuid" => $statusField, "value" => $statusText],
