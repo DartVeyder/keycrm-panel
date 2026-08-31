@@ -54,6 +54,31 @@ try {
         array_column($order['custom_fields'], 'value', 'uuid')
     );
 
+    // Визначаємо, який ФОП використовується
+    $ibanKey1 = $order_custom_fields['OR_1047'] ?? null;
+    $amount1  = $order_custom_fields['OR_1038'] ?? null;
+    $ibanKey2 = $order_custom_fields['OR_1060'] ?? null;
+    $amount2  = $order_custom_fields['OR_1059'] ?? null;
+
+    $ibanKey = null;
+    $amount = null;
+    $usedFopIndex = 1;
+
+    if (!empty($amount1)) {
+        $ibanKey = $ibanKey1;
+        $amount = $amount1;
+        $usedFopIndex = 1;
+    } elseif (!empty($amount2)) {
+        $ibanKey = $ibanKey2;
+        $amount = $amount2;
+        $usedFopIndex = 2;
+    } else {
+        $ibanKey = $ibanKey1;
+    }
+    
+    // Встановлюємо правильне поле для коментаря
+    $commentField = $usedFopIndex === 2 ? 'OR_1080' : 'OR_1046';
+
     // ------------------------------------------------------------
     // 2. Перевірка: якщо вже SUCCESS, платіж не створювати
     // ------------------------------------------------------------
@@ -89,7 +114,7 @@ try {
         }
     }
 
-    $ibanKey = $order_custom_fields['OR_1047'] ?? null;
+
     $liqpayOrderIdFromComment = null;
     $liqpayPaymentIdFromComment = null;
     $buyerComment = $order['buyer_comment'] ?? '';
@@ -147,9 +172,13 @@ try {
     }
 
     if (empty($ibanKey)) {
-        throw new Exception("Відсутнє або пусте поле: Ключ ФОП (OR_1047) і не вдалося визначити автоматично з оплат");
+        $fieldName = $usedFopIndex === 2 ? 'Ключ ФОП 2 (OR_1060)' : 'Ключ ФОП (OR_1047)';
+        throw new Exception("Відсутнє або пусте поле: {$fieldName} і не вдалося визначити автоматично з оплат");
     }
-    $amount   = requireField($order_custom_fields, 'OR_1038', 'Сума платежу (OR_1038)');
+    
+    if (empty($amount)) {
+        throw new Exception("Відсутнє або пусте поле: Сума платежу ФОП 1 (OR_1038) або ФОП 2 (OR_1059)");
+    }
     
     // ------------------------------------------------------------
     // 3.5. Захист від повторного повернення однакової суми

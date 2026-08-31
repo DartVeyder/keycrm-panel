@@ -45,6 +45,8 @@ $processedCount = 0;
 $statusField = 'OR_1042'; // Поле "Повернення статус"
 $fopField = 'OR_1047'; // Тип оплати ФОП 1
 $amountField = 'OR_1038'; // Повернення сума ФОП 1
+$fopField2 = 'OR_1060'; // Тип оплати ФОП 2
+$amountField2 = 'OR_1059'; // Повернення сума ФОП 2
 $commentField = 'OR_1046'; // Поле "Повернення коментар"
 
 $processedLogFile = __DIR__ . '/logs/cron_processed_orders.txt';
@@ -62,12 +64,12 @@ foreach ($ordersList as $orderData) {
     );
 
     // 0. Головне правило: має бути вказана сума повернення!
-    if (empty($order_custom_fields[$amountField])) {
+    if (empty($order_custom_fields[$amountField]) && empty($order_custom_fields[$amountField2])) {
         continue;
     }
 
-    // 1. Перевіряємо, чи вказано ФОП (поле OR_1047 не пусте)
-    $hasFop = !empty($order_custom_fields[$fopField]);
+    // 1. Перевіряємо, чи вказано ФОП (поле OR_1047 або OR_1060 не пусте)
+    $hasFop = !empty($order_custom_fields[$fopField]) || !empty($order_custom_fields[$fopField2]);
     if (!$hasFop) {
         $hasAutoFop = false;
         if (!empty($orderData['payments'])) {
@@ -95,8 +97,10 @@ foreach ($ordersList as $orderData) {
     }
 
     // 3. Додаткова перевірка: якщо статус не зберігся, але є коментар про успішний платіж
-    if (isset($order_custom_fields[$commentField])) {
-        $comment = $order_custom_fields[$commentField];
+    $currentCommentField = !empty($order_custom_fields[$amountField]) ? $commentField : (!empty($order_custom_fields[$amountField2]) ? 'OR_1080' : $commentField);
+    
+    if (isset($order_custom_fields[$currentCommentField])) {
+        $comment = $order_custom_fields[$currentCommentField];
         if (strpos($comment, 'Платіж №AC') !== false || strpos($comment, 'Повернення LiqPay') !== false || strpos($comment, 'Запит відправлено LiqPay') !== false) {
             continue;
         }

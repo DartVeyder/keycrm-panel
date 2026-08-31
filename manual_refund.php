@@ -56,6 +56,8 @@ $orderId = $_GET['order_id'] ?? null;
                         $statusField = 'OR_1042'; 
                         $fopField = 'OR_1047';
                         $amountField = 'OR_1038';
+                        $fopField2 = 'OR_1060';
+                        $amountField2 = 'OR_1059';
                     ?>
                     <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                         <table class="table table-sm table-hover align-middle mb-0">
@@ -73,8 +75,13 @@ $orderId = $_GET['order_id'] ?? null;
                                 <?php foreach($recentOrders as $ro): 
                                     $cFields = array_map(fn($v) => is_array($v) ? reset($v) : $v, array_column($ro['custom_fields'] ?? [], 'value', 'uuid'));
                                     $isSuccess = ($cFields[$statusField] ?? '') === 'SUCCESS';
-                                    $amount = $cFields[$amountField] ?? '-';
-                                    $fop = $cFields[$fopField] ?? '-';
+                                    $amount1 = $cFields[$amountField] ?? '';
+                                    $amount2 = $cFields[$amountField2] ?? '';
+                                    $amount = !empty($amount1) ? $amount1 : (!empty($amount2) ? $amount2 : '-');
+                                    
+                                    $fop1 = $cFields[$fopField] ?? '';
+                                    $fop2 = $cFields[$fopField2] ?? '';
+                                    $fop = !empty($amount1) ? $fop1 : (!empty($amount2) ? $fop2 : '-');
                                     $updated = date('d.m H:i', strtotime($ro['updated_at']));
                                 ?>
                                 <tr>
