@@ -160,7 +160,14 @@ $csvPath = 'uploads/products_1c.csv';
                 "order": [[ 3, "asc" ]], // Sort by Product Ref by default to keep groups together
                 "rowGroup": {
                     "dataSrc": 3,
-                    "className": "table-dark fw-bold text-light"
+                    "className": "table-dark fw-bold text-light",
+                    "startRender": function (rows, group) {
+                        // Don't show group header if there's only 1 item in the group
+                        if (rows.count() === 1) {
+                            return null;
+                        }
+                        return group ? group : 'Без Product Ref';
+                    }
                 },
                 "orderCellsTop": true,
                 "fixedHeader": true,
@@ -169,9 +176,10 @@ $csvPath = 'uploads/products_1c.csv';
 
                     // For each column
                     api.columns().eq(0).each(function (colIdx) {
-                        // Set the header cell to contain the input element
-                        var cell = $('.filters th').eq($(api.column(colIdx).header()).index());
-                        var title = $.trim($(cell).text());
+                        // Set the header cell to contain the input element (target all clones like FixedHeader)
+                        var colIndex = $(api.column(colIdx).header()).index();
+                        var cell = $('.filters th').filter(function() { return $(this).index() === colIndex; });
+                        var title = $.trim($(cell.first()).text());
                         
                         // Don't add filter for the details control column (index 0) or photo (index 1)
                         if (colIdx === 0 || colIdx === 1) {
@@ -183,7 +191,7 @@ $csvPath = 'uploads/products_1c.csv';
                         if (colIdx === 4) {
                             $(cell).html('<select class="form-select form-select-sm" style="min-width: 105px; font-weight: normal; cursor: pointer;"><option value="">Всі</option><option value="Є в обох">Є в обох</option><option value="Тільки 1С">Тільки 1С</option><option value="Тільки Сайт">Тільки Сайт</option></select>');
                             
-                            $('select', $('.filters th').eq($(api.column(colIdx).header()).index()))
+                            $('select', cell)
                                 .off('change')
                                 .on('change', function () {
                                     api.column(colIdx).search(
@@ -199,7 +207,7 @@ $csvPath = 'uploads/products_1c.csv';
                         if (colIdx === 9) {
                             $(cell).html('<select class="form-select form-select-sm" style="min-width: 70px; font-weight: normal; cursor: pointer;"><option value="">Всі</option><option value="Так">Так</option><option value="Ні">Ні</option></select>');
                             
-                            $('select', $('.filters th').eq($(api.column(colIdx).header()).index()))
+                            $('select', cell)
                                 .off('change')
                                 .on('change', function () {
                                     api.column(colIdx).search(
@@ -213,7 +221,7 @@ $csvPath = 'uploads/products_1c.csv';
                         
                         $(cell).html('<input type="text" class="form-control form-control-sm" placeholder="' + title + '" style="min-width: 70px; font-weight: normal;" />');
 
-                        $('input', $('.filters th').eq($(api.column(colIdx).header()).index()))
+                        $('input', cell)
                             .off('keyup change')
                             .on('keyup change', function (e) {
                                 e.stopPropagation();
