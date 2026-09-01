@@ -65,7 +65,9 @@ $excludedTerms = [
     'Листівка А5',
     'Послуга пошиття',
     'Лосьйон Victoria',
-    'Пакет з чорним лого'
+    'Пакет з чорним лого',
+    'Сертифікат',
+    'Шнурок'
 ];
 foreach ($excludedTerms as $term) {
     $where[] = "COALESCE(name_1c, name_site, name_keycrm, '') NOT LIKE '%$term%'";
@@ -76,7 +78,7 @@ $excludedCategories = [
     'АКСЕСУАРИ',
     'ВЗУТТЯ',
     'Біжутерія',
-    'СЕРТИФІКАТИ',
+    'Сертифікат',
     'РЕМЕНІ'
 ];
 foreach ($excludedCategories as $cat) {
