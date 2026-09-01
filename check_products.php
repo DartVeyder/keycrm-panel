@@ -32,7 +32,7 @@ $csvPath = 'uploads/products_1c.csv';
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/rowgroup/1.1.4/css/rowGroup.bootstrap5.min.css">
     <style>
         body { background-color: #f8f9fa; padding: 20px; }
-        .table-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .table-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow-x: auto; }
         .mismatch { background-color: #fff3cd !important; }
         .mismatch-danger { background-color: #f8d7da !important; }
     </style>
@@ -226,17 +226,20 @@ $csvPath = 'uploads/products_1c.csv';
                             .on('keyup change', function (e) {
                                 e.stopPropagation();
                                 
-                                $(this).attr('title', $(this).val());
-                                var cursorPosition = this.selectionStart;
+                                var input = this;
+                                $(input).attr('title', $(input).val());
                                 
-                                api.column(colIdx).search(
-                                    this.value != '' ? this.value : '',
-                                    false,
-                                    true // smart search
-                                ).draw();
-                                
-                                // Maintain focus
-                                $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
+                                // Use debounce to prevent rapid jumping and multiple AJAX calls
+                                clearTimeout(input.debounceTimer);
+                                input.debounceTimer = setTimeout(function() {
+                                    if (api.column(colIdx).search() !== input.value) {
+                                        api.column(colIdx).search(
+                                            input.value != '' ? input.value : '',
+                                            false,
+                                            true // smart search
+                                        ).draw();
+                                    }
+                                }, 500);
                             });
                     });
                 }

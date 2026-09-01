@@ -75,7 +75,9 @@ foreach ($excludedTerms as $term) {
 $excludedCategories = [
     'АКСЕСУАРИ',
     'ВЗУТТЯ',
-    'Біжутерія'
+    'Біжутерія',
+    'СЕРТИФІКАТИ',
+    'РЕМЕНІ'
 ];
 foreach ($excludedCategories as $cat) {
     $where[] = "COALESCE(category, '') NOT LIKE '%$cat%'";
