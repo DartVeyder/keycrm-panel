@@ -26,9 +26,14 @@ $logFile = __DIR__ . '/logs/refund.log';
 if (!function_exists('logMessage')) {
     function logMessage($orderId, $message, $logFile) {
         $time = date('Y-m-d H:i:s');
-        file_put_contents($logFile, "[$time] [Order #{$orderId}] $message\n", FILE_APPEND);
+        @file_put_contents($logFile, "[$time] [Order #{$orderId}] $message\n", FILE_APPEND);
+        @chmod($logFile, 0666);
     }
 }
+
+$fpLock = null;
+$lockFile = null;
+$lockAcquired = false;
 
 try {
     // ------------------------------------------------------------
@@ -39,13 +44,30 @@ try {
 
     // Захист від паралельного (одночасного) виконання повернення для одного замовлення
     if ($orderId !== 'UNKNOWN') {
-        $lockFile = sys_get_temp_dir() . '/keycrm_refund_' . $orderId . '.lock';
-        $fpLock = fopen($lockFile, "c+");
-        if (!$fpLock || !flock($fpLock, LOCK_EX | LOCK_NB)) {
-            $msg = "WARNING: Процес повернення вже виконується іншим запитом (race condition)";
-            logMessage($orderId, $msg, $logFile);
-            echo $msg;
-            return;
+        $locksDir = __DIR__ . '/logs/locks';
+        if (!is_dir($locksDir)) {
+            @mkdir($locksDir, 0777, true);
+            @chmod($locksDir, 0777);
+        }
+        $lockFile = $locksDir . '/refund_' . $orderId . '.lock';
+        $fpLock = @fopen($lockFile, "c+");
+        if ($fpLock) {
+            @chmod($lockFile, 0666);
+            if (!flock($fpLock, LOCK_EX | LOCK_NB)) {
+                @fclose($fpLock);
+                $fpLock = null;
+                $msg = "WARNING: Процес повернення вже виконується іншим запитом (race condition)";
+                logMessage($orderId, $msg, $logFile);
+                echo $msg;
+                return;
+            }
+            $lockAcquired = true;
+        }
+
+        // Прибираємо старий застарілий lock-файл із системного /tmp, якщо він залишився
+        $oldTmpLock = sys_get_temp_dir() . '/keycrm_refund_' . $orderId . '.lock';
+        if (file_exists($oldTmpLock)) {
+            @unlink($oldTmpLock);
         }
     }
  
@@ -313,7 +335,8 @@ try {
     // ------------------------------------------------------------
     if ($statusText === 'SUCCESS') {
         $amountsHistory[$orderId][] = (string)$amount;
-        file_put_contents($amountLockFile, json_encode($amountsHistory));
+        @file_put_contents($amountLockFile, json_encode($amountsHistory));
+        @chmod($amountLockFile, 0666);
     }
     $keyCrm->updateOrder($orderId, [
         'custom_fields' => [
@@ -347,4 +370,15 @@ try {
     
     logMessage($orderIdForError, "ERROR: {$logText}", $logFile);
     echo $statusText . " | " . $commentText;
+} finally {
+    if (is_resource($fpLock)) {
+        if ($lockAcquired) {
+            @flock($fpLock, LOCK_UN);
+        }
+        @fclose($fpLock);
+        $fpLock = null;
+    }
+    if ($lockAcquired && $lockFile && file_exists($lockFile)) {
+        @unlink($lockFile);
+    }
 }

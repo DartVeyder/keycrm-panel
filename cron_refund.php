@@ -52,9 +52,17 @@ $commentField = 'OR_1046'; // Поле "Повернення коментар"
 $processedLogFile = __DIR__ . '/logs/cron_processed_orders.txt';
 $processedIds = file_exists($processedLogFile) ? file($processedLogFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
 
+$failedLogFile = __DIR__ . '/logs/cron_failed_orders.json';
+$failedOrders = file_exists($failedLogFile) ? json_decode(file_get_contents($failedLogFile), true) : [];
+if (!is_array($failedOrders)) {
+    $failedOrders = [];
+}
+
 foreach ($ordersList as $orderData) {
-    if (in_array((string)$orderData['id'], $processedIds)) {
-        continue; // Вже пробували обробити через крон
+    $orderId = $orderData['id'];
+
+    if (in_array((string)$orderId, $processedIds)) {
+        continue; // Вже успішно оброблено через крон
     }
 
     // Збираємо кастомні поля ПРЯМО зі списку, щоб не робити 50 зайвих запитів
@@ -93,6 +101,11 @@ foreach ($ordersList as $orderData) {
 
     // 2. Перевіряємо, чи вже був успішний платіж (через статус)
     if (isset($order_custom_fields[$statusField]) && $order_custom_fields[$statusField] === 'SUCCESS') {
+        if (!in_array((string)$orderId, $processedIds)) {
+            $processedIds[] = (string)$orderId;
+            @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
+            @chmod($processedLogFile, 0666);
+        }
         continue;
     }
 
@@ -102,18 +115,28 @@ foreach ($ordersList as $orderData) {
     if (isset($order_custom_fields[$currentCommentField])) {
         $comment = $order_custom_fields[$currentCommentField];
         if (strpos($comment, 'Платіж №AC') !== false || strpos($comment, 'Повернення LiqPay') !== false || strpos($comment, 'Запит відправлено LiqPay') !== false) {
+            if (!in_array((string)$orderId, $processedIds)) {
+                $processedIds[] = (string)$orderId;
+                @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
+                @chmod($processedLogFile, 0666);
+            }
             continue;
         }
     }
 
+    // 4. Перевірка: якщо раніше була помилка, але дані замовлення в KeyCRM не змінювалися з того часу — пропускаємо, щоб не спамити API
+    $orderStateHash = md5(json_encode($orderData['custom_fields'] ?? []) . ($orderData['updated_at'] ?? ''));
+    if (isset($failedOrders[(string)$orderId]) && $failedOrders[(string)$orderId] === $orderStateHash) {
+        continue;
+    }
+
     // Якщо дійшли сюди - замовлення підходить! Отримуємо повні дані (покупець і тд)
-    $orderId = $orderData['id'];
     $order = $keyCrm->order($orderId);
     if (!$order) {
         continue;
     }
 
-    echo "Знайдено нове замовлення #{$orderId} на повернення. Запускаємо обробку...\n";
+    echo "Знайдено замовлення #{$orderId} на повернення. Запускаємо обробку...\n";
 
     // Перехоплюємо вивід скрипта, щоб він не зупинив цикл
     ob_start();
@@ -127,8 +150,23 @@ foreach ($ordersList as $orderData) {
     echo "Результат: " . trim($output) . "\n\n";
     $processedCount++;
 
-    // Зберігаємо ID замовлення, щоб крон не намагався обробити його повторно
-    file_put_contents(__DIR__ . '/logs/cron_processed_orders.txt', $orderId . "\n", FILE_APPEND);
+    if (strpos($output, 'SUCCESS') !== false) {
+        // Успішно повернено — записуємо в список завершених
+        $processedIds[] = (string)$orderId;
+        @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
+        @chmod($processedLogFile, 0666);
+        if (isset($failedOrders[(string)$orderId])) {
+            unset($failedOrders[(string)$orderId]);
+            @file_put_contents($failedLogFile, json_encode($failedOrders, JSON_PRETTY_PRINT));
+            @chmod($failedLogFile, 0666);
+        }
+    } else {
+        // Сталася помилка (наприклад, не заповнений IBAN) — зберігаємо стан помилки
+        // Якщо менеджер змінить IBAN або оновить замовлення в KeyCRM, хеш зміниться і крон автоматично повторить спробу!
+        $failedOrders[(string)$orderId] = $orderStateHash;
+        @file_put_contents($failedLogFile, json_encode($failedOrders, JSON_PRETTY_PRINT));
+        @chmod($failedLogFile, 0666);
+    }
 
     // Невелика затримка, щоб не спамити API ПриватБанку та KeyCRM
     sleep(1);

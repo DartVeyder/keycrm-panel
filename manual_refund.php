@@ -128,17 +128,29 @@ $orderId = $_GET['order_id'] ?? null;
                     } else {
                         ob_start();
                         try {
-                            require_once('refund.php');
+                            require('refund.php');
                         } catch (Exception $e) {
                             echo "КРИТИЧНА ПОМИЛКА: " . $e->getMessage();
                         }
                         
                         $output = trim(ob_get_clean());
                         
-                        $isError = (strpos($output, 'ERROR') !== false || strpos($output, 'Відсутнє або пусте') !== false || strpos($output, 'Помилка') !== false || strpos($output, 'КРИТИЧНА ПОМИЛКА') !== false);
+                        $isError = (strpos($output, 'ERROR') !== false || strpos($output, 'Відсутнє або пусте') !== false || strpos($output, 'Помилка') !== false || strpos($output, 'КРИТИЧНА ПОМИЛКА') !== false || strpos($output, 'WARNING') !== false);
                         $isSuccess = (strpos($output, 'SUCCESS') !== false);
                         
                         if ($isSuccess) {
+                            $processedLogFile = __DIR__ . '/logs/cron_processed_orders.txt';
+                            $failedLogFile = __DIR__ . '/logs/cron_failed_orders.json';
+                            @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
+                            @chmod($processedLogFile, 0666);
+                            if (file_exists($failedLogFile)) {
+                                $failedOrders = json_decode(file_get_contents($failedLogFile), true);
+                                if (is_array($failedOrders) && isset($failedOrders[(string)$orderId])) {
+                                    unset($failedOrders[(string)$orderId]);
+                                    @file_put_contents($failedLogFile, json_encode($failedOrders, JSON_PRETTY_PRINT));
+                                    @chmod($failedLogFile, 0666);
+                                }
+                            }
                             echo '<div class="alert alert-success fs-5 shadow-sm" style="border-left: 5px solid #198754;"><i class="fas fa-check-circle me-2"></i><strong>Успішно!</strong> Повернення пройшло вдало.</div>';
                         } elseif ($isError) {
                             echo '<div class="alert alert-danger fs-5 shadow-sm" style="border-left: 5px solid #dc3545;"><i class="fas fa-times-circle me-2"></i><strong>Помилка!</strong> Не вдалося виконати повернення.</div>';
