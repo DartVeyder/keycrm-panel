@@ -99,29 +99,36 @@ foreach ($ordersList as $orderData) {
         }
     }
 
-    // 2. Перевіряємо, чи вже був успішний платіж (через статус)
-    if (isset($order_custom_fields[$statusField]) && $order_custom_fields[$statusField] === 'SUCCESS') {
+    // 2. Перевіряємо, чи всі зазначені платежі вже успішно проведені
+    $cAmount1 = !empty($order_custom_fields[$amountField]) ? (float)str_replace([' ', ','], ['', '.'], $order_custom_fields[$amountField]) : 0;
+    $cAmount2 = !empty($order_custom_fields[$amountField2]) ? (float)str_replace([' ', ','], ['', '.'], $order_custom_fields[$amountField2]) : 0;
+
+    $cComment1 = $order_custom_fields[$commentField] ?? '';
+    $cComment2 = $order_custom_fields['OR_1080'] ?? '';
+
+    $isDone1 = ($cAmount1 <= 0) || (
+        strpos($cComment1, 'Платіж №AC') !== false ||
+        strpos($cComment1, 'Повернення LiqPay') !== false ||
+        strpos($cComment1, 'Запит відправлено LiqPay') !== false ||
+        strpos($cComment1, 'Запит відправлено') !== false ||
+        strpos($cComment1, 'Платіж уже успішно проведено') !== false
+    );
+
+    $isDone2 = ($cAmount2 <= 0) || (
+        strpos($cComment2, 'Платіж №AC') !== false ||
+        strpos($cComment2, 'Повернення LiqPay') !== false ||
+        strpos($cComment2, 'Запит відправлено LiqPay') !== false ||
+        strpos($cComment2, 'Запит відправлено') !== false ||
+        strpos($cComment2, 'Платіж уже успішно проведено') !== false
+    );
+
+    if ($isDone1 && $isDone2) {
         if (!in_array((string)$orderId, $processedIds)) {
             $processedIds[] = (string)$orderId;
             @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
             @chmod($processedLogFile, 0666);
         }
         continue;
-    }
-
-    // 3. Додаткова перевірка: якщо статус не зберігся, але є коментар про успішний платіж
-    $currentCommentField = !empty($order_custom_fields[$amountField]) ? $commentField : (!empty($order_custom_fields[$amountField2]) ? 'OR_1080' : $commentField);
-    
-    if (isset($order_custom_fields[$currentCommentField])) {
-        $comment = $order_custom_fields[$currentCommentField];
-        if (strpos($comment, 'Платіж №AC') !== false || strpos($comment, 'Повернення LiqPay') !== false || strpos($comment, 'Запит відправлено LiqPay') !== false) {
-            if (!in_array((string)$orderId, $processedIds)) {
-                $processedIds[] = (string)$orderId;
-                @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
-                @chmod($processedLogFile, 0666);
-            }
-            continue;
-        }
     }
 
     // 4. Перевірка: якщо раніше була помилка, але дані замовлення в KeyCRM не змінювалися з того часу — пропускаємо, щоб не спамити API

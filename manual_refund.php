@@ -74,36 +74,64 @@ $orderId = $_GET['order_id'] ?? null;
                             <tbody>
                                 <?php foreach($recentOrders as $ro): 
                                     $cFields = array_map(fn($v) => is_array($v) ? reset($v) : $v, array_column($ro['custom_fields'] ?? [], 'value', 'uuid'));
-                                    $isSuccess = ($cFields[$statusField] ?? '') === 'SUCCESS';
                                     $amount1 = $cFields[$amountField] ?? '';
                                     $amount2 = $cFields[$amountField2] ?? '';
-                                    $amount = !empty($amount1) ? $amount1 : (!empty($amount2) ? $amount2 : '-');
                                     
                                     $fop1 = $cFields[$fopField] ?? '';
                                     $fop2 = $cFields[$fopField2] ?? '';
-                                    $fop = !empty($amount1) ? $fop1 : (!empty($amount2) ? $fop2 : '-');
+
+                                    $comment1 = $cFields['OR_1046'] ?? '';
+                                    $comment2 = $cFields['OR_1080'] ?? '';
+
+                                    $hasAmt1 = !empty($amount1) && (float)str_replace([' ', ','], ['', '.'], $amount1) > 0;
+                                    $hasAmt2 = !empty($amount2) && (float)str_replace([' ', ','], ['', '.'], $amount2) > 0;
+
+                                    $isFop1Done = !$hasAmt1 || (strpos($comment1, 'Платіж №AC') !== false || strpos($comment1, 'Повернення LiqPay') !== false || strpos($comment1, 'Запит відправлено') !== false || strpos($comment1, 'Платіж уже успішно проведено') !== false);
+                                    $isFop2Done = !$hasAmt2 || (strpos($comment2, 'Платіж №AC') !== false || strpos($comment2, 'Повернення LiqPay') !== false || strpos($comment2, 'Запит відправлено') !== false || strpos($comment2, 'Платіж уже успішно проведено') !== false);
+
+                                    $isAllDone = ($hasAmt1 || $hasAmt2) && $isFop1Done && $isFop2Done;
+                                    $isPartial = (!$isAllDone) && ($hasAmt1 && $isFop1Done && $hasAmt2 && !$isFop2Done);
+
+                                    if ($hasAmt1 && $hasAmt2) {
+                                        $amountDisplay = htmlspecialchars($amount1) . ' + ' . htmlspecialchars($amount2);
+                                        $fopDisplay = '1: ' . htmlspecialchars($fop1 ?: 'Авто') . '<br>2: ' . htmlspecialchars($fop2 ?: 'Авто');
+                                    } elseif ($hasAmt1) {
+                                        $amountDisplay = htmlspecialchars($amount1);
+                                        $fopDisplay = htmlspecialchars($fop1 ?: '-');
+                                    } elseif ($hasAmt2) {
+                                        $amountDisplay = htmlspecialchars($amount2);
+                                        $fopDisplay = htmlspecialchars($fop2 ?: '-');
+                                    } else {
+                                        $amountDisplay = '-';
+                                        $fopDisplay = '-';
+                                    }
+
                                     $updated = date('d.m H:i', strtotime($ro['updated_at']));
                                 ?>
                                 <tr>
                                     <td><strong><a href="https://twice1.keycrm.app/app/orders/view/<?= $ro['id'] ?>" target="_blank" class="text-decoration-none">#<?= $ro['id'] ?></a></strong></td>
-                                    <td><?= htmlspecialchars($amount) ?></td>
+                                    <td><?= $amountDisplay ?></td>
                                     <td>
-                                        <small class="text-muted text-truncate d-inline-block" style="max-width: 150px;" title="<?= htmlspecialchars($fop) ?>">
-                                            <?= htmlspecialchars($fop) ?>
+                                        <small class="text-muted text-truncate d-inline-block" style="max-width: 200px;">
+                                            <?= $fopDisplay ?>
                                         </small>
                                     </td>
                                     <td>
-                                        <?php if ($isSuccess): ?>
-                                            <span class="badge bg-success">Повернуто</span>
-                                        <?php else: ?>
+                                        <?php if ($isAllDone): ?>
+                                            <span class="badge bg-success">Повернено</span>
+                                        <?php elseif ($isPartial): ?>
+                                            <span class="badge bg-info text-dark" title="ФОП 1 повернуто, очікує ФОП 2">Очікує ФОП 2</span>
+                                        <?php elseif ($hasAmt1 || $hasAmt2): ?>
                                             <span class="badge bg-warning text-dark">Очікує</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Немає суми</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><small class="text-muted"><?= $updated ?></small></td>
                                     <td class="text-end">
-                                        <?php if (!$isSuccess && $amount !== '-'): ?>
+                                        <?php if (!$isAllDone && ($hasAmt1 || $hasAmt2)): ?>
                                             <a href="manual_refund.php?order_id=<?= $ro['id'] ?>" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">Запустити</a>
-                                        <?php elseif (!$isSuccess): ?>
+                                        <?php elseif (!$hasAmt1 && !$hasAmt2): ?>
                                             <span class="text-muted small" title="Не вказана сума">Немає суми</span>
                                         <?php endif; ?>
                                     </td>
@@ -141,8 +169,18 @@ $orderId = $_GET['order_id'] ?? null;
                         if ($isSuccess) {
                             $processedLogFile = __DIR__ . '/logs/cron_processed_orders.txt';
                             $failedLogFile = __DIR__ . '/logs/cron_failed_orders.json';
-                            @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
-                            @chmod($processedLogFile, 0666);
+
+                            $refreshedOrder = $keyCrm->order($orderId);
+                            $rcFields = array_map(fn($v) => is_array($v) ? reset($v) : $v, array_column($refreshedOrder['custom_fields'] ?? [], 'value', 'uuid'));
+                            $rAmt1 = !empty($rcFields['OR_1038']) ? (float)str_replace([' ', ','], ['', '.'], $rcFields['OR_1038']) : 0;
+                            $rAmt2 = !empty($rcFields['OR_1059']) ? (float)str_replace([' ', ','], ['', '.'], $rcFields['OR_1059']) : 0;
+                            $rDone1 = ($rAmt1 <= 0) || (strpos($rcFields['OR_1046'] ?? '', 'Платіж №AC') !== false || strpos($rcFields['OR_1046'] ?? '', 'Повернення LiqPay') !== false || strpos($rcFields['OR_1046'] ?? '', 'Запит відправлено') !== false);
+                            $rDone2 = ($rAmt2 <= 0) || (strpos($rcFields['OR_1080'] ?? '', 'Платіж №AC') !== false || strpos($rcFields['OR_1080'] ?? '', 'Повернення LiqPay') !== false || strpos($rcFields['OR_1080'] ?? '', 'Запит відправлено') !== false);
+
+                            if ($rDone1 && $rDone2) {
+                                @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);
+                                @chmod($processedLogFile, 0666);
+                            }
                             if (file_exists($failedLogFile)) {
                                 $failedOrders = json_decode(file_get_contents($failedLogFile), true);
                                 if (is_array($failedOrders) && isset($failedOrders[(string)$orderId])) {
