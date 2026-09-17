@@ -28,14 +28,19 @@ $orderKC = $keyCrm->webhookOrder();
 
 if ($orderKC) {
 
-    // --- Автоматичне додавання UTM-мітки для копій замовлень ---
+    // --- Автоматичне додавання тегу для копій замовлень ---
     if (!empty($orderKC['parent_id'])) {
-        $currentUtmSource = $orderKC['utm_source'] ?? '';
-        if (strpos($currentUtmSource, '-- copy') === false) {
-            $newUtmSource = trim($currentUtmSource . ' -- copy');
-            $keyCrm->updateOrder($orderKC['id'], [
-                'utm_source' => $newUtmSource
-            ]);
+        $hasCopyTag = false;
+        if (!empty($orderKC['tags'])) {
+            foreach ($orderKC['tags'] as $tag) {
+                if (isset($tag['id']) && $tag['id'] == 56) {
+                    $hasCopyTag = true;
+                    break;
+                }
+            }
+        }
+        if (!$hasCopyTag) {
+            $keyCrm->addTagOrder($orderKC['id'], 56);
         }
     }
     // ------------------------------------------------------------
