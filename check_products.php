@@ -111,6 +111,7 @@ $csvPath = 'uploads/products_1c.csv';
                         <th>Розмір</th>
                         <th>Колір</th>
                         <th>Активний</th>
+                        <th>Відгуки</th>
                         <th>Залишок Сайт</th>
                         <th>Залишок 1C</th>
                         <th>Залишок KeyCRM</th>
@@ -206,6 +207,22 @@ $csvPath = 'uploads/products_1c.csv';
                         // Add a dropdown list for Active column (index 9)
                         if (colIdx === 9) {
                             $(cell).html('<select class="form-select form-select-sm" style="min-width: 70px; font-weight: normal; cursor: pointer;"><option value="">Всі</option><option value="Так">Так</option><option value="Ні">Ні</option></select>');
+                            
+                            $('select', cell)
+                                .off('change')
+                                .on('change', function () {
+                                    api.column(colIdx).search(
+                                        this.value != '' ? this.value : '',
+                                        false,
+                                        false
+                                    ).draw();
+                                });
+                            return;
+                        }
+
+                        // Add a dropdown list for Reviews column (index 10)
+                        if (colIdx === 10) {
+                            $(cell).html('<select class="form-select form-select-sm" style="min-width: 80px; font-weight: normal; cursor: pointer;"><option value="">Всі</option><option value="Є">Є</option><option value="Немає">Немає</option></select>');
                             
                             $('select', cell)
                                 .off('change')

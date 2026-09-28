@@ -94,6 +94,7 @@ if (is_array($apiProducts)) {
                 'status' => $p['product_status'] ?? 0,
                 'category' => is_array($p['category_names'] ?? null) ? implode(', ', $p['category_names']) : ($p['category_names'] ?? ($p['main_category'] ?? '')),
                 'image' => is_array($p['images'] ?? null) ? ($p['images'][0] ?? '') : ($p['images'] ?? ''),
+                'reviews_count' => (int)($p['rating']['total_reviews'] ?? 0),
             ];
         }
     }
@@ -190,6 +191,7 @@ foreach ($allSkus as $sku) {
         'color' => $firstApi['color'] ?? null,
         'status' => $firstApi['status'] ?? 0,
         'image' => $firstApi['image'] ?? null,
+        'reviews_count' => $firstApi['reviews_count'] ?? 0,
         'qty_site' => $apiQtyTotal,
         'qty_1c' => $c1QtyTotal,
         'qty_keycrm' => $kcQty,
@@ -220,6 +222,7 @@ $db->query("CREATE TABLE IF NOT EXISTS check_products_cache (
     price_site DECIMAL(10,2) NULL,
     price_1c DECIMAL(10,2) NULL,
     image VARCHAR(255) NULL,
+    reviews_count INT DEFAULT 0,
     has_duplicates TINYINT(1) DEFAULT 0,
     api_details TEXT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

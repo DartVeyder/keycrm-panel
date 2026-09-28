@@ -25,23 +25,24 @@ $columns = [
     7  => 'size',
     8  => 'color',
     9  => 'status', // active
-    10 => 'qty_site',
-    11 => 'qty_1c',
-    12 => 'qty_keycrm',
-    13 => 'diff', // special logic qty_site - qty_1c
-    14 => 'diff_keycrm', // special logic qty_site - qty_keycrm
-    15 => 'price_site',
-    16 => 'price_1c'
+    10 => 'reviews_count',
+    11 => 'qty_site',
+    12 => 'qty_1c',
+    13 => 'qty_keycrm',
+    14 => 'diff', // special logic qty_site - qty_1c
+    15 => 'diff_keycrm', // special logic qty_site - qty_keycrm
+    16 => 'price_site',
+    17 => 'price_1c'
 ];
 
-$orderColIdx = isset($_POST['order'][0]['column']) ? (int) $_POST['order'][0]['column'] : 13;
+$orderColIdx = isset($_POST['order'][0]['column']) ? (int) $_POST['order'][0]['column'] : 14;
 $orderDir    = isset($_POST['order'][0]['dir']) && strtolower($_POST['order'][0]['dir']) === 'asc' ? 'ASC' : 'DESC';
 
 $orderBy = "qty_site - qty_1c"; // Default order by diff
 if (isset($columns[$orderColIdx]) && $columns[$orderColIdx]) {
-    if ($orderColIdx == 13) {
+    if ($orderColIdx == 14) {
         $orderBy = "(qty_site - qty_1c)";
-    } elseif ($orderColIdx == 14) {
+    } elseif ($orderColIdx == 15) {
         $orderBy = "(qty_site - qty_keycrm)";
     } elseif ($orderColIdx == 5) {
         $orderBy = "COALESCE(name_1c, name_site, name_keycrm)";
@@ -139,24 +140,30 @@ if (isset($_POST['columns']) && is_array($_POST['columns'])) {
                     $where[] = "status = 0";
                 }
             } elseif ($i == 10) {
+                if ($val == 'Є') {
+                    $where[] = "reviews_count > 0";
+                } elseif ($val == 'Немає') {
+                    $where[] = "reviews_count = 0";
+                }
+            } elseif ($i == 11) {
                 $where[]  = "qty_site >= ?";
                 $params[] = (int) $val;
-            } elseif ($i == 11) {
+            } elseif ($i == 12) {
                 $where[]  = "qty_1c >= ?";
                 $params[] = (int) $val;
-            } elseif ($i == 12) {
+            } elseif ($i == 13) {
                 $where[]  = "qty_keycrm >= ?";
                 $params[] = (int) $val;
-            } elseif ($i == 13) {
+            } elseif ($i == 14) {
                 $where[]  = "(qty_site - qty_1c) LIKE ?";
                 $params[] = "%$val%";
-            } elseif ($i == 14) {
+            } elseif ($i == 15) {
                 $where[]  = "(qty_site - qty_keycrm) LIKE ?";
                 $params[] = "%$val%";
-            } elseif ($i == 15) {
+            } elseif ($i == 16) {
                 $where[]  = "price_site LIKE ?";
                 $params[] = "%$val%";
-            } elseif ($i == 16) {
+            } elseif ($i == 17) {
                 $where[]  = "price_1c LIKE ?";
                 $params[] = "%$val%";
             }
@@ -294,6 +301,11 @@ foreach ($data as $row) {
 
     $historyBtn = '<button class="btn btn-sm btn-outline-primary load-history px-2 py-0" title="Історія залишків"><i class="bi bi-clock-history"></i></button>';
 
+    $reviewsCount = (int)($row['reviews_count'] ?? 0);
+    $reviewsHtml = $reviewsCount > 0 
+        ? '<span class="badge bg-success" title="Відгуків: ' . $reviewsCount . '">Є (' . $reviewsCount . ')</span>' 
+        : '<span class="badge bg-secondary">Немає</span>';
+
     $rowData    = [
         "DT_RowClass" => $rowClass,
         "DT_RowAttr"  => [
@@ -316,13 +328,14 @@ foreach ($data as $row) {
         7             => '<div class="align-middle">' . htmlspecialchars($row['size'] ?? '-') . '</div>',
         8             => '<div class="align-middle">' . htmlspecialchars($row['color'] ?? '-') . '</div>',
         9             => '<div class="align-middle text-center">' . $activeHtml . '</div>',
-        10            => '<div class="align-middle fw-bold">' . htmlspecialchars($apiQtyTotal) . '</div>',
-        11            => '<div class="align-middle fw-bold">' . htmlspecialchars($c1QtyTotal) . '</div>',
-        12            => '<div class="align-middle fw-bold text-primary">' . htmlspecialchars($kcQty) . '</div>',
-        13            => '<div class="align-middle fw-bold ' . $diffClass . '">' . htmlspecialchars($diff) . '</div>',
-        14            => '<div class="align-middle fw-bold ' . $diffKcClass . '">' . htmlspecialchars($diffKc) . '</div>',
-        15            => '<div class="align-middle">' . htmlspecialchars($row['price_site'] ?? '-') . '</div>',
-        16            => '<div class="align-middle">' . htmlspecialchars($row['price_1c'] ?? '-') . '</div>'
+        10            => '<div class="align-middle text-center">' . $reviewsHtml . '</div>',
+        11            => '<div class="align-middle fw-bold">' . htmlspecialchars($apiQtyTotal) . '</div>',
+        12            => '<div class="align-middle fw-bold">' . htmlspecialchars($c1QtyTotal) . '</div>',
+        13            => '<div class="align-middle fw-bold text-primary">' . htmlspecialchars($kcQty) . '</div>',
+        14            => '<div class="align-middle fw-bold ' . $diffClass . '">' . htmlspecialchars($diff) . '</div>',
+        15            => '<div class="align-middle fw-bold ' . $diffKcClass . '">' . htmlspecialchars($diffKc) . '</div>',
+        16            => '<div class="align-middle">' . htmlspecialchars($row['price_site'] ?? '-') . '</div>',
+        17            => '<div class="align-middle">' . htmlspecialchars($row['price_1c'] ?? '-') . '</div>'
     ];
     $response[] = $rowData;
 }
