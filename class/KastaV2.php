@@ -18,6 +18,12 @@ class KastaV2
         $cursor = null;
         do{
             $response = $this->request('/products/list'. $cursor, 'GET');
+
+            if (!is_array($response) || !isset($response['items'])) {
+                error_log('[KastaV2] products(): некоректна відповідь від API — ' . json_encode($response));
+                break;
+            }
+
             foreach ($response['items'] as &$item){
                 $item['barcode'] = $item['barcode'][0] ?? $item['unique_sku_id'];
                 $item['name_color'] =$item['name_uk'] . "|". mb_strtolower($item['color']);
@@ -28,7 +34,7 @@ class KastaV2
                 $cursor = "?cursor=".$response['cursor'];
             }
 
-        }while($response['cursor'] != null);
+        }while(!empty($response['cursor']));
 
 
         return $data;

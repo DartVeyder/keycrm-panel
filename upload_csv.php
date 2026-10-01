@@ -31,23 +31,15 @@ require_once('config.php');
 require_once('class/Base.php');
 require_once('class/Prestashop.php');
 require_once('class/MySQLDB.php');
+require_once('class/SyncLogger.php');
 
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
 
-// === ЛОГ ЗАПУСКУ СКРИПТА ===
-$logDir = __DIR__ . '/logs/';
-if (!is_dir($logDir)) {
-    mkdir($logDir, 0777, true);
-}
-$logFile = $logDir . 'log_upload_csv_1c.txt';
-$logMessage = sprintf(
-    "[%s] Script started by %s (%s method)\n",
-    date('Y-m-d H:i:s'),
-    $_SERVER['REMOTE_ADDR'] ?? 'unknown IP',
-    $_SERVER['REQUEST_METHOD'] ?? 'unknown'
-);
-file_put_contents($logFile, $logMessage, FILE_APPEND);
+$logger = new SyncLogger(__DIR__ . '/logs', true, true, 'upload_csv_1c_');
+$logger->separator('СТАРТ ОНОВЛЕННЯ З 1С');
+$logger->info('Сайт призначення: ' . PRESTASHOP_SITE_URL);
+$logger->info('Етап 1: Отримання файлу від 1С... IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
 
 
 // Перевірка методу
@@ -94,7 +86,8 @@ $historyFile = $historyDir . "products_1c_{$timestamp}." . $extension;
 
 
 // Переміщення файлу
-if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
+$logger->info('Етап 2: Збереження файлу...');
+    if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
 
     // Копіюємо у папку історії
     copy($destination, $historyFile);
@@ -131,6 +124,7 @@ if (move_uploaded_file($_FILES['file']['tmp_name'], $destination)) {
         ];
     }
  
+    $logger->info('Етап 4: Генерація нових даних (XLSX)...');
     if ($xlsx = SimpleXLSX::parse('uploads/prestashop_update_products_price_stock.xlsx')) {
         $rows = $xlsx->rows();
         

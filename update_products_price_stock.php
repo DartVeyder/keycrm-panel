@@ -5,6 +5,7 @@ ini_set('display_errors', 1);  // Включаємо відображення п
 error_reporting(E_ERROR);      // Виводимо тільки фатальні помилки
 $startTime = microtime(true);
 require_once('vendor/autoload.php');
+require_once('class/SyncLogger.php');
 
 require_once('config.php');
 require_once ('class/MySQLDB.php');
@@ -29,6 +30,10 @@ function checkStopFlag() {
     }
 }
 
+$logger = new SyncLogger(__DIR__ . '/logs', true, true, 'update_stock_');
+$logger->separator('СТАРТ ОНОВЛЕННЯ ЗАЛИШКІВ І ЦІН');
+$logger->info('Сайт призначення: ' . PRESTASHOP_SITE_URL);
+$logger->info('Етап 1: Ініціалізація оновлення...');
 setProgress(5, "Ініціалізація оновлення...");
 checkStopFlag();
 
@@ -46,10 +51,12 @@ $product_ids  = $_GET['product_ids'] ?? '';
 
 if(empty($product_ids)){
     echo "Обновлення всіх залишків і цін\n";
+    $logger->info('Етап 2: Отримання списку всіх товарів з KeyCRM...');
     setProgress(10, "Отримання списку всіх товарів з KeyCRM...");
 }else{
     echo "Обновлення залишків і цін при зміні статусу\n";
     $fileNameXLSX = __DIR__ . '/uploads/prestashop_update_products_price_stock_change_status.xlsx';
+    $logger->info('Етап 2: Отримання змінених товарів з KeyCRM...');
     setProgress(10, "Отримання змінених товарів з KeyCRM...");
 }
 
@@ -59,26 +66,29 @@ checkStopFlag();
 
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
 
+$logger->info('Етап 3: Формування XLSX файлу для PrestaShop...');
 setProgress(40, "Формування XLSX файлу для PrestaShop...");
 
 if(PRESTASHOP){
     checkStopFlag();
-    $prestaImport->generateListProductsXLSX($listProducts, $fileNameXLSX ,'update');
+    $prestaImport->generateListProductsXLSX($listProducts, $fileNameXLSX ,'update', $logger);
 
     if(PRESTASHOP_UPDATE_PRICE){
         checkStopFlag();
+        $logger->info('Етап 4: Відправка даних на сайт (PrestaShop)...');
         setProgress(70, "Відправка даних на сайт (PrestaShop)... Це може зайняти кілька хвилин.");
         if(empty($product_ids)){
             echo "Обновлення всіх залишків і цін на сайті\n";
-            $startImport = $prestaImport->startUpdatePriceStock();
+            $startImport = $prestaImport->startUpdatePriceStock($logger);
         }else{
             echo "Обновлення залишків і цін на сайті при зміні статусу\n";
-            $startImport = $prestaImport->startUpdatePriceStockChangeStatus();
+            $startImport = $prestaImport->startUpdatePriceStockChangeStatus($logger);
         }
     }
 }
 
 checkStopFlag();
+$logger->info('Етап 5: Оновлення інших маркетплейсів (Kasta, Intertop)...');
 setProgress(85, "Оновлення інших маркетплейсів (Kasta, Intertop)...");
 
 if(isset($product_ids)) {

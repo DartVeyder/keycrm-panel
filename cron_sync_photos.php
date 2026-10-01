@@ -14,6 +14,8 @@ $rootFolderId = GOOGLE_DRIVE_ROOT_FOLDER_ID;
 $log = new SyncLogger(__DIR__ . '/logs');
 $log->separator('СТАРТ СИНХРОНІЗАЦІЇ ФОТО');
 $log->info('Лог-файл: ' . $log->getLogFile());
+$log->info('Сайт призначення: ' . PRESTASHOP_SITE_URL);
+$log->info('Етап 1: Підключення до бази даних та Prestashop API...');
 
 // Підключення до БД та Prestashop
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
@@ -47,6 +49,7 @@ $stats = [
 ];
 
 try {
+    $log->info('Етап 2: Ініціалізація та підключення до Google Drive API...');
     // Ініціалізація Google Drive
     $client = new \Google\Client();
     if (pathinfo($credentialsPath, PATHINFO_EXTENSION) === 'php') {
@@ -57,7 +60,8 @@ try {
     $client->addScope(\Google\Service\Drive::DRIVE_READONLY);
     $service = new \Google\Service\Drive($client);
 
-    $log->info('Google Drive підключено. Починаємо синхронізацію фотографій...');
+    $log->info('Google Drive підключено.');
+    $log->info('Етап 3: Отримання списку товарів з Google Drive...');
 
     // 1. Отримуємо всі папки (Артикули)
     $query = "'" . $rootFolderId . "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false";
@@ -65,7 +69,7 @@ try {
 
     foreach ($skuFolders as $skuFolder) {
         $parentSku = trim($skuFolder->getName());
-        $log->separator("Товар: $parentSku");
+        $log->separator("Етап 4: Обробка товару $parentSku");
 
         // Знаходимо товар в Prestashop
         $productData = $prestashop->getProductByReference($parentSku);
@@ -85,7 +89,7 @@ try {
         foreach ($colorFolders as $colorFolder) {
             $colorName = trim($colorFolder->getName());
             $colorCtx  = "$parentSku / $colorName";
-            $log->info("Колір: $colorName", $colorCtx);
+            $log->info("Етап 5: Завантаження фото для кольору '$colorName'", $colorCtx);
 
             // Шукаємо в базі (check_products_cache) артикули варіацій для цього кольору
             $dbRows = $db->query("SELECT sku FROM check_products_cache WHERE product_ref = ? AND color = ?", [$parentSku, $colorName]);
@@ -192,6 +196,7 @@ try {
         }
         
         // --- Перевірка видалених фотографій ---
+        $log->info("Етап 6: Перевірка та видалення неактуальних фото...", $parentSku);
         $savedPhotos = $db->query("SELECT id, google_file_id, id_image FROM synced_photos WHERE id_product = ?", [$id_product]);
         if ($savedPhotos) {
             foreach ($savedPhotos as $photo) {
