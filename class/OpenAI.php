@@ -68,11 +68,11 @@ class OpenAI
 MSG;
 
         $result = $this->chat(
-            system: $system,
-            user:   $userMessage,
-            maxTokens: 1500,
-            temperature: 0.7,
-            jsonMode: true
+            $system,
+            $userMessage,
+            1500,
+            0.7,
+            true
         );
 
         if (!is_array($result)) {
