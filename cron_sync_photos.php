@@ -19,7 +19,7 @@ $log->info('Етап 1: Підключення до бази даних та Pre
 
 // Підключення до БД та Prestashop
 $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
-$prestashop = new Prestashop($log);
+$prestashop = new Prestashop();
 
 // Створюємо таблицю-трекер завантажених фото (якщо ще не існує)
 $db->query("
@@ -82,6 +82,10 @@ try {
         $log->info("Prestashop ID: $id_product", $parentSku);
         $seenGoogleFileIds = [];
 
+        // Отримуємо актуальні комбінації безпосередньо з API Prestashop (це вирішує проблему з неактивними або новими товарами, яких ще немає в кеші)
+        $apiProducts = $prestashop->getApiProducts($parentSku);
+        $apiCombinations = is_array($apiProducts) ? $apiProducts : [];
+
         // 2. Отримуємо папки з кольорами всередині товару
         $colorQuery = "'" . $skuFolder->getId() . "' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false";
         $colorFolders = $service->files->listFiles(['q' => $colorQuery, 'fields' => 'files(id, name)'])->getFiles();
@@ -91,19 +95,32 @@ try {
             $colorCtx  = "$parentSku / $colorName";
             $log->info("Етап 5: Завантаження фото для кольору '$colorName'", $colorCtx);
 
-            // Шукаємо в базі (check_products_cache) артикули варіацій для цього кольору
-            $dbRows = $db->query("SELECT sku FROM check_products_cache WHERE product_ref = ? AND color = ?", [$parentSku, $colorName]);
-
             $combinationIdsToLink = [];
-            if ($dbRows && count($dbRows) > 0) {
-                foreach ($dbRows as $row) {
-                    $combSku  = $row['sku'];
-                    $combData = $prestashop->getProductImagesByReference($combSku);
-                    if (!empty($combData['combinations'])) {
-                        $combinationIdsToLink[] = (int)$combData['combinations'][0]['id'];
+            
+            // Спочатку шукаємо серед свіжих комбінацій з Prestashop
+            foreach ($apiCombinations as $comb) {
+                if (mb_strtolower(trim($comb['color'] ?? '')) === mb_strtolower($colorName)) {
+                    if (!empty($comb['combination_id'])) {
+                        $combinationIdsToLink[] = (int)$comb['combination_id'];
                     }
                 }
             }
+
+            // Якщо пусто, пробуємо старий метод (check_products_cache) як fallback
+            if (empty($combinationIdsToLink)) {
+                $dbRows = $db->query("SELECT sku FROM check_products_cache WHERE product_ref = ? AND color = ?", [$parentSku, $colorName]);
+                if ($dbRows && count($dbRows) > 0) {
+                    foreach ($dbRows as $row) {
+                        $combSku  = $row['sku'];
+                        $combData = $prestashop->getProductImagesByReference($combSku);
+                        if (!empty($combData['combinations'])) {
+                            $combinationIdsToLink[] = (int)$combData['combinations'][0]['id'];
+                        }
+                    }
+                }
+            }
+            
+            $combinationIdsToLink = array_unique($combinationIdsToLink);
 
             if (empty($combinationIdsToLink)) {
                 $log->warning("Не знайдено комбінацій для кольору '$colorName' в базі.", $colorCtx);
@@ -159,6 +176,53 @@ try {
 
                 file_put_contents($tmpPath, $content->getBody()->getContents());
                 $log->debug("Файл збережено тимчасово: $tmpPath", $imageCtx);
+
+                // --- Конвертація та стиснення в стандартний JPG ---
+                $tmpPathJpg = __DIR__ . '/public/tmp/' . uniqid() . '_' . pathinfo($imageName, PATHINFO_FILENAME) . '.jpg';
+                $imageInfo = @getimagesize($tmpPath);
+                $converted = false;
+                if ($imageInfo) {
+                    $maxWidth = 1200;
+                    $maxHeight = 1200;
+                    $origWidth = $imageInfo[0];
+                    $origHeight = $imageInfo[1];
+                    
+                    // Обчислюємо нові розміри зі збереженням пропорцій
+                    $ratio = min($maxWidth / $origWidth, $maxHeight / $origHeight, 1);
+                    $newWidth = (int)($origWidth * $ratio);
+                    $newHeight = (int)($origHeight * $ratio);
+
+                    if ($imageInfo['mime'] == 'image/png') {
+                        $im = @imagecreatefrompng($tmpPath);
+                        if ($im) {
+                            $bg = imagecreatetruecolor($newWidth, $newHeight);
+                            $white = imagecolorallocate($bg, 255, 255, 255);
+                            imagefill($bg, 0, 0, $white);
+                            // Масштабуємо та зберігаємо прозорість як білий фон
+                            imagecopyresampled($bg, $im, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                            imagejpeg($bg, $tmpPathJpg, 80); // Стиснення 80
+                            imagedestroy($im);
+                            imagedestroy($bg);
+                            $converted = true;
+                        }
+                    } elseif ($imageInfo['mime'] == 'image/jpeg') {
+                        $im = @imagecreatefromjpeg($tmpPath);
+                        if ($im) {
+                            $bg = imagecreatetruecolor($newWidth, $newHeight);
+                            imagecopyresampled($bg, $im, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                            imagejpeg($bg, $tmpPathJpg, 80); // Стиснення 80
+                            imagedestroy($im);
+                            imagedestroy($bg);
+                            $converted = true;
+                        }
+                    }
+                }
+
+                if ($converted) {
+                    unlink($tmpPath);
+                    $tmpPath = $tmpPathJpg;
+                    $log->debug("Зображення стиснуто (якість 80, до {$newWidth}x{$newHeight}) та конвертовано: $tmpPath", $imageCtx);
+                }
 
                 // 4. Відправляємо фото в Prestashop (Товар)
                 $id_image = $prestashop->uploadProductImage($id_product, $tmpPath);

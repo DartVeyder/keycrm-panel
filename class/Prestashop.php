@@ -349,14 +349,20 @@ class Prestashop extends Base
                         'contents' => fopen($filePath, 'r'),
                         'filename' => basename($filePath)
                     ]
-                ]
+                ],
+                'http_errors' => false
             ]);
 
-            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
-                $xml = simplexml_load_string($response->getBody()->getContents());
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+
+            if ($statusCode === 200 || $statusCode === 201) {
+                $xml = simplexml_load_string($body);
                 if (isset($xml->image->id)) {
                     return (int) $xml->image->id;
                 }
+            } else {
+                error_log("Prestashop API Error ($statusCode): " . $body);
             }
         } catch (\Exception $e) {
             error_log("Помилка завантаження фото: " . $e->getMessage());
