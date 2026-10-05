@@ -299,17 +299,25 @@ class PrestaImportV2
                 $needsGeneration = false;
                 $usedDbCache     = false;
                 $genReason       = '';
+                
+                // Перевіряємо чи взагалі є якийсь текст в описі KeyCRM (без HTML тегів)
+                $rawDescClean = trim(strip_tags($rawDescription));
+
                 if ($storedHash !== null && $storedHash !== $currentHash) {
-                    $needsGeneration = true;
-                    $genReason       = 'hash_changed';
-                    if ($logger) {
-                        $oldDesc = $dbDescriptions[$productId]['full'] ?? '';
-                        $logger->info("[ЗМІНА ОПИСУ] $parentSku (product_id=$productId)");
-                        $logger->info("  Причина: опис у KeyCRM змінився");
-                        $logger->info("  Старий хеш: $storedHash");
-                        $logger->info("  Новий хеш: $currentHash");
-                        $logger->info("  Було (Кеш БД): " . mb_substr(strip_tags(html_entity_decode($oldDesc)), 0, 120) . '...');
-                        $logger->info("  Стало (КейCRM): " . mb_substr(strip_tags($rawDescription), 0, 120) . '...');
+                    if (!empty($rawDescClean)) {
+                        $needsGeneration = true;
+                        $genReason       = 'hash_changed';
+                        if ($logger) {
+                            $oldDesc = $dbDescriptions[$productId]['full'] ?? '';
+                            $logger->info("[ЗМІНА ОПИСУ] $parentSku (product_id=$productId)");
+                            $logger->info("  Причина: опис у KeyCRM змінився");
+                            $logger->info("  Старий хеш: $storedHash");
+                            $logger->info("  Новий хеш: $currentHash");
+                            $logger->info("  Було (Кеш БД): " . mb_substr(strip_tags(html_entity_decode($oldDesc)), 0, 120) . '...');
+                            $logger->info("  Стало (КейCRM): " . mb_substr(strip_tags($rawDescription), 0, 120) . '...');
+                        }
+                    } else {
+                        if ($logger) $logger->info("Опис у KeyCRM став порожнім для $parentSku, пропускаємо генерацію.");
                     }
                 } elseif (empty($cleanDesc) && empty($cleanDescShort)) {
                     // На PrestaShop порожньо — перевіряємо чи є збережений опис у БД
@@ -322,13 +330,17 @@ class PrestaImportV2
                         $descriptionCache[$productId] = ['short' => $savedShort, 'full' => $savedFull];
                         $usedDbCache = true;
                     } else {
-                        $needsGeneration = true;
-                        $genReason       = 'no_description';
-                        if ($logger) {
-                            $logger->info("[НОВИЙ ОПИС] $parentSku (product_id=$productId)");
-                            $logger->info("  Причина: опису немає ні на сайті, ні в БД");
-                            $logger->info("  Хеш KeyCRM: $currentHash");
-                            $logger->info("  Вхідний опис KeyCRM: " . mb_substr(strip_tags($rawDescription), 0, 120) . '...');
+                        if (!empty($rawDescClean)) {
+                            $needsGeneration = true;
+                            $genReason       = 'no_description';
+                            if ($logger) {
+                                $logger->info("[НОВИЙ ОПИС] $parentSku (product_id=$productId)");
+                                $logger->info("  Причина: опису немає ні на сайті, ні в БД");
+                                $logger->info("  Хеш KeyCRM: $currentHash");
+                                $logger->info("  Вхідний опис KeyCRM: " . mb_substr(strip_tags($rawDescription), 0, 120) . '...');
+                            }
+                        } else {
+                            if ($logger) $logger->debug("Опис у KeyCRM відсутній для $parentSku, пропускаємо генерацію.");
                         }
                     }
                 }
