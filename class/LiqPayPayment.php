@@ -71,4 +71,44 @@ class LiqPayPayment {
 
         return $result;
     }
+
+    public function status($orderId) {
+        $params = array(
+            'action'       => 'status',
+            'version'      => '3',
+            'public_key'   => $this->publicKey,
+            'order_id'     => $orderId
+        );
+
+        $data = base64_encode(json_encode($params));
+        $signature = base64_encode(sha1($this->privateKey . $data . $this->privateKey, 1));
+
+        $post = array(
+            'data'      => $data,
+            'signature' => $signature
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://www.liqpay.ua/api/request');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/x-www-form-urlencoded'));
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
+        
+        $response = curl_exec($ch);
+        
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception("LiqPay CURL Error: " . $error);
+        }
+        curl_close($ch);
+
+        $result = json_decode($response, true);
+        if (!$result) {
+            throw new Exception("LiqPay API Error: Empty or invalid response");
+        }
+        
+        return $result;
+    }
 }
