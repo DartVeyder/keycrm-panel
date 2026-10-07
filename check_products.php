@@ -159,35 +159,6 @@ $csvPath = 'uploads/products_1c.csv';
                     "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/uk.json"
                 },
                 "order": [[ 3, "asc" ]], // Sort by Product Ref by default to keep groups together
-                "rowGroup": {
-                    "dataSrc": 3,
-                    "className": "table-dark fw-bold text-light",
-                    "startRender": function (rows, group) {
-                        // If there are multiple items in the group, hide the review content in the children rows
-                        if (rows.count() > 1) {
-                            rows.nodes().each(function(node) {
-                                $(node).find('td:eq(10)').html('<span class="text-muted">-</span>');
-                            });
-                        }
-
-                        // Don't show group header if there's only 1 item in the group
-                        if (rows.count() === 1) {
-                            return null;
-                        }
-                        
-                        var reviewHtml = '';
-                        var reviewData = rows.data()[0][10];
-                        // Extract only the badge if it exists, or just use the whole data if it has bg-success
-                        if (reviewData && reviewData.indexOf('bg-success') !== -1) {
-                            reviewHtml = reviewData; // This contains the div and the badge
-                        }
-
-                        return $('<tr/>')
-                            .append( '<td colspan="10">' + (group ? group : 'Без Product Ref') + '</td>' )
-                            .append( '<td style="padding: 0.5rem 0.5rem;">' + reviewHtml + '</td>' )
-                            .append( '<td colspan="7"></td>' );
-                    }
-                },
                 "orderCellsTop": true,
                 "fixedHeader": true,
                 initComplete: function () {

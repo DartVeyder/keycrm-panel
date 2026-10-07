@@ -203,20 +203,49 @@ if (!empty($where)) {
     $whereSql = "WHERE " . implode(" AND ", $where);
 }
 
+$groupBy = "IF(product_ref IS NOT NULL AND product_ref != '', product_ref, sku)";
+
 // Get total records without filter
-$totalQuery   = $db->fetchOne("SELECT COUNT(*) as cnt FROM check_products_cache");
+$totalQuery   = $db->fetchOne("SELECT COUNT(DISTINCT $groupBy) as cnt FROM check_products_cache");
 $recordsTotal = (int) ($totalQuery['cnt'] ?? 0);
 
 // Get total records with filter
 if (!empty($whereSql)) {
-    $totalFilteredQuery = $db->fetchOne("SELECT COUNT(*) as cnt FROM check_products_cache $whereSql", $params);
-    $recordsFiltered    = $totalFilteredQuery['cnt'];
+    $totalFilteredQuery = $db->fetchOne("SELECT COUNT(DISTINCT $groupBy) as cnt FROM check_products_cache $whereSql", $params);
+    $recordsFiltered    = (int) ($totalFilteredQuery['cnt'] ?? 0);
 } else {
     $recordsFiltered = $recordsTotal;
 }
 
 // Fetch paginated data
-$sql  = "SELECT * FROM check_products_cache $whereSql ORDER BY $orderBy $orderDir LIMIT $start, $length";
+$sql  = "SELECT * FROM (
+    SELECT 
+        MAX(sku) as sku,
+        MAX(product_ref) as product_ref,
+        MAX(image) as image,
+        MAX(name_1c) as name_1c,
+        MAX(name_site) as name_site,
+        MAX(name_keycrm) as name_keycrm,
+        MAX(category) as category,
+        GROUP_CONCAT(DISTINCT NULLIF(size, '') ORDER BY size SEPARATOR ', ') as size,
+        GROUP_CONCAT(DISTINCT NULLIF(color, '') ORDER BY color SEPARATOR ', ') as color,
+        MAX(status) as status,
+        MAX(reviews_count) as reviews_count,
+        SUM(qty_site) as qty_site,
+        SUM(qty_1c) as qty_1c,
+        SUM(qty_keycrm) as qty_keycrm,
+        MAX(price_site) as price_site,
+        MAX(price_1c) as price_1c,
+        MAX(has_duplicates) as has_duplicates,
+        MAX(api_details) as api_details,
+        MAX(product_type) as product_type
+    FROM check_products_cache 
+    $whereSql 
+    GROUP BY $groupBy
+) as grouped_data 
+ORDER BY $orderBy $orderDir 
+LIMIT $start, $length";
+
 $data = $db->fetchAll($sql, $params);
 
 // Format data for DataTables
