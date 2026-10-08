@@ -346,18 +346,52 @@ if ($action === 'run_script') {
     if (in_array($script, $allowedScripts)) {
         $scriptPath = __DIR__ . '/' . $script;
         if (file_exists($scriptPath)) {
-            ob_start();
             $startTime = microtime(true);
+            
+            // Очищуємо буферизацію, щоб можна було відправляти пробіли одразу
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            // Відправляємо 1024 пробіли, щоб Cloudflare не розірвав з'єднання (524 Timeout)
+            echo str_repeat(" ", 1024);
+            flush();
+            
+            $tempOutput = __DIR__ . '/logs/temp_out_' . time() . '_' . rand(1000,9999) . '.log';
+            $output = "";
             try {
-                // Use shell_exec to prevent script's exit() from killing this request
-                $output = shell_exec("php " . escapeshellarg($scriptPath) . " 2>&1");
+                $descriptorspec = [
+                   0 => ['pipe', 'r'],
+                   1 => ['file', $tempOutput, 'w'],
+                   2 => ['file', $tempOutput, 'a']
+                ];
+                
+                $process = proc_open("php " . escapeshellarg($scriptPath), $descriptorspec, $pipes);
+                
+                if (is_resource($process)) {
+                    fclose($pipes[0]); // Закриваємо stdin
+                    
+                    while (true) {
+                        $status = proc_get_status($process);
+                        if (!$status['running']) {
+                            break;
+                        }
+                        echo " "; // Keep-alive
+                        flush();
+                        sleep(1);
+                    }
+                    proc_close($process);
+                    
+                    if (file_exists($tempOutput)) {
+                        $output = file_get_contents($tempOutput);
+                        @unlink($tempOutput);
+                    }
+                } else {
+                    $output = "Error starting process.";
+                }
             } catch (Exception $e) {
                 $output = "Error: " . $e->getMessage();
             }
             $duration = round(microtime(true) - $startTime);
-            
-            $buffer = ob_get_clean();
-            $output = $buffer . "\n" . $output;
             
             $status = 'success';
             if (strpos($output, '[ABORTED]') !== false) {
