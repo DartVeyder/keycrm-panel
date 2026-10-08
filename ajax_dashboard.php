@@ -348,12 +348,19 @@ if ($action === 'run_script') {
         if (file_exists($scriptPath)) {
             $startTime = microtime(true);
             
-            // Очищуємо буферизацію, щоб можна було відправляти пробіли одразу
+            // Вимикаємо буферизацію NGINX (якщо сервер використовує nginx + php-fpm)
+            header('X-Accel-Buffering: no');
+            header('Cache-Control: no-cache');
+            header('Connection: keep-alive');
+            header('Content-Encoding: none'); // Вимикаємо gzip буферизацію
+            
+            // Очищуємо буферизацію PHP, щоб можна було відправляти пробіли одразу
             while (ob_get_level() > 0) {
                 ob_end_clean();
             }
-            // Відправляємо 1024 пробіли, щоб Cloudflare не розірвав з'єднання (524 Timeout)
-            echo str_repeat(" ", 1024);
+            
+            // Відправляємо 64KB пробілів, щоб точно переповнити будь-які буфери NGINX (навіть 64k)
+            echo str_repeat(" ", 65536);
             flush();
             
             $tempOutput = __DIR__ . '/logs/temp_out_' . time() . '_' . rand(1000,9999) . '.log';
@@ -375,7 +382,7 @@ if ($action === 'run_script') {
                         if (!$status['running']) {
                             break;
                         }
-                        echo " "; // Keep-alive
+                        echo str_repeat(" ", 4096) . "\n"; // Keep-alive with 4KB chunks
                         flush();
                         sleep(1);
                     }
