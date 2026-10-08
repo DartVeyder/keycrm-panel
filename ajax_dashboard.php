@@ -344,6 +344,14 @@ if ($action === 'run_script') {
     ];
     
     if (in_array($script, $allowedScripts)) {
+        $lockFile = __DIR__ . '/logs/run_script.lock';
+        $lockFp = fopen($lockFile, 'c');
+        if (!flock($lockFp, LOCK_EX | LOCK_NB)) {
+            echo json_encode(['success' => false, 'message' => 'Інший скрипт або процес вже виконується. Будь ласка, дочекайтеся його завершення або зупиніть.']);
+            fclose($lockFp);
+            exit;
+        }
+
         $scriptPath = __DIR__ . '/' . $script;
         if (file_exists($scriptPath)) {
             $startTime = microtime(true);
@@ -413,6 +421,9 @@ if ($action === 'run_script') {
         } else {
             echo json_encode(['success' => false, 'message' => 'Script not found.']);
         }
+        
+        flock($lockFp, LOCK_UN);
+        fclose($lockFp);
     } else {
         echo json_encode(['success' => false, 'message' => 'Script not allowed.']);
     }
