@@ -86,8 +86,8 @@ $orderId = $_GET['order_id'] ?? null;
                                     $hasAmt1 = !empty($amount1) && (float)str_replace([' ', ','], ['', '.'], $amount1) > 0;
                                     $hasAmt2 = !empty($amount2) && (float)str_replace([' ', ','], ['', '.'], $amount2) > 0;
 
-                                    $isFop1Done = !$hasAmt1 || (strpos($comment1, 'Платіж №AC') !== false || strpos($comment1, 'Повернення LiqPay') !== false || strpos($comment1, 'Запит відправлено') !== false || strpos($comment1, 'Платіж уже успішно проведено') !== false);
-                                    $isFop2Done = !$hasAmt2 || (strpos($comment2, 'Платіж №AC') !== false || strpos($comment2, 'Повернення LiqPay') !== false || strpos($comment2, 'Запит відправлено') !== false || strpos($comment2, 'Платіж уже успішно проведено') !== false);
+                                    $isFop1Done = !$hasAmt1 || (strpos($comment1, 'Платіж №AC') !== false || strpos($comment1, 'Повернення LiqPay') !== false || strpos($comment1, 'Повернення Monobank') !== false || strpos($comment1, 'Запит відправлено') !== false || strpos($comment1, 'Платіж уже успішно проведено') !== false);
+                                    $isFop2Done = !$hasAmt2 || (strpos($comment2, 'Платіж №AC') !== false || strpos($comment2, 'Повернення LiqPay') !== false || strpos($comment2, 'Повернення Monobank') !== false || strpos($comment2, 'Запит відправлено') !== false || strpos($comment2, 'Платіж уже успішно проведено') !== false);
 
                                     $isAllDone = ($hasAmt1 || $hasAmt2) && $isFop1Done && $isFop2Done;
                                     $isPartial = (!$isAllDone) && ($hasAmt1 && $isFop1Done && $hasAmt2 && !$isFop2Done);
@@ -174,8 +174,8 @@ $orderId = $_GET['order_id'] ?? null;
                             $rcFields = array_map(fn($v) => is_array($v) ? reset($v) : $v, array_column($refreshedOrder['custom_fields'] ?? [], 'value', 'uuid'));
                             $rAmt1 = !empty($rcFields['OR_1038']) ? (float)str_replace([' ', ','], ['', '.'], $rcFields['OR_1038']) : 0;
                             $rAmt2 = !empty($rcFields['OR_1059']) ? (float)str_replace([' ', ','], ['', '.'], $rcFields['OR_1059']) : 0;
-                            $rDone1 = ($rAmt1 <= 0) || (strpos($rcFields['OR_1046'] ?? '', 'Платіж №AC') !== false || strpos($rcFields['OR_1046'] ?? '', 'Повернення LiqPay') !== false || strpos($rcFields['OR_1046'] ?? '', 'Запит відправлено') !== false);
-                            $rDone2 = ($rAmt2 <= 0) || (strpos($rcFields['OR_1080'] ?? '', 'Платіж №AC') !== false || strpos($rcFields['OR_1080'] ?? '', 'Повернення LiqPay') !== false || strpos($rcFields['OR_1080'] ?? '', 'Запит відправлено') !== false);
+                            $rDone1 = ($rAmt1 <= 0) || (strpos($rcFields['OR_1046'] ?? '', 'Платіж №AC') !== false || strpos($rcFields['OR_1046'] ?? '', 'Повернення LiqPay') !== false || strpos($rcFields['OR_1046'] ?? '', 'Повернення Monobank') !== false || strpos($rcFields['OR_1046'] ?? '', 'Запит відправлено') !== false);
+                            $rDone2 = ($rAmt2 <= 0) || (strpos($rcFields['OR_1080'] ?? '', 'Платіж №AC') !== false || strpos($rcFields['OR_1080'] ?? '', 'Повернення LiqPay') !== false || strpos($rcFields['OR_1080'] ?? '', 'Повернення Monobank') !== false || strpos($rcFields['OR_1080'] ?? '', 'Запит відправлено') !== false);
 
                             if ($rDone1 && $rDone2) {
                                 @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);

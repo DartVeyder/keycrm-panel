@@ -6,6 +6,7 @@ require_once(__DIR__ . '/config.php');
 require_once(__DIR__ . '/class/Base.php');
 require_once(__DIR__ . '/class/PrivatBankPayment.php');
 require_once(__DIR__ . '/class/LiqPayPayment.php');
+require_once(__DIR__ . '/class/MonobankPayment.php');
 require_once(__DIR__ . '/class/KeyCrmV2.php');
 
 // 1. Налаштування (зчитані з конфігураційного файлу)
@@ -44,7 +45,9 @@ if (!function_exists('isFopRefundDone')) {
         return (
             strpos($comment, 'Платіж №AC') !== false ||
             strpos($comment, 'Повернення LiqPay') !== false ||
+            strpos($comment, 'Повернення Monobank') !== false ||
             strpos($comment, 'Запит відправлено LiqPay') !== false ||
+            strpos($comment, 'Запит відправлено Monobank') !== false ||
             strpos($comment, 'Запит відправлено, але ref не отримано') !== false ||
             strpos($comment, 'Платіж уже успішно проведено') !== false
         );
@@ -87,6 +90,7 @@ if (!function_exists('resolveFopConfig')) {
             $surname = mb_strtolower($m[1]);
             $isPrivat = (mb_stripos($fopName, 'приват') !== false);
             $isLiqpay = (mb_stripos($fopName, 'liqpay') !== false);
+            $isMono = (mb_stripos($fopName, 'моно') !== false || mb_stripos($fopName, 'mono') !== false);
 
             foreach ($config as $key => $cfg) {
                 if (mb_stripos(mb_strtolower($key), $surname) !== false) {
@@ -94,6 +98,9 @@ if (!function_exists('resolveFopConfig')) {
                         return [$key, $cfg];
                     }
                     if ($isLiqpay && ($cfg['type'] ?? '') === 'liqpay') {
+                        return [$key, $cfg];
+                    }
+                    if ($isMono && ($cfg['type'] ?? '') === 'monobank') {
                         return [$key, $cfg];
                     }
                 }
@@ -250,6 +257,7 @@ try {
                 $desc = $payment['description'] ?? $payment['comment'] ?? '';
                 $paymentMethodId = $payment['payment_method_id'] ?? null;
 
+                // LiqPay по PBK
                 if (($paymentMethodId == 61 || strpos($desc, 'PBK') !== false) && preg_match('/PBK\s+([a-zA-Z0-9]+)/i', $desc, $pbkMatches)) {
                     $pbk = $pbkMatches[1];
                     foreach ($config as $fopName => $cfg) {
@@ -261,6 +269,34 @@ try {
                                 $ibanKey = $fopName;
                             }
                         }
+                    }
+                }
+
+                // Monobank по payment_method_id
+                $monoMethodsMap = [
+                    21 => 'Монобанк ФОП Балтарович',
+                    37 => 'Монобанк Еквайринг ФОП Коцур',
+                    38 => 'Монобанк Еквайринг ФОП Біланик М.І',
+                    41 => 'Монобанк ФОП Коцур',
+                    42 => 'Монобанк ФОП Любчинська',
+                    43 => 'Монобанк ФОП Біланик',
+                    44 => 'Монобанк Еквайринг ФОП Любчинська',
+                    50 => 'Монобанк еквайринг ФОП Чукас Т.',
+                    51 => 'Моно ФОП Чукас Т.',
+                    52 => 'Монобанк ФОП Тожиєва',
+                    53 => 'Монобанк Еквайринг ФОП Балтарович',
+                    58 => 'Моно ФОП Козупас Т',
+                    90 => 'Передоплпата Монобанк ФОП Тожиєва І',
+                    93 => 'Монобанк Передоплата Еквайринг ФОП Любчинська',
+                    94 => 'Монобанк Передоплата еквайринг ФОП Чукас Т.',
+                ];
+
+                if ($paymentMethodId && isset($monoMethodsMap[$paymentMethodId])) {
+                    $candidateFop = $monoMethodsMap[$paymentMethodId];
+                    list($resolvedFop) = resolveFopConfig($candidateFop, $config);
+                    if ($resolvedFop) {
+                        $ibanKey = $resolvedFop;
+                        break;
                     }
                 }
             }
@@ -300,6 +336,8 @@ try {
         } elseif ($type === 'liqpay') {
             if (empty($cfg['public_key'])) throw new Exception("Порожній public_key у конфігу ({$ibanKey})");
             if (empty($cfg['private_key'])) throw new Exception("Порожній private_key у конфігу ({$ibanKey})");
+        } elseif ($type === 'monobank') {
+            if (empty($cfg['token'])) throw new Exception("Порожній токен (X-Token) у конфігу ({$ibanKey})");
         }
 
         logMessage($orderId, "INFO: [{$fopLabel}] Вхідні дані перевірені. ФОП: {$ibanKey}, сума: {$amount}", $logFile);
@@ -385,6 +423,58 @@ try {
                     $commentText = "Запит відправлено LiqPay, статус: " . ($result['status'] ?? 'unknown');
                     logMessage($orderId, "WARNING [{$fopLabel}]: LiqPay повернув статус " . ($result['status'] ?? 'unknown'), $logFile);
                 }
+                break;
+
+            case 'monobank':
+                $api = new MonobankPayment($cfg['token']);
+
+                $monoInvoiceId = null;
+                $buyerComment = trim($order['buyer_comment'] ?? '');
+
+                if (!empty($order_custom_fields['OR_1034'])) {
+                    $monoInvoiceId = trim($order_custom_fields['OR_1034']);
+                    logMessage($orderId, "INFO: [{$fopLabel}] Знайдено invoiceId Monobank у полі OR_1034: {$monoInvoiceId}", $logFile);
+                } elseif (!empty($buyerComment)) {
+                    if (preg_match('/(?:invoiceId|invoice_id|mono|invoice|інвойс)[\s:=#]+([a-zA-Z0-9\-_]{10,40})/i', $buyerComment, $m)) {
+                        $monoInvoiceId = $m[1];
+                        logMessage($orderId, "INFO: [{$fopLabel}] Знайдено invoiceId Monobank у buyer_comment по префіксу: {$monoInvoiceId}", $logFile);
+                    } elseif (preg_match('/^[a-zA-Z0-9\-_]{16,36}$/', $buyerComment)) {
+                        $monoInvoiceId = $buyerComment;
+                        logMessage($orderId, "INFO: [{$fopLabel}] Знайдено invoiceId Monobank напряму у buyer_comment: {$monoInvoiceId}", $logFile);
+                    }
+                }
+
+                if (empty($monoInvoiceId) && !empty($order['payments']) && is_array($order['payments'])) {
+                    foreach ($order['payments'] as $payment) {
+                        if (!empty($payment['transaction_uuid'])) {
+                            $monoInvoiceId = trim($payment['transaction_uuid']);
+                            logMessage($orderId, "INFO: [{$fopLabel}] Знайдено invoiceId Monobank з transaction_uuid платежу: {$monoInvoiceId}", $logFile);
+                            break;
+                        }
+                        $desc = ($payment['description'] ?? '') . ' ' . ($payment['comment'] ?? '');
+                        if (preg_match('/(?:invoiceId|invoice_id|mono|invoice|інвойс)[\s:=#]+([a-zA-Z0-9\-_]{10,40})/i', $desc, $m)) {
+                            $monoInvoiceId = $m[1];
+                            logMessage($orderId, "INFO: [{$fopLabel}] Знайдено invoiceId Monobank з опису платежу: {$monoInvoiceId}", $logFile);
+                            break;
+                        } elseif (preg_match('/\b([0-9]{6}[a-zA-Z0-9\-_]{10,30})\b/', $desc, $m)) {
+                            $monoInvoiceId = $m[1];
+                            logMessage($orderId, "INFO: [{$fopLabel}] Знайдено invoiceId Monobank за шаблоном дати: {$monoInvoiceId}", $logFile);
+                            break;
+                        }
+                    }
+                }
+
+                if (empty($monoInvoiceId)) {
+                    throw new Exception("Не знайдено ідентифікатор інвойсу Monobank (invoiceId). Вкажіть його у полі payment order id (OR_1034) або у коментарі покупця");
+                }
+
+                $extRef = "REF-{$orderId}-{$usedFopIndex}";
+                $result = $api->cancel($monoInvoiceId, $amount, $extRef);
+
+                $monoStatus = $result['status'] ?? 'processing';
+                $statusText = "SUCCESS";
+                $commentText = "Повернення Monobank успішне (ID: {$monoInvoiceId}, статус: {$monoStatus})";
+                logMessage($orderId, "SUCCESS [{$fopLabel}]: {$commentText}", $logFile);
                 break;
 
             default:

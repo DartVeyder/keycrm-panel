@@ -80,17 +80,26 @@ foreach ($ordersList as $orderData) {
     $hasFop = !empty($order_custom_fields[$fopField]) || !empty($order_custom_fields[$fopField2]);
     if (!$hasFop) {
         $hasAutoFop = false;
+        $monoMethodsList = [21, 37, 38, 41, 42, 43, 44, 50, 51, 52, 53, 58, 90, 93, 94];
         if (!empty($orderData['payments'])) {
             foreach ($orderData['payments'] as $payment) {
-                // Визначаємо тільки для LiqPay (id 61) або по наявності PBK
+                // Визначаємо для LiqPay (id 61) або по наявності PBK
                 if (($payment['payment_method_id'] ?? 0) == 61 || strpos($payment['description'] ?? '', 'PBK') !== false) {
+                    $hasAutoFop = true;
+                    break;
+                }
+                // Визначаємо для Monobank
+                if (in_array((int)($payment['payment_method_id'] ?? 0), $monoMethodsList, true)) {
                     $hasAutoFop = true;
                     break;
                 }
             }
         }
-        if (!$hasAutoFop && !empty($orderData['buyer_comment']) && preg_match('/^\d+,([A-Za-z0-9\-]+)$/', trim($orderData['buyer_comment']))) {
-            $hasAutoFop = true;
+        if (!$hasAutoFop && !empty($orderData['buyer_comment'])) {
+            $bComment = trim($orderData['buyer_comment']);
+            if (preg_match('/^\d+,([A-Za-z0-9\-]+)$/', $bComment) || preg_match('/^[a-zA-Z0-9\-_]{16,36}$/', $bComment)) {
+                $hasAutoFop = true;
+            }
         }
 
         if (!$hasAutoFop) {
@@ -109,7 +118,9 @@ foreach ($ordersList as $orderData) {
     $isDone1 = ($cAmount1 <= 0) || (
         strpos($cComment1, 'Платіж №AC') !== false ||
         strpos($cComment1, 'Повернення LiqPay') !== false ||
+        strpos($cComment1, 'Повернення Monobank') !== false ||
         strpos($cComment1, 'Запит відправлено LiqPay') !== false ||
+        strpos($cComment1, 'Запит відправлено Monobank') !== false ||
         strpos($cComment1, 'Запит відправлено') !== false ||
         strpos($cComment1, 'Платіж уже успішно проведено') !== false
     );
@@ -117,7 +128,9 @@ foreach ($ordersList as $orderData) {
     $isDone2 = ($cAmount2 <= 0) || (
         strpos($cComment2, 'Платіж №AC') !== false ||
         strpos($cComment2, 'Повернення LiqPay') !== false ||
+        strpos($cComment2, 'Повернення Monobank') !== false ||
         strpos($cComment2, 'Запит відправлено LiqPay') !== false ||
+        strpos($cComment2, 'Запит відправлено Monobank') !== false ||
         strpos($cComment2, 'Запит відправлено') !== false ||
         strpos($cComment2, 'Платіж уже успішно проведено') !== false
     );

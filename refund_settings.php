@@ -174,11 +174,17 @@ $currentRefundStatuses = $oldRefundStatuses;
                     <select class="form-select fop-type">
                         <option value="privatbank">ПриватБанк</option>
                         <option value="liqpay">LiqPay</option>
+                        <option value="monobank">Monobank (Еквайринг)</option>
                     </select>
                 </div>
                 <div class="col-md-12 privatbank-fields">
                     <label class="form-label fw-bold">Токен API (Автоклієнт ПриватБанку)</label>
                     <input type="password" class="form-control fop-token" placeholder="Введіть новий токен для зміни">
+                </div>
+                <div class="col-md-12 monobank-fields" style="display: none;">
+                    <label class="form-label fw-bold">X-Token (Токен мерчанта Monobank)</label>
+                    <input type="password" class="form-control fop-token-mono" placeholder="Введіть новий X-Token для зміни">
+                    <div class="form-text">Отримайте X-Token в особистому кабінеті еквайрингу Monobank (розділ Налаштування).</div>
                 </div>
                 <div class="col-md-6 liqpay-fields" style="display: none;">
                     <label class="form-label fw-bold">Public Key (LiqPay)</label>
@@ -188,9 +194,9 @@ $currentRefundStatuses = $oldRefundStatuses;
                     <label class="form-label fw-bold">Private Key (LiqPay)</label>
                     <input type="password" class="form-control fop-private-key" placeholder="Введіть новий ключ для зміни">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 iban-field">
                     <label class="form-label fw-bold">Ваш IBAN (Рахунок ФОП)</label>
-                    <input type="text" class="form-control fop-iban" placeholder="UA..." required>
+                    <input type="text" class="form-control fop-iban" placeholder="UA...">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Офіційна назва ФОП (my_name)</label>
@@ -219,6 +225,7 @@ $currentRefundStatuses = $oldRefundStatuses;
         const keyInput = clone.querySelector('.fop-key');
         keyInput.value = key;
         clone.querySelector('.fop-token').value = data.token || '';
+        clone.querySelector('.fop-token-mono').value = data.token || '';
         clone.querySelector('.fop-public-key').value = data.public_key || '';
         clone.querySelector('.fop-private-key').value = data.private_key || '';
         clone.querySelector('.fop-iban').value = data.my_iban || '';
@@ -228,14 +235,25 @@ $currentRefundStatuses = $oldRefundStatuses;
         const typeSelect = clone.querySelector('.fop-type');
         const privatFields = clone.querySelectorAll('.privatbank-fields');
         const liqpayFields = clone.querySelectorAll('.liqpay-fields');
+        const monoFields = clone.querySelectorAll('.monobank-fields');
+        const ibanInput = clone.querySelector('.fop-iban');
         
         function toggleFields() {
             if (typeSelect.value === 'liqpay') {
                 privatFields.forEach(f => f.style.display = 'none');
+                monoFields.forEach(f => f.style.display = 'none');
                 liqpayFields.forEach(f => f.style.display = 'block');
+                ibanInput.removeAttribute('required');
+            } else if (typeSelect.value === 'monobank') {
+                privatFields.forEach(f => f.style.display = 'none');
+                monoFields.forEach(f => f.style.display = 'block');
+                liqpayFields.forEach(f => f.style.display = 'none');
+                ibanInput.removeAttribute('required');
             } else {
                 privatFields.forEach(f => f.style.display = 'block');
+                monoFields.forEach(f => f.style.display = 'none');
                 liqpayFields.forEach(f => f.style.display = 'none');
+                ibanInput.setAttribute('required', 'required');
             }
         }
         typeSelect.addEventListener('change', toggleFields);
@@ -278,12 +296,14 @@ $currentRefundStatuses = $oldRefundStatuses;
         // Збираємо дані з усіх карток
         cards.forEach(card => {
             const key = card.querySelector('.fop-key').value.trim();
-            const token = card.querySelector('.fop-token').value.trim();
+            const type = card.querySelector('.fop-type').value;
+            const tokenMono = card.querySelector('.fop-token-mono')?.value.trim() || '';
+            const tokenPrivat = card.querySelector('.fop-token')?.value.trim() || '';
+            const token = (type === 'monobank') ? tokenMono : tokenPrivat;
             const public_key = card.querySelector('.fop-public-key').value.trim();
             const private_key = card.querySelector('.fop-private-key').value.trim();
             const my_iban = card.querySelector('.fop-iban').value.trim();
             const my_name = card.querySelector('.fop-name').value.trim();
-            const type = card.querySelector('.fop-type').value;
             
             if(!key) {
                 hasErrors = true;
