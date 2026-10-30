@@ -170,13 +170,50 @@ foreach ($ordersList as $order) {
 
             if (in_array($liqStatus, ['reversed', 'success'])) {
                 $paymentId = $result['payment_id'] ?? $result['order_id'] ?? 'N/A';
-                $commentText = "Платіж уже успішно проведено (перевірено cron_check). Ref: {$paymentId}";
+
+                // Пошук email клієнта для квитанції
+                $buyerEmail = trim($fullOrder['buyer']['email'] ?? '');
+                if (empty($buyerEmail) && !empty($fullOrder['buyer_comment'])) {
+                    if (preg_match('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/', $fullOrder['buyer_comment'], $mEmail)) {
+                        $buyerEmail = $mEmail[0];
+                    }
+                }
+
+                $ticketSent = false;
+                $ticketError = null;
+                if (!empty($buyerEmail)) {
+                    try {
+                        $tRes = $api->sendTicket($liqpayOrderId, $buyerEmail, $paymentId);
+                        if (isset($tRes['result']) && $tRes['result'] === 'ok') {
+                            $ticketSent = true;
+                            $logger->success("Квитанцію LiqPay успішно надіслано на {$buyerEmail}");
+                        } else {
+                            $ticketError = $tRes['err_description'] ?? 'Помилка надсилання';
+                            $logger->warning("Помилка надсилання квитанції: {$ticketError}");
+                        }
+                    } catch (Exception $te) {
+                        $ticketError = $te->getMessage();
+                        $logger->warning("Помилка API ticket: {$ticketError}");
+                    }
+                }
+
+                // Помітка
+                if ($ticketSent) {
+                    $receiptNote = "Квитанцію надіслано на email: {$buyerEmail}";
+                } elseif (!empty($buyerEmail)) {
+                    $receiptNote = "Квитанція не надіслана ({$ticketError})";
+                } else {
+                    $receiptNote = "Квитанція не надіслана (email відсутній)";
+                }
+
+                $checkLink = "https://pb.ua/check";
+                $commentText = "Платіж уже успішно проведено (перевірено cron_check). Ref: {$paymentId}. [{$receiptNote}]. Перевірка квитанції: {$checkLink}";
                 $keyCrm->updateOrder($orderId, [
                     'custom_fields' => [
                         ["uuid" => $fields['commentField'], "value" => $commentText]
                     ]
                 ]);
-                $logger->success("Оновлено коментар на SUCCESS");
+                $logger->success("Оновлено коментар на SUCCESS з поміткою квитанції");
                 
                 // Додаємо в список успішних
                 @file_put_contents($processedLogFile, $orderId . "\n", FILE_APPEND);

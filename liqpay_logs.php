@@ -216,6 +216,9 @@ if ($isLoading && isset($liqpayFops[$selectedFop])) {
                                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#tr-<?= $index ?>" aria-expanded="false" title="Більше інформації">
                                                 <i class="fas fa-code"></i> Усі дані
                                             </button>
+                                            <a href="liqpay_receipt.php?order_id=<?= urlencode($tr['order_id'] ?? '') ?>&payment_id=<?= urlencode($tr['payment_id'] ?? '') ?>&fop=<?= urlencode($selectedFop) ?>" target="_blank" class="btn btn-sm btn-outline-success ms-1" title="Ручна відправка / перегляд квитанції">
+                                                <i class="fas fa-paper-plane me-1"></i> Квитанція
+                                            </a>
                                         </td>
                                     </tr>
                                     <tr class="collapse bg-light" id="tr-<?= $index ?>">

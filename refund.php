@@ -416,8 +416,57 @@ try {
                 if (isset($result['status']) && in_array($result['status'], ['reversed', 'success', 'wait_accept'])) {
                     $statusText  = "SUCCESS";
                     $paymentId = $result['payment_id'] ?? $result['order_id'] ?? 'N/A';
-                    $commentText = "Повернення LiqPay успішне (ID: {$paymentId})";
-                    logMessage($orderId, "SUCCESS [{$fopLabel}]: Повернення LiqPay успішне. Ref: {$paymentId}", $logFile);
+                    
+                    // Пошук email клієнта для квитанції
+                    $buyerEmail = trim($order['buyer']['email'] ?? '');
+                    if (empty($buyerEmail) && !empty($order['buyer_comment'])) {
+                        if (preg_match('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/', $order['buyer_comment'], $mEmail)) {
+                            $buyerEmail = $mEmail[0];
+                        }
+                    }
+
+                    $ticketSent = false;
+                    $ticketError = null;
+
+                    if (in_array($result['status'], ['reversed', 'success'])) {
+                        if (!empty($buyerEmail)) {
+                            try {
+                                $tResult = $api->sendTicket($liqpayOrderId, $buyerEmail, $paymentId);
+                                if (isset($tResult['result']) && $tResult['result'] === 'ok') {
+                                    $ticketSent = true;
+                                    logMessage($orderId, "SUCCESS [{$fopLabel}]: Квитанцію LiqPay успішно надіслано на {$buyerEmail}", $logFile);
+                                } else {
+                                    $ticketError = $tResult['err_description'] ?? 'Помилка надсилання';
+                                    logMessage($orderId, "WARNING [{$fopLabel}]: Помилка надсилання квитанції LiqPay: {$ticketError}", $logFile);
+                                }
+                            } catch (Exception $te) {
+                                $ticketError = $te->getMessage();
+                                logMessage($orderId, "WARNING [{$fopLabel}]: Помилка API ticket: {$ticketError}", $logFile);
+                            }
+                        } else {
+                            logMessage($orderId, "INFO [{$fopLabel}]: Email покупця відсутній, квитанцію LiqPay не надіслано", $logFile);
+                        }
+
+                        // Помітка
+                        if ($ticketSent) {
+                            $receiptNote = "Квитанцію надіслано на email: {$buyerEmail}";
+                        } elseif (!empty($buyerEmail)) {
+                            $receiptNote = "Квитанція не надіслана ({$ticketError})";
+                        } else {
+                            $receiptNote = "Квитанція не надіслана (email відсутній)";
+                        }
+
+                        // Посилання на перевірку квитанції
+                        $checkLink = "https://pb.ua/check";
+                        $commentText = "Повернення LiqPay успішне (ID: {$paymentId}). [{$receiptNote}]. Перевірка квитанції: {$checkLink}";
+                        logMessage($orderId, "SUCCESS [{$fopLabel}]: Повернення LiqPay успішне. Ref: {$paymentId}. {$receiptNote}", $logFile);
+
+                    } else {
+                        // wait_accept
+                        $commentText = "Запит відправлено LiqPay, статус: wait_accept (ID: {$paymentId})";
+                        logMessage($orderId, "WARNING [{$fopLabel}]: LiqPay повернув статус wait_accept", $logFile);
+                    }
+
                 } else {
                     $statusText  = "SUCCESS";
                     $commentText = "Запит відправлено LiqPay, статус: " . ($result['status'] ?? 'unknown');

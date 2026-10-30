@@ -111,4 +111,64 @@ class LiqPayPayment {
         
         return $result;
     }
+
+    public function sendTicket($orderId, $email, $paymentId = null, $language = 'uk') {
+        $email = trim($email);
+        if (empty($email)) {
+            throw new Exception("Email для відправки квитанції не може бути порожнім");
+        }
+
+        $params = array(
+            'action'     => 'ticket',
+            'version'    => '3',
+            'public_key' => $this->publicKey,
+            'order_id'   => (string)$orderId,
+            'email'      => $email,
+            'language'   => $language
+        );
+
+        if (!empty($paymentId) && $paymentId !== 'N/A') {
+            $params['payment_id'] = $paymentId;
+        }
+
+        $data = base64_encode(json_encode($params));
+        $signature = base64_encode(sha1($this->privateKey . $data . $this->privateKey, 1));
+
+        $post = array(
+            'data'      => $data,
+            'signature' => $signature
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://www.liqpay.ua/api/request');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/x-www-form-urlencoded'));
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new Exception("LiqPay CURL Error (ticket): " . $error);
+        }
+        curl_close($ch);
+
+        $result = json_decode($response, true);
+        if (!$result) {
+            throw new Exception("LiqPay Ticket API Error: Empty or invalid response");
+        }
+
+        $logMsg = date('[Y-m-d H:i:s]') . " LiqPay Ticket for order_id {$orderId} to {$email}: " . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
+        @file_put_contents(__DIR__ . '/../logs/liqpay_debug.log', $logMsg, FILE_APPEND);
+
+        if (isset($result['result']) && $result['result'] === 'error') {
+            $err = $result['err_description'] ?? 'Unknown error';
+            throw new Exception("LiqPay Ticket Error: " . $err);
+        }
+
+        return $result;
+    }
 }

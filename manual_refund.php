@@ -33,7 +33,12 @@ $orderId = $_GET['order_id'] ?? null;
         <div class="card shadow border-0">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
                 <h4 class="mb-0 text-primary">Обробка повернення</h4>
-                <span class="badge bg-secondary">KeyCRM</span>
+                <div>
+                    <a href="liqpay_receipt.php" target="_blank" class="btn btn-sm btn-outline-success me-1" title="Ручна відправка квитанції LiqPay">
+                        <i class="fas fa-paper-plane me-1"></i> Квитанція LiqPay
+                    </a>
+                    <span class="badge bg-secondary">KeyCRM</span>
+                </div>
             </div>
             <div class="card-body p-4 pt-0">
                 <?php if (!$orderId): ?>
@@ -128,11 +133,19 @@ $orderId = $_GET['order_id'] ?? null;
                                         <?php endif; ?>
                                     </td>
                                     <td><small class="text-muted"><?= $updated ?></small></td>
-                                    <td class="text-end">
+                                    <td class="text-end text-nowrap">
+                                        <?php 
+                                            $isLiqpayOrder = (stripos($fop1, 'liqpay') !== false || stripos($fop2, 'liqpay') !== false || stripos($comment1, 'LiqPay') !== false || stripos($comment2, 'LiqPay') !== false);
+                                        ?>
                                         <?php if (!$isAllDone && ($hasAmt1 || $hasAmt2)): ?>
                                             <a href="manual_refund.php?order_id=<?= $ro['id'] ?>" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">Запустити</a>
                                         <?php elseif (!$hasAmt1 && !$hasAmt2): ?>
                                             <span class="text-muted small" title="Не вказана сума">Немає суми</span>
+                                        <?php endif; ?>
+                                        <?php if ($isLiqpayOrder): ?>
+                                            <a href="liqpay_receipt.php?order_id=<?= $ro['id'] ?>" target="_blank" class="btn btn-sm btn-outline-success py-0 px-2 ms-1" style="font-size: 0.8rem;" title="Ручна відправка / перегляд квитанції LiqPay">
+                                                <i class="fas fa-receipt"></i>
+                                            </a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -204,6 +217,17 @@ $orderId = $_GET['order_id'] ?? null;
 ----------------------------------------
 Процес завершено.
                         </div>
+
+                        <?php if (strpos($output, 'LiqPay') !== false): ?>
+                            <div class="mb-4 text-center">
+                                <a href="liqpay_receipt.php?order_id=<?= urlencode($orderId) ?>" target="_blank" class="btn btn-success me-2">
+                                    <i class="fas fa-receipt me-1"></i> Відкрити / Надіслати квитанцію LiqPay
+                                </a>
+                                <a href="https://pb.ua/check" target="_blank" class="btn btn-outline-secondary">
+                                    <i class="fas fa-external-link-alt me-1"></i> Перевірка pb.ua/check
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     <?php } ?>
                     <div class="text-center mb-3">
                         <a href="manual_refund.php" class="btn btn-outline-primary">Повернутися до списку</a>
@@ -211,7 +235,10 @@ $orderId = $_GET['order_id'] ?? null;
                 <?php endif; ?>
                 
                 <div class="d-flex justify-content-between mt-4">
-                    <a href="refund_settings.php" class="btn btn-outline-secondary btn-sm" target="_blank">⚙️ Налаштування ФОП</a>
+                    <div>
+                        <a href="refund_settings.php" class="btn btn-outline-secondary btn-sm me-2" target="_blank">⚙️ Налаштування ФОП</a>
+                        <a href="liqpay_receipt.php" class="btn btn-outline-success btn-sm" target="_blank"><i class="fas fa-paper-plane me-1"></i> Відправити квитанцію LiqPay</a>
+                    </div>
                     <button onclick="window.close();" class="btn btn-primary">Закрити вікно</button>
                 </div>
             </div>

@@ -27,8 +27,14 @@ $listProducts = $keyCrm->listProducts($product_ids);
 $logger->success("Отримано " . count($listProducts) . " товарів з KeyCRM");
 
 $logger->info("Етап 3: Генерація XLSX файлу для PrestaShop...");
-$prestaImport = new PrestaImportV2();
-$prestaImport->generateListProductsXLSX($listProducts, 'uploads/prestashop_import_products.xlsx', 'import', $logger);
+try {
+    $prestaImport = new PrestaImportV2();
+    $prestaImport->generateListProductsXLSX($listProducts, 'uploads/prestashop_import_products.xlsx', 'import', $logger);
+} catch (\Throwable $e) {
+    $logger->error("Помилка генерації файлу імпорту: " . $e->getMessage());
+    $logger->separator("ІМПОРТ ПЕРЕРВАНО ЧЕРЕЗ ПОМИЛКУ");
+    exit(1);
+}
 
 if (PRESTASHOP_IMPORT_PRODUCT) {
     $logger->info("Етап 4: Глобальне налаштування PRESTASHOP_IMPORT_PRODUCT увімкнено. Запуск імпорту.");

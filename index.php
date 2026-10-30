@@ -380,6 +380,17 @@
                     </div>
                 </div>
                 <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-1 text-success"><i class="fas fa-paper-plane me-2"></i>Ручна відправка квитанції LiqPay</h5>
+                                <p class="text-muted mb-0 small">liqpay_receipt.php</p>
+                            </div>
+                            <a href="liqpay_receipt.php" target="_blank" class="btn btn-outline-success">Відкрити</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
                     <div class="card">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -699,6 +710,11 @@
                                         <a href="manual_refund.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-primary ms-1" title="Запустити вручну">
                                             <i class="fas fa-redo"></i>
                                         </a>
+                                        ${(sType === 'liqpay' || sysLower.includes('liqpay')) ? `
+                                            <a href="liqpay_receipt.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-success ms-1" title="Ручна відправка / перегляд квитанції LiqPay">
+                                                <i class="fas fa-receipt"></i>
+                                            </a>
+                                        ` : ''}
                                     </td>
                                 </tr>
                                 <tr class="collapse" id="${detailsId}">

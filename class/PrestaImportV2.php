@@ -10,7 +10,14 @@ class PrestaImportV2
 {
     public function generateListProductsXLSX($offers, $filename, $type = 'import', $logger = null)
     {
-        $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
+        try {
+            $db = new MySQLDB(HOST, DBNAME, USERNAME, PASSWORD);
+        } catch (Exception $e) {
+            if ($logger) {
+                $logger->error("Помилка підключення до бази даних: " . $e->getMessage());
+            }
+            throw $e;
+        }
 
         // ---- OpenAI + хеш-перевірка ----
         $openAI     = new OpenAI();
