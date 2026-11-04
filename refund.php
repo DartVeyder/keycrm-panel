@@ -7,6 +7,7 @@ require_once(__DIR__ . '/class/Base.php');
 require_once(__DIR__ . '/class/PrivatBankPayment.php');
 require_once(__DIR__ . '/class/LiqPayPayment.php');
 require_once(__DIR__ . '/class/MonobankPayment.php');
+require_once(__DIR__ . '/class/PrivatBankPayPartsPayment.php');
 require_once(__DIR__ . '/class/KeyCrmV2.php');
 
 // 1. Налаштування (зчитані з конфігураційного файлу)
@@ -27,6 +28,18 @@ if (!function_exists('logMessage')) {
         $time = date('Y-m-d H:i:s');
         @file_put_contents($logFile, "[$time] [Order #{$orderId}] $message\n", FILE_APPEND);
         @chmod($logFile, 0666);
+
+        // Зберігаємо історію повернення у базі даних
+        try {
+            require_once(__DIR__ . '/class/RefundRepository.php');
+            static $refundRepo = null;
+            if ($refundRepo === null) {
+                $refundRepo = new RefundRepository();
+            }
+            $refundRepo->log($orderId, $message, $time);
+        } catch (Throwable $e) {
+            @file_put_contents(__DIR__ . '/logs/errors.log', "[" . date('Y-m-d H:i:s') . "] RefundRepository log error: " . $e->getMessage() . "\n", FILE_APPEND);
+        }
     }
 }
 
@@ -46,8 +59,11 @@ if (!function_exists('isFopRefundDone')) {
             strpos($comment, 'Платіж №AC') !== false ||
             strpos($comment, 'Повернення LiqPay') !== false ||
             strpos($comment, 'Повернення Monobank') !== false ||
+            strpos($comment, 'Повернення Оплата частинами') !== false ||
+            strpos($comment, 'Повернення PayParts') !== false ||
             strpos($comment, 'Запит відправлено LiqPay') !== false ||
             strpos($comment, 'Запит відправлено Monobank') !== false ||
+            strpos($comment, 'Запит відправлено Оплата частинами') !== false ||
             strpos($comment, 'Запит відправлено, але ref не отримано') !== false ||
             strpos($comment, 'Платіж уже успішно проведено') !== false
         );
@@ -71,6 +87,8 @@ if (!function_exists('resolveFopConfig')) {
             'Приват ФОП Василишин М.В' => 'ФОП Василишин М, Приват',
             'Приватбанк ФОП Василишин М.В' => 'ФОП Василишин М, Приват',
             'Приватбанк ФОП Райша' => 'ФОП Райша Приват',
+            'Оплата частинами на 3 платежі ФОП Райша' => 'Оплата частинами ФОП Райша',
+            'Оплата частинами на 3 платежі ФОП Василишин Т.О' => 'Оплата частинами ФОП Василишин Т.О',
         ];
         if (isset($aliases[$fopName]) && isset($config[$aliases[$fopName]])) {
             return [$aliases[$fopName], $config[$aliases[$fopName]]];
@@ -88,12 +106,16 @@ if (!function_exists('resolveFopConfig')) {
         // 4. Пошук за прізвищем та банком
         if (preg_match('/(?:фоп\s+)?([\p{L}]+)/ui', $fopName, $m)) {
             $surname = mb_strtolower($m[1]);
-            $isPrivat = (mb_stripos($fopName, 'приват') !== false);
+            $isPayparts = (mb_stripos($fopName, 'частинами') !== false || mb_stripos($fopName, 'розстрочк') !== false || mb_stripos($fopName, 'payparts') !== false);
+            $isPrivat = (mb_stripos($fopName, 'приват') !== false) && !$isPayparts;
             $isLiqpay = (mb_stripos($fopName, 'liqpay') !== false);
             $isMono = (mb_stripos($fopName, 'моно') !== false || mb_stripos($fopName, 'mono') !== false);
 
             foreach ($config as $key => $cfg) {
                 if (mb_stripos(mb_strtolower($key), $surname) !== false) {
+                    if ($isPayparts && in_array($cfg['type'] ?? '', ['privat_payparts', 'payparts'])) {
+                        return [$key, $cfg];
+                    }
                     if ($isPrivat && ($cfg['type'] ?? '') === 'privatbank') {
                         return [$key, $cfg];
                     }
@@ -299,6 +321,36 @@ try {
                         break;
                     }
                 }
+
+                // PayParts (Оплата частинами ПриватБанк) по payment_method_id
+                $paypartsMethodsMap = [
+                    15 => 'Оплата частинами на 3 платежі ФОП Василишин Т.О',
+                    36 => 'Оплата частинами на 3 платежі ФОП Райша',
+                    10 => 'Миттєва розстрочка 2 платежі',
+                    12 => 'Миттєва розстрочка 4 платежі',
+                ];
+
+                if ($paymentMethodId && isset($paypartsMethodsMap[$paymentMethodId])) {
+                    $candidateFop = $paypartsMethodsMap[$paymentMethodId];
+                    list($resolvedFop) = resolveFopConfig($candidateFop, $config);
+                    if ($resolvedFop) {
+                        $ibanKey = $resolvedFop;
+                        break;
+                    }
+                }
+
+                // PayParts по опису платежу (наприклад, "Оплата частинами.Сума договору...")
+                if (stripos($desc, 'Оплата частинами') !== false || stripos($desc, 'Оплата Частинами') !== false || stripos($desc, 'Розрахунки "Оплата Частинами"') !== false) {
+                    foreach ($config as $cKey => $cVal) {
+                        if (in_array($cVal['type'] ?? '', ['privat_payparts', 'payparts'])) {
+                            list($resolvedFop) = resolveFopConfig($cKey, $config);
+                            if ($resolvedFop) {
+                                $ibanKey = $resolvedFop;
+                                break 2;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -338,6 +390,11 @@ try {
             if (empty($cfg['private_key'])) throw new Exception("Порожній private_key у конфігу ({$ibanKey})");
         } elseif ($type === 'monobank') {
             if (empty($cfg['token'])) throw new Exception("Порожній токен (X-Token) у конфігу ({$ibanKey})");
+        } elseif ($type === 'privat_payparts' || $type === 'payparts') {
+            $ppStoreId = $cfg['store_id'] ?? $cfg['public_key'] ?? '';
+            $ppPassword = $cfg['password'] ?? $cfg['private_key'] ?? $cfg['token'] ?? '';
+            if (empty($ppStoreId)) throw new Exception("Порожній Store ID у конфігу ({$ibanKey})");
+            if (empty($ppPassword)) throw new Exception("Порожній пароль магазину (password) у конфігу ({$ibanKey})");
         }
 
         logMessage($orderId, "INFO: [{$fopLabel}] Вхідні дані перевірені. ФОП: {$ibanKey}, сума: {$amount}", $logFile);
@@ -526,6 +583,89 @@ try {
                 logMessage($orderId, "SUCCESS [{$fopLabel}]: {$commentText}", $logFile);
                 break;
 
+            case 'privat_payparts':
+            case 'payparts':
+                $ppStoreId = $cfg['store_id'] ?? $cfg['public_key'] ?? '';
+                $ppPassword = $cfg['password'] ?? $cfg['private_key'] ?? $cfg['token'] ?? '';
+                $ppRecipientId = $cfg['recipient_id'] ?? null;
+                $api = new PrivatBankPayPartsPayment($ppStoreId, $ppPassword, $ppRecipientId);
+
+                $paypartsOrderId = null;
+                $buyerComment = trim($order['buyer_comment'] ?? '');
+
+                // 1. Пошук в OR_1034 (payment order id)
+                if (!empty($order_custom_fields['OR_1034'])) {
+                    $paypartsOrderId = trim($order_custom_fields['OR_1034']);
+                    logMessage($orderId, "INFO: [{$fopLabel}] Знайдено orderId PayParts у полі OR_1034: {$paypartsOrderId}", $logFile);
+                }
+
+                // 2. Пошук в payments (в описі платежу: Замовлення_ORDER-... або ORDER-...)
+                if (empty($paypartsOrderId) && !empty($order['payments']) && is_array($order['payments'])) {
+                    foreach ($order['payments'] as $payment) {
+                        $pDesc = ($payment['description'] ?? '') . ' ' . ($payment['comment'] ?? '');
+                        if (preg_match('/(?:Замовлення_|order_id[:\s=]+|\b)(ORDER-[A-Za-z0-9\-]+)/i', $pDesc, $matches)) {
+                            $paypartsOrderId = $matches[1];
+                            logMessage($orderId, "INFO: [{$fopLabel}] Знайдено orderId PayParts з опису платежу (ORDER-...): {$paypartsOrderId}", $logFile);
+                            break;
+                        } elseif (preg_match('/Замовлення_([A-Za-z0-9\-]+)/i', $pDesc, $matches)) {
+                            $paypartsOrderId = $matches[1];
+                            logMessage($orderId, "INFO: [{$fopLabel}] Знайдено orderId PayParts з опису платежу (Замовлення_...): {$paypartsOrderId}", $logFile);
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Пошук у buyer_comment
+                if (empty($paypartsOrderId) && !empty($buyerComment)) {
+                    if (preg_match('/(?:order_id[:\s=]+|\b)(ORDER-[A-Za-z0-9\-]+)/i', $buyerComment, $matches)) {
+                        $paypartsOrderId = $matches[1];
+                        logMessage($orderId, "INFO: [{$fopLabel}] Знайдено orderId PayParts з buyer_comment: {$paypartsOrderId}", $logFile);
+                    }
+                }
+
+                // 4. Пошук через PrestaShop order id та токен з buyer_comment
+                if (empty($paypartsOrderId) && !empty($order['global_source_uuid']) && !empty($buyerComment)) {
+                    $gsParts = explode('-', $order['global_source_uuid']);
+                    if (!empty($gsParts[1])) {
+                        $psOrderId = $gsParts[1];
+                        if (preg_match('/^[A-Fa-f0-9]{10,20}$/', trim(explode(',', $buyerComment)[0]), $mToken)) {
+                            $candidateId = "ORDER-{$psOrderId}-" . $mToken[0];
+                            logMessage($orderId, "INFO: [{$fopLabel}] Згенеровано потенційний orderId PayParts: {$candidateId}", $logFile);
+                            $paypartsOrderId = $candidateId;
+                        }
+                    }
+                }
+
+                if (empty($paypartsOrderId)) {
+                    throw new Exception("Не знайдено ідентифікатор замовлення Оплата частинами (orderId). Вкажіть його у полі payment order id (OR_1034) або у коментарі замовлення");
+                }
+
+                logMessage($orderId, "INFO: [{$fopLabel}] Відправка запиту на повернення в Оплата частинами ПриватБанку (orderId: {$paypartsOrderId}, сума: {$amount})", $logFile);
+
+                try {
+                    $result = $api->decline($paypartsOrderId, $amount);
+                } catch (Exception $e) {
+                    // Якщо платіж не знайдено, а ID не починався з ORDER-, спробуємо з префіксом ORDER-
+                    if (stripos($e->getMessage(), 'не знайдено') !== false || stripos($e->getMessage(), 'not found') !== false) {
+                        if (strpos($paypartsOrderId, 'ORDER-') !== 0) {
+                            $altId = 'ORDER-' . $paypartsOrderId;
+                            logMessage($orderId, "WARNING: [{$fopLabel}] Спроба з префіксом ORDER-: {$altId}", $logFile);
+                            $result = $api->decline($altId, $amount);
+                            $paypartsOrderId = $altId;
+                        } else {
+                            throw $e;
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
+
+                $statusText = "SUCCESS";
+                $resMsg = !empty($result['message']) ? " ({$result['message']})" : "";
+                $commentText = "Повернення Оплата частинами успішне (ID: {$paypartsOrderId}){$resMsg}";
+                logMessage($orderId, "SUCCESS [{$fopLabel}]: {$commentText}", $logFile);
+                break;
+
             default:
                 throw new Exception("Непідтримуваний тип конфігу: {$type}");
         }
@@ -557,12 +697,14 @@ try {
     $orderIdForError = $order['id'] ?? 'UNKNOWN';
     $errCommentField = ($currentFopIndex === 2) ? $commentField2 : $commentField1;
 
-    $keyCrm->updateOrder($orderIdForError, [
-        'custom_fields' => [
-            ["uuid" => $statusField, "value" => $statusText],
-            ["uuid" => $errCommentField, "value" => $commentText]
-        ]
-    ]);
+    if ($orderIdForError !== 'UNKNOWN') {
+        $keyCrm->updateOrder($orderIdForError, [
+            'custom_fields' => [
+                ["uuid" => $statusField, "value" => $statusText],
+                ["uuid" => $errCommentField, "value" => $commentText]
+            ]
+        ]);
+    }
 
     $logText = $commentText;
     if (!empty($ibanKey)) {

@@ -45,15 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             
             $publicKey = trim($item['public_key'] ?? '');
             if ($publicKey === '********' || $publicKey === '') {
-                $publicKey = $oldConfig[$key]['public_key'] ?? '';
+                $publicKey = $oldConfig[$key]['public_key'] ?? ($oldConfig[$key]['store_id'] ?? '');
             }
 
             $privateKey = trim($item['private_key'] ?? '');
             if ($privateKey === '********' || $privateKey === '') {
-                $privateKey = $oldConfig[$key]['private_key'] ?? '';
+                $privateKey = $oldConfig[$key]['private_key'] ?? ($oldConfig[$key]['password'] ?? '');
             }
             
-            $newConfig[$key] = [
+            $fopItem = [
                 'token' => $token,
                 'public_key' => $publicKey,
                 'private_key' => $privateKey,
@@ -61,6 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
                 'my_name' => trim($item['my_name'] ?? ''),
                 'type' => trim($item['type'] ?? 'privatbank')
             ];
+
+            if ($fopItem['type'] === 'privat_payparts' || $fopItem['type'] === 'payparts') {
+                $fopItem['store_id'] = $publicKey;
+                $fopItem['password'] = $privateKey;
+            }
+
+            $newConfig[$key] = $fopItem;
         }
         
         $newRefundStatuses = array_map('intval', $refundStatusesData);
@@ -99,6 +106,9 @@ foreach ($safeConfig as &$c) {
     }
     if (!empty($c['private_key'])) {
         $c['private_key'] = '********';
+    }
+    if (!empty($c['password'])) {
+        $c['password'] = '********';
     }
 }
 $currentRefundStatuses = $oldRefundStatuses;
@@ -172,7 +182,8 @@ $currentRefundStatuses = $oldRefundStatuses;
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Тип банку</label>
                     <select class="form-select fop-type">
-                        <option value="privatbank">ПриватБанк</option>
+                        <option value="privatbank">ПриватБанк (Автоклієнт / IBAN)</option>
+                        <option value="privat_payparts">ПриватБанк (Оплата частинами)</option>
                         <option value="liqpay">LiqPay</option>
                         <option value="monobank">Monobank (Еквайринг)</option>
                     </select>
@@ -193,6 +204,14 @@ $currentRefundStatuses = $oldRefundStatuses;
                 <div class="col-md-6 liqpay-fields" style="display: none;">
                     <label class="form-label fw-bold">Private Key (LiqPay)</label>
                     <input type="password" class="form-control fop-private-key" placeholder="Введіть новий ключ для зміни">
+                </div>
+                <div class="col-md-6 payparts-fields" style="display: none;">
+                    <label class="form-label fw-bold">Store ID (Оплата частинами)</label>
+                    <input type="text" class="form-control fop-store-id" placeholder="storeId з кабінету банку">
+                </div>
+                <div class="col-md-6 payparts-fields" style="display: none;">
+                    <label class="form-label fw-bold">Пароль магазину (PayParts)</label>
+                    <input type="password" class="form-control fop-password" placeholder="Введіть новий пароль для зміни">
                 </div>
                 <div class="col-md-6 iban-field">
                     <label class="form-label fw-bold">Ваш IBAN (Рахунок ФОП)</label>
@@ -228,6 +247,8 @@ $currentRefundStatuses = $oldRefundStatuses;
         clone.querySelector('.fop-token-mono').value = data.token || '';
         clone.querySelector('.fop-public-key').value = data.public_key || '';
         clone.querySelector('.fop-private-key').value = data.private_key || '';
+        clone.querySelector('.fop-store-id').value = data.store_id || data.public_key || '';
+        clone.querySelector('.fop-password').value = data.password || data.private_key || '';
         clone.querySelector('.fop-iban').value = data.my_iban || '';
         clone.querySelector('.fop-name').value = data.my_name || '';
         clone.querySelector('.fop-type').value = data.type || 'privatbank';
@@ -236,23 +257,33 @@ $currentRefundStatuses = $oldRefundStatuses;
         const privatFields = clone.querySelectorAll('.privatbank-fields');
         const liqpayFields = clone.querySelectorAll('.liqpay-fields');
         const monoFields = clone.querySelectorAll('.monobank-fields');
+        const paypartsFields = clone.querySelectorAll('.payparts-fields');
         const ibanInput = clone.querySelector('.fop-iban');
         
         function toggleFields() {
             if (typeSelect.value === 'liqpay') {
                 privatFields.forEach(f => f.style.display = 'none');
                 monoFields.forEach(f => f.style.display = 'none');
+                paypartsFields.forEach(f => f.style.display = 'none');
                 liqpayFields.forEach(f => f.style.display = 'block');
                 ibanInput.removeAttribute('required');
             } else if (typeSelect.value === 'monobank') {
                 privatFields.forEach(f => f.style.display = 'none');
                 monoFields.forEach(f => f.style.display = 'block');
+                paypartsFields.forEach(f => f.style.display = 'none');
                 liqpayFields.forEach(f => f.style.display = 'none');
+                ibanInput.removeAttribute('required');
+            } else if (typeSelect.value === 'privat_payparts' || typeSelect.value === 'payparts') {
+                privatFields.forEach(f => f.style.display = 'none');
+                monoFields.forEach(f => f.style.display = 'none');
+                liqpayFields.forEach(f => f.style.display = 'none');
+                paypartsFields.forEach(f => f.style.display = 'block');
                 ibanInput.removeAttribute('required');
             } else {
                 privatFields.forEach(f => f.style.display = 'block');
                 monoFields.forEach(f => f.style.display = 'none');
                 liqpayFields.forEach(f => f.style.display = 'none');
+                paypartsFields.forEach(f => f.style.display = 'none');
                 ibanInput.setAttribute('required', 'required');
             }
         }
@@ -300,8 +331,12 @@ $currentRefundStatuses = $oldRefundStatuses;
             const tokenMono = card.querySelector('.fop-token-mono')?.value.trim() || '';
             const tokenPrivat = card.querySelector('.fop-token')?.value.trim() || '';
             const token = (type === 'monobank') ? tokenMono : tokenPrivat;
-            const public_key = card.querySelector('.fop-public-key').value.trim();
-            const private_key = card.querySelector('.fop-private-key').value.trim();
+            let public_key = card.querySelector('.fop-public-key')?.value.trim() || '';
+            let private_key = card.querySelector('.fop-private-key')?.value.trim() || '';
+            if (type === 'privat_payparts' || type === 'payparts') {
+                public_key = card.querySelector('.fop-store-id')?.value.trim() || '';
+                private_key = card.querySelector('.fop-password')?.value.trim() || '';
+            }
             const my_iban = card.querySelector('.fop-iban').value.trim();
             const my_name = card.querySelector('.fop-name').value.trim();
             

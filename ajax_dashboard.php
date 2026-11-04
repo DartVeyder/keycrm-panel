@@ -66,90 +66,39 @@ if ($action === 'get_logs') {
 }
 
 if ($action === 'get_refund_history') {
-    $logFile = __DIR__ . '/logs/refund.log';
-    $orders = [];
-    $refundConfig = [];
-    if (file_exists(__DIR__ . '/refund_config.php')) {
-        require __DIR__ . '/refund_config.php';
-        $refundConfig = $config ?? [];
+    require_once __DIR__ . '/class/RefundRepository.php';
+    $repo = new RefundRepository();
+
+    // Автоматичний первинний імпорт з файлу refund.log, якщо таблиця БД ще порожня
+    $check = $repo->getPaginatedHistory(1, 1);
+    if (($check['pagination']['total_records'] ?? 0) === 0) {
+        $repo->importFromLogFile(__DIR__ . '/logs/refund.log');
     }
 
-    if (file_exists($logFile)) {
-        $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if ($lines !== false) {
-            // Читаємо з кінця (найновіші перші)
-            $lines = array_reverse($lines);
-            // Беремо останні 2000 записів для пошуку
-            $lines = array_slice($lines, 0, 2000);
-            
-            foreach ($lines as $line) {
-                if (preg_match('/^\[(.*?)\] \[Order #(.*?)\] (.*?): (.*)$/', $line, $matches) || preg_match('/^\[(.*?)\] \[Order #(.*?)\] (.*)$/', $line, $matches)) {
-                    $date = $matches[1];
-                    $order_id = $matches[2];
-                    $status = isset($matches[4]) ? $matches[3] : 'INFO';
-                    $message = isset($matches[4]) ? $matches[4] : $matches[3];
-                    
-                    if (!isset($orders[$order_id])) {
-                        $orders[$order_id] = [
-                            'order_id' => $order_id,
-                            'date' => $date, // найновіша дата
-                            'status' => $status,
-                            'system' => 'Невідомо',
-                            'system_type' => 'unknown',
-                            'latest_msg' => $message,
-                            'messages' => []
-                        ];
-                    }
-                    
-                    // Визначаємо систему, якщо ще невідома
-                    $foundFop = null;
-                    if (preg_match('/ФОП: (.*?)$/ui', $message, $m)) {
-                        $foundFop = trim($m[1]);
-                    } elseif (preg_match('/ключ.*?: (.*?)$/ui', $message, $m)) {
-                        $foundFop = trim($m[1]);
-                    } 
-                    
-                    if ($foundFop) {
-                        $orders[$order_id]['system'] = $foundFop;
-                        if (isset($refundConfig[$foundFop])) {
-                            $orders[$order_id]['system_type'] = $refundConfig[$foundFop]['type'] ?? 'unknown';
-                        }
-                    } else if ($orders[$order_id]['system'] === 'Невідомо') {
-                        $lowerMsg = mb_strtolower($message);
-                        if (strpos($lowerMsg, 'liqpay') !== false) {
-                            $orders[$order_id]['system'] = 'LiqPay';
-                            $orders[$order_id]['system_type'] = 'liqpay';
-                        } elseif (strpos($lowerMsg, 'приват') !== false || strpos($lowerMsg, 'платіж №ac') !== false) {
-                            $orders[$order_id]['system'] = 'ПриватБанк';
-                            $orders[$order_id]['system_type'] = 'privatbank';
-                        } elseif (strpos($lowerMsg, 'моно') !== false) {
-                            $orders[$order_id]['system'] = 'Monobank';
-                            $orders[$order_id]['system_type'] = 'monobank';
-                        }
-                    }
+    $page       = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $perPage    = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;
+    $search     = isset($_GET['search']) ? trim($_GET['search']) : '';
+    $status     = isset($_GET['status']) ? trim($_GET['status']) : '';
+    $systemType = isset($_GET['system_type']) ? trim($_GET['system_type']) : '';
 
-                    // Зберігаємо важливіший статус як основний, якщо поточний INFO
-                    if ($orders[$order_id]['status'] === 'INFO' && $status !== 'INFO') {
-                        $orders[$order_id]['status'] = $status;
-                        $orders[$order_id]['latest_msg'] = $message;
-                    }
-                    
-                    $orders[$order_id]['messages'][] = [
-                        'date' => $date,
-                        'status' => $status,
-                        'text' => $message
-                    ];
-                }
-            }
-        }
-    }
-    
-    // Перетворюємо асоціативний масив у звичайний
-    $history = array_values($orders);
-    echo json_encode(['success' => true, 'history' => $history]);
+    $filters = [
+        'search'      => $search,
+        'status'      => $status,
+        'system_type' => $systemType,
+    ];
+
+    $result = $repo->getPaginatedHistory($page, $perPage, $filters);
+    echo json_encode($result, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
+if ($action === 'sync_refund_history') {
+    require_once __DIR__ . '/class/RefundRepository.php';
+    $repo = new RefundRepository();
+    $imported = $repo->importFromLogFile(__DIR__ . '/logs/refund.log');
+    echo json_encode(['success' => true, 'imported' => $imported]);
+    exit;
+}
 if ($action === 'read_log') {
     $file = $_GET['file'] ?? '';
     $file = basename($file); // Prevent directory traversal

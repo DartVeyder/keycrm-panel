@@ -81,6 +81,7 @@ foreach ($ordersList as $orderData) {
     if (!$hasFop) {
         $hasAutoFop = false;
         $monoMethodsList = [21, 37, 38, 41, 42, 43, 44, 50, 51, 52, 53, 58, 90, 93, 94];
+        $paypartsMethodsList = [10, 12, 15, 36];
         if (!empty($orderData['payments'])) {
             foreach ($orderData['payments'] as $payment) {
                 // Визначаємо для LiqPay (id 61) або по наявності PBK
@@ -90,6 +91,13 @@ foreach ($ordersList as $orderData) {
                 }
                 // Визначаємо для Monobank
                 if (in_array((int)($payment['payment_method_id'] ?? 0), $monoMethodsList, true)) {
+                    $hasAutoFop = true;
+                    break;
+                }
+                // Визначаємо для Оплата частинами (PayParts)
+                if (in_array((int)($payment['payment_method_id'] ?? 0), $paypartsMethodsList, true) ||
+                    stripos($payment['description'] ?? '', 'Оплата частинами') !== false ||
+                    stripos($payment['description'] ?? '', 'Оплата Частинами') !== false) {
                     $hasAutoFop = true;
                     break;
                 }
@@ -119,8 +127,11 @@ foreach ($ordersList as $orderData) {
         strpos($cComment1, 'Платіж №AC') !== false ||
         strpos($cComment1, 'Повернення LiqPay') !== false ||
         strpos($cComment1, 'Повернення Monobank') !== false ||
+        strpos($cComment1, 'Повернення Оплата частинами') !== false ||
+        strpos($cComment1, 'Повернення PayParts') !== false ||
         strpos($cComment1, 'Запит відправлено LiqPay') !== false ||
         strpos($cComment1, 'Запит відправлено Monobank') !== false ||
+        strpos($cComment1, 'Запит відправлено Оплата частинами') !== false ||
         strpos($cComment1, 'Запит відправлено') !== false ||
         strpos($cComment1, 'Платіж уже успішно проведено') !== false
     );
@@ -129,8 +140,11 @@ foreach ($ordersList as $orderData) {
         strpos($cComment2, 'Платіж №AC') !== false ||
         strpos($cComment2, 'Повернення LiqPay') !== false ||
         strpos($cComment2, 'Повернення Monobank') !== false ||
+        strpos($cComment2, 'Повернення Оплата частинами') !== false ||
+        strpos($cComment2, 'Повернення PayParts') !== false ||
         strpos($cComment2, 'Запит відправлено LiqPay') !== false ||
         strpos($cComment2, 'Запит відправлено Monobank') !== false ||
+        strpos($cComment2, 'Запит відправлено Оплата частинами') !== false ||
         strpos($cComment2, 'Запит відправлено') !== false ||
         strpos($cComment2, 'Платіж уже успішно проведено') !== false
     );

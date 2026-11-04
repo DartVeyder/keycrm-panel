@@ -303,23 +303,71 @@
 
         <!-- Refund History Section -->
         <div id="refunds" class="content-section">
-            <h2 class="mb-4">Історія повернень</h2>
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Останні операції з поверненнями</span>
-                    <button class="btn btn-sm btn-primary" onclick="loadRefundHistory()"><i class="fas fa-sync"></i> Оновити</button>
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <h2 class="mb-0">Історія повернень</h2>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="syncRefundHistory()" title="Синхронізувати нові записи з refund.log">
+                        <i class="fas fa-file-import me-1"></i> Імпорт з логу
+                    </button>
+                    <a href="manual_refund.php" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-1"></i> Ручне повернення
+                    </a>
                 </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="refundSearchInput" class="form-control border-start-0" placeholder="Пошук (ID, коментар)...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="refundStatusFilter" class="form-select form-select-sm">
+                                <option value="">Всі статуси</option>
+                                <option value="SUCCESS">Успішно (SUCCESS)</option>
+                                <option value="ERROR">Помилка (ERROR)</option>
+                                <option value="WARNING">Увага (WARNING)</option>
+                                <option value="INFO">Інфо (INFO)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="refundSystemFilter" class="form-select form-select-sm">
+                                <option value="all">Всі платіжні системи</option>
+                                <option value="privat_payparts">Оплата частинами (Приват)</option>
+                                <option value="liqpay">LiqPay</option>
+                                <option value="privatbank">ПриватБанк</option>
+                                <option value="monobank">Monobank</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex justify-content-end align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="small text-muted text-nowrap">По:</span>
+                                <select id="refundPerPageSelect" class="form-select form-select-sm" style="width: 75px;">
+                                    <option value="15">15</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-sm btn-primary text-nowrap" onclick="loadRefundHistory(1)"><i class="fas fa-sync"></i> Оновити</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Останнє оновлення</th>
-                                    <th>Замовлення</th>
-                                    <th>Система</th>
-                                    <th>Статус</th>
+                                    <th style="width: 160px;">Останнє оновлення</th>
+                                    <th style="width: 140px;">Замовлення</th>
+                                    <th style="width: 220px;">Система</th>
+                                    <th style="width: 110px;">Статус</th>
                                     <th>Повідомлення</th>
-                                    <th>Деталі</th>
+                                    <th style="width: 180px;" class="text-end">Дії</th>
                                 </tr>
                             </thead>
                             <tbody id="refundsTableBody">
@@ -327,6 +375,17 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <div class="card-footer bg-white py-3 d-flex flex-wrap justify-content-between align-items-center border-top">
+                    <div id="refundPaginationInfo" class="text-muted small mb-2 mb-md-0">
+                        Завантаження даних...
+                    </div>
+                    <nav aria-label="Пагінація історії повернень">
+                        <ul id="refundPaginationNav" class="pagination pagination-sm mb-0">
+                            <!-- Dynamic pagination links -->
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -651,16 +710,35 @@
         }
 
         // Refund History Management
-        async function loadRefundHistory() {
+        let currentRefundPage = 1;
+
+        async function loadRefundHistory(page = 1) {
+            currentRefundPage = page;
             const tbody = document.getElementById('refundsTableBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="small text-muted mt-2">Завантаження з бази даних...</div></td></tr>';
+            
+            const search = document.getElementById('refundSearchInput')?.value || '';
+            const status = document.getElementById('refundStatusFilter')?.value || '';
+            const systemType = document.getElementById('refundSystemFilter')?.value || 'all';
+            const perPage = document.getElementById('refundPerPageSelect')?.value || '25';
+
             try {
-                const res = await fetch(`${API_URL}?action=get_refund_history`);
+                const params = new URLSearchParams({
+                    action: 'get_refund_history',
+                    page: page,
+                    per_page: perPage,
+                    search: search,
+                    status: status,
+                    system_type: systemType
+                });
+
+                const res = await fetch(`${API_URL}?${params.toString()}`);
                 const data = await res.json();
+                
                 if (data.success) {
                     tbody.innerHTML = '';
-                    if (data.history.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Історія порожня</td></tr>';
+                    if (!data.history || data.history.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>Записів не знайдено</td></tr>';
                     } else {
                         data.history.forEach(item => {
                             let statusBadge = `<span class="badge bg-secondary">${item.status}</span>`;
@@ -669,13 +747,15 @@
                             else if (item.status === 'INFO') statusBadge = '<span class="badge bg-info text-dark">Інфо</span>';
                             else if (item.status === 'WARNING') statusBadge = '<span class="badge bg-warning text-dark">Увага</span>';
                             
-                            let sysLower = item.system.toLowerCase();
+                            let sysLower = (item.system || '').toLowerCase();
                             let sType = item.system_type || 'unknown';
                             
                             let systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-question-circle text-muted"></i> ${item.system}</span>`;
                             
                             if (sType === 'liqpay' || sysLower.includes('liqpay')) {
                                 systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-credit-card text-success"></i> ${item.system}</span>`;
+                            } else if (sType === 'privat_payparts' || sType === 'payparts' || sysLower.includes('частинами') || sysLower.includes('payparts')) {
+                                systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-hand-holding-usd text-success"></i> ${item.system}</span>`;
                             } else if (sType === 'privatbank' || sysLower.includes('приват')) {
                                 systemBadge = `<span class="badge bg-light text-dark border"><i class="fas fa-university text-success"></i> ${item.system}</span>`;
                             } else if (sType === 'monobank' || sysLower.includes('моно') || sysLower.includes('monobank')) {
@@ -685,33 +765,38 @@
                             }
                             
                             // Generate detailed logs HTML
-                            let detailsHtml = item.messages.map(msg => {
+                            let detailsHtml = (item.messages || []).map(msg => {
                                 let badge = msg.status;
                                 if (msg.status === 'SUCCESS') badge = '<span class="badge bg-success" style="width: 60px; display: inline-block; text-align: center;">SUCCESS</span>';
                                 else if (msg.status === 'ERROR') badge = '<span class="badge bg-danger" style="width: 60px; display: inline-block; text-align: center;">ERROR</span>';
                                 else if (msg.status === 'WARNING') badge = '<span class="badge bg-warning text-dark" style="width: 60px; display: inline-block; text-align: center;">WARN</span>';
                                 else badge = '<span class="badge bg-info text-dark" style="width: 60px; display: inline-block; text-align: center;">INFO</span>';
-                                return `<div class="mb-1"><small class="text-muted" style="font-family: monospace;">[${msg.date}]</small> ${badge} <small>${msg.text}</small></div>`;
+                                return `<div class="mb-1"><small class="text-muted" style="font-family: monospace;">[${msg.date}]</small> ${badge} <small class="text-break">${msg.text}</small></div>`;
                             }).join('');
                             
-                            const detailsId = 'details_' + item.order_id;
+                            const detailsId = 'details_' + item.order_id.toString().replace(/[^a-zA-Z0-9_\-]/g, '_');
+                            const orderLink = item.order_id !== 'UNKNOWN' && item.order_id !== 'SYSTEM'
+                                ? `<a href="https://twice1.keycrm.app/app/orders/view/${item.order_id}" target="_blank" class="text-decoration-none">#${item.order_id} <i class="fas fa-external-link-alt small"></i></a>`
+                                : `#${item.order_id}`;
                             
                             tbody.innerHTML += `
                                 <tr>
-                                    <td class="text-nowrap">${item.date}</td>
-                                    <td><strong><a href="https://twice1.keycrm.app/app/orders/view/${item.order_id}" target="_blank" class="text-decoration-none">#${item.order_id} <i class="fas fa-external-link-alt small"></i></a></strong></td>
+                                    <td class="text-nowrap small text-muted">${item.date}</td>
+                                    <td><strong>${orderLink}</strong></td>
                                     <td>${systemBadge}</td>
                                     <td>${statusBadge}</td>
-                                    <td class="text-break">${item.latest_msg}</td>
-                                    <td class="text-nowrap">
-                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#${detailsId}" title="Показати всю історію">
+                                    <td class="text-break small">${item.latest_msg}</td>
+                                    <td class="text-nowrap text-end">
+                                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#${detailsId}" title="Показати всю історію" style="font-size: 0.8rem;">
                                             <i class="fas fa-list"></i> Деталі
                                         </button>
-                                        <a href="manual_refund.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-primary ms-1" title="Запустити вручну">
-                                            <i class="fas fa-redo"></i>
-                                        </a>
+                                        ${item.order_id !== 'UNKNOWN' && item.order_id !== 'SYSTEM' ? `
+                                            <a href="manual_refund.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 ms-1" title="Запустити вручну" style="font-size: 0.8rem;">
+                                                <i class="fas fa-redo"></i>
+                                            </a>
+                                        ` : ''}
                                         ${(sType === 'liqpay' || sysLower.includes('liqpay')) ? `
-                                            <a href="liqpay_receipt.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-success ms-1" title="Ручна відправка / перегляд квитанції LiqPay">
+                                            <a href="liqpay_receipt.php?order_id=${item.order_id}" target="_blank" class="btn btn-sm btn-outline-success py-0 px-2 ms-1" style="font-size: 0.8rem;" title="Ручна відправка / перегляд квитанції LiqPay">
                                                 <i class="fas fa-receipt"></i>
                                             </a>
                                         ` : ''}
@@ -719,18 +804,116 @@
                                 </tr>
                                 <tr class="collapse" id="${detailsId}">
                                     <td colspan="6" class="bg-light p-3 border-bottom">
-                                        <div class="mb-2"><strong>Усі логі по замовленню #${item.order_id}:</strong></div>
-                                        ${detailsHtml}
+                                        <div class="mb-2"><strong>Усі логи по замовленню #${item.order_id} (${(item.messages || []).length} записів):</strong></div>
+                                        ${detailsHtml || '<div class="text-muted small">Немає додаткових деталей</div>'}
                                     </td>
                                 </tr>
                             `;
                         });
                     }
+                    renderRefundPagination(data.pagination);
+                } else {
+                    showToast('Помилка: ' + (data.message || 'Не вдалося завантажити історію'), 'danger');
                 }
             } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Помилка завантаження даних</td></tr>';
                 showToast('Помилка завантаження історії повернень', 'danger');
             }
         }
+
+        function renderRefundPagination(p) {
+            const info = document.getElementById('refundPaginationInfo');
+            const nav = document.getElementById('refundPaginationNav');
+            if (!info || !nav || !p) return;
+
+            const from = p.total_records > 0 ? (p.current_page - 1) * p.per_page + 1 : 0;
+            const to = Math.min(p.current_page * p.per_page, p.total_records);
+            info.innerHTML = `Показано <strong>${from}–${to}</strong> із <strong>${p.total_records}</strong> замовлень &bull; Сторінка ${p.current_page} із ${p.total_pages}`;
+
+            nav.innerHTML = '';
+            if (p.total_pages <= 1) return;
+
+            // First & Previous
+            nav.innerHTML += `
+                <li class="page-item ${p.current_page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadRefundHistory(1); return false;" title="Перша сторінка">«</a>
+                </li>
+                <li class="page-item ${p.current_page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadRefundHistory(${p.current_page - 1}); return false;" title="Попередня">‹</a>
+                </li>
+            `;
+
+            // Window of numeric page buttons
+            const delta = 2;
+            const start = Math.max(1, p.current_page - delta);
+            const end = Math.min(p.total_pages, p.current_page + delta);
+
+            if (start > 1) {
+                nav.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadRefundHistory(1); return false;">1</a></li>`;
+                if (start > 2) nav.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+
+            for (let i = start; i <= end; i++) {
+                nav.innerHTML += `
+                    <li class="page-item ${i === p.current_page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadRefundHistory(${i}); return false;">${i}</a>
+                    </li>
+                `;
+            }
+
+            if (end < p.total_pages) {
+                if (end < p.total_pages - 1) nav.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+                nav.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadRefundHistory(${p.total_pages}); return false;">${p.total_pages}</a></li>`;
+            }
+
+            // Next & Last
+            nav.innerHTML += `
+                <li class="page-item ${p.current_page === p.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadRefundHistory(${p.current_page + 1}); return false;" title="Наступна">›</a>
+                </li>
+                <li class="page-item ${p.current_page === p.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadRefundHistory(${p.total_pages}); return false;" title="Остання сторінка">»</a>
+                </li>
+            `;
+        }
+
+        async function syncRefundHistory() {
+            showToast('Синхронізація з refund.log...', 'info');
+            try {
+                const res = await fetch(`${API_URL}?action=sync_refund_history`);
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Синхронізацію завершено! Додано нових записів: ${data.imported}`, 'success');
+                    loadRefundHistory(1);
+                } else {
+                    showToast('Помилка синхронізації', 'danger');
+                }
+            } catch(e) {
+                showToast('Помилка мережі при синхронізації', 'danger');
+            }
+        }
+
+        // Event listeners for filters
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('refundSearchInput');
+            if (searchInput) {
+                let searchTimeout = null;
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => loadRefundHistory(1), 400);
+                });
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        clearTimeout(searchTimeout);
+                        loadRefundHistory(1);
+                    }
+                });
+            }
+
+            document.getElementById('refundStatusFilter')?.addEventListener('change', () => loadRefundHistory(1));
+            document.getElementById('refundSystemFilter')?.addEventListener('change', () => loadRefundHistory(1));
+            document.getElementById('refundPerPageSelect')?.addEventListener('change', () => loadRefundHistory(1));
+        });
 
         // Uploads Management
         let currentUploadDir = '';
