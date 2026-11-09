@@ -690,7 +690,7 @@ try {
 
     echo implode("\n", $results);
 
-} catch (Exception $e) {
+} catch (\Throwable $e) {
     $statusText  = "ERROR";
     $commentText = $e->getMessage();
 
@@ -698,12 +698,16 @@ try {
     $errCommentField = ($currentFopIndex === 2) ? $commentField2 : $commentField1;
 
     if ($orderIdForError !== 'UNKNOWN') {
-        $keyCrm->updateOrder($orderIdForError, [
-            'custom_fields' => [
-                ["uuid" => $statusField, "value" => $statusText],
-                ["uuid" => $errCommentField, "value" => $commentText]
-            ]
-        ]);
+        try {
+            $keyCrm->updateOrder($orderIdForError, [
+                'custom_fields' => [
+                    ["uuid" => $statusField, "value" => $statusText],
+                    ["uuid" => $errCommentField, "value" => $commentText]
+                ]
+            ]);
+        } catch (\Throwable $ue) {
+            @file_put_contents(__DIR__ . '/logs/errors.log', "[" . date('Y-m-d H:i:s') . "] KeyCRM updateOrder error: " . $ue->getMessage() . "\n", FILE_APPEND);
+        }
     }
 
     $logText = $commentText;

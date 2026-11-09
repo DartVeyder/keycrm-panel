@@ -70,7 +70,33 @@ class Prestashop extends Base
     }
     public function changeOrderStatus($idOrder, $idOrderState)
     {
-        $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        $idOrder = (int)$idOrder;
+        $idOrderState = (int)$idOrderState;
+
+        if (empty($idOrder) || empty($idOrderState)) {
+            return false;
+        }
+
+        // 1. Спробувати змінити статус напряму через нативні класи PrestaShop, якщо вони завантажені
+        if (class_exists('OrderHistory') && class_exists('Order') && class_exists('Validate')) {
+            try {
+                $order = new Order($idOrder);
+                if (Validate::isLoadedObject($order)) {
+                    $history = new OrderHistory();
+                    $history->id_order = $idOrder;
+                    $history->id_employee = 1;
+                    $history->changeIdOrderState($idOrderState, $idOrder);
+                    $history->add();
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                error_log("PrestaShop native changeOrderStatus error: " . $e->getMessage());
+            }
+        }
+
+        // 2. Якщо класи недоступні або нативний метод дав збій — використовуємо Webservice API
+        try {
+            $xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <prestashop xmlns:xlink=\"http://www.w3.org/1999/xlink\">
     <order_history>
         <id_order>$idOrder</id_order>
@@ -79,15 +105,26 @@ class Prestashop extends Base
     </order_history>
 </prestashop>";
 
-        $response = $this->client->request('POST', 'order_histories', [
-            'query'   => [
-                'ws_key' => PRESTASHOP_API_KEY
-            ],
-            'headers' => [
-                'Content-Type' => 'text/xml',
-            ],
-            'body'    => $xmlData
-        ]);
+            $response = $this->client->request('POST', 'order_histories', [
+                'query'   => [
+                    'ws_key' => PRESTASHOP_API_KEY
+                ],
+                'headers' => [
+                    'Content-Type' => 'text/xml',
+                ],
+                'body'    => $xmlData
+            ]);
+
+            return true;
+        } catch (\GuzzleHttp\Exception\ServerException $e) {
+            // PrestaShop Webservice повертає 500 навіть при PHP Notice у хуках (наприклад, ecm_novaposhta),
+            // хоча сам статус насправді записується в базу. Логуємо і не ламаємо виконання.
+            error_log("PrestaShop API changeOrderStatus ServerException: " . $e->getMessage());
+            return false;
+        } catch (\Throwable $e) {
+            error_log("PrestaShop API changeOrderStatus error: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function getProductImagesByReference(string $reference): ?array
@@ -212,30 +249,41 @@ class Prestashop extends Base
 
     public function addTrackingNumber($id_order, $tracking_number, $id_carrier = 22, $kc_order_id = null)
     {
-        // Захист даних (Sanitization)
-        $safe_tracking_number = pSQL($tracking_number);
-        $safe_id_order        = (int) $id_order;
+        try {
+            if (!function_exists('pSQL') || !defined('_DB_PREFIX_') || !class_exists('Db')) {
+                return false;
+            }
 
-        // Формуємо базовий SQL
-        $sql = "UPDATE `" . _DB_PREFIX_ . "order_carrier` 
-            SET `tracking_number` = '$safe_tracking_number' 
-            WHERE `id_order` = $safe_id_order";
+            // Захист даних (Sanitization)
+            $safe_tracking_number = pSQL($tracking_number);
+            $safe_id_order        = (int) $id_order;
 
-        // Якщо передано ID перевізника, додаємо умову
-        if ($id_carrier) {
-            $safe_id_carrier  = (int) $id_carrier;
-            $sql             .= " AND `id_carrier` = $safe_id_carrier";
+            // Формуємо базовий SQL
+            $sql = "UPDATE `" . _DB_PREFIX_ . "order_carrier` 
+                SET `tracking_number` = '$safe_tracking_number' 
+                WHERE `id_order` = $safe_id_order";
+
+            // Якщо передано ID перевізника, додаємо умову
+            if ($id_carrier) {
+                $safe_id_carrier  = (int) $id_carrier;
+                $sql             .= " AND `id_carrier` = $safe_id_carrier";
+            }
+            if (class_exists('Logger')) {
+                Logger::addLog(
+                    "Трек-номер {$tracking_number} додано до замовлення {$id_order} (KC ID: {$kc_order_id})",
+                    1,
+                    null,
+                    'Order',
+                    $id_order,
+                    true
+                );
+            }
+            // Виконуємо запит
+            return Db::getInstance()->execute($sql);
+        } catch (\Throwable $e) {
+            error_log("addTrackingNumber error: " . $e->getMessage());
+            return false;
         }
-        Logger::addLog(
-            "Трек-номер {$tracking_number} додано до замовлення {$id_order} (KC ID: {$kc_order_id})",
-            1,
-            null,
-            'Order',
-            $id_order,
-            true
-        );
-        // Виконуємо запит
-        return Db::getInstance()->execute($sql);
     }
 
     public function hasOrderMessage($id_order, $search_text)
