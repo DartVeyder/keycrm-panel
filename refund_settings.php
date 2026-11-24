@@ -38,6 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
             if (empty($key)) continue;
             
             $token = trim($item['token'] ?? '');
+            if (preg_match('/^UA\d{27}\s+(.+)$/i', $token, $m)) {
+                $token = trim($m[1]);
+            }
             // Якщо токен замаскований або порожній, залишаємо старий
             if ($token === '********' || $token === '') {
                 $token = $oldConfig[$key]['token'] ?? '';

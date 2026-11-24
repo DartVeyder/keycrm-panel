@@ -27,6 +27,11 @@ class PrivatBankPayment
      */
     public function __construct(string $token)
     {
+        // Очищуємо токен від пробілів та випадково вставленого на початку IBAN рахунку
+        $token = trim($token);
+        if (preg_match('/^UA\d{27}\s+(.+)$/i', $token, $m)) {
+            $token = trim($m[1]);
+        }
         $this->token = $token;
         // Ініціалізація клієнта Guzzle
         $this->client = new Client([
