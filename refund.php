@@ -103,29 +103,101 @@ if (!function_exists('resolveFopConfig')) {
             }
         }
 
-        // 4. Пошук за прізвищем та банком
-        if (preg_match('/(?:фоп\s+)?([\p{L}]+)/ui', $fopName, $m)) {
-            $surname = mb_strtolower($m[1]);
+        // 4. Пошук за прізвищем/назвою та банком (ігноруючи службові слова на кшталт "Приват", "ТОВ", "ФОП")
+        $stopWords = [
+            'приват', 'приватбанк', 'моно', 'монобанк', 'mono', 'liqpay', 'payparts',
+            'фоп', 'тов', 'передоплата', 'передоплпата', 'еквайринг', 'оплата',
+            'частинами', 'розстрочка', 'миттєва', 'платежі', 'платіж', 'банк'
+        ];
+
+        $isTov = (bool)preg_match('/(?:^|[^\p{L}])тов(?:[^\p{L}]|$)/ui', $fopName);
+        $isFop = (bool)preg_match('/(?:^|[^\p{L}])фоп(?:[^\p{L}]|$)/ui', $fopName);
+        $isPrepay = (mb_stripos($fopName, 'передоплат') !== false || mb_stripos($fopName, 'передоплпат') !== false);
+
+        $entityToken = null;
+        if (preg_match('/(?:^|[^\p{L}])фоп\s+([\p{L}]{3,})/ui', $fopName, $m)) {
+            $candidate = mb_strtolower($m[1]);
+            if (!in_array($candidate, $stopWords, true)) {
+                $entityToken = $candidate;
+            }
+        } elseif (preg_match('/(?:^|[^\p{L}])тов\s+["«\']?([\p{L}\p{N}]{2,})/ui', $fopName, $m)) {
+            $candidate = mb_strtolower($m[1]);
+            if (!in_array($candidate, $stopWords, true)) {
+                $entityToken = $candidate;
+            }
+        }
+
+        if ($entityToken === null && preg_match_all('/[\p{L}]{3,}/u', $fopName, $words)) {
+            foreach ($words[0] as $w) {
+                $lw = mb_strtolower($w);
+                if (!in_array($lw, $stopWords, true)) {
+                    $entityToken = $lw;
+                    break;
+                }
+            }
+        }
+
+        if ($entityToken !== null) {
             $isPayparts = (mb_stripos($fopName, 'частинами') !== false || mb_stripos($fopName, 'розстрочк') !== false || mb_stripos($fopName, 'payparts') !== false);
             $isPrivat = (mb_stripos($fopName, 'приват') !== false) && !$isPayparts;
             $isLiqpay = (mb_stripos($fopName, 'liqpay') !== false);
             $isMono = (mb_stripos($fopName, 'моно') !== false || mb_stripos($fopName, 'mono') !== false);
 
+            $candidates = [];
             foreach ($config as $key => $cfg) {
-                if (mb_stripos(mb_strtolower($key), $surname) !== false) {
-                    if ($isPayparts && in_array($cfg['type'] ?? '', ['privat_payparts', 'payparts'])) {
-                        return [$key, $cfg];
-                    }
-                    if ($isPrivat && ($cfg['type'] ?? '') === 'privatbank') {
-                        return [$key, $cfg];
-                    }
-                    if ($isLiqpay && ($cfg['type'] ?? '') === 'liqpay') {
-                        return [$key, $cfg];
-                    }
-                    if ($isMono && ($cfg['type'] ?? '') === 'monobank') {
-                        return [$key, $cfg];
+                $keyIsTov = (bool)preg_match('/(?:^|[^\p{L}])тов(?:[^\p{L}]|$)/ui', $key);
+                $keyIsFop = (bool)preg_match('/(?:^|[^\p{L}])фоп(?:[^\p{L}]|$)/ui', $key);
+
+                // Не дозволяємо змішувати ТОВ із ФОП
+                if ($isTov && !$keyIsTov) continue;
+                if ($isFop && $keyIsTov) continue;
+
+                if (mb_stripos(mb_strtolower($key), $entityToken) !== false) {
+                    $type = $cfg['type'] ?? '';
+                    $typeMatched =
+                        ($isPayparts && in_array($type, ['privat_payparts', 'payparts'], true)) ||
+                        ($isPrivat && $type === 'privatbank') ||
+                        ($isLiqpay && $type === 'liqpay') ||
+                        ($isMono && $type === 'monobank');
+
+                    if ($typeMatched) {
+                        $candidates[$key] = $cfg;
                     }
                 }
+            }
+
+            // Якщо знайдено кілька збігів (наприклад, різні ініціали або Передоплата), уточнюємо
+            if (count($candidates) > 1) {
+                // 1) Спроба уточнити за ознакою "Передоплата"
+                $filteredPrepay = array_filter(
+                    $candidates,
+                    fn($cfg, $key) => (mb_stripos($key, 'передоплат') !== false) === $isPrepay,
+                    ARRAY_FILTER_USE_BOTH
+                );
+                if (count($filteredPrepay) === 1) {
+                    $candidates = $filteredPrepay;
+                }
+            }
+
+            if (count($candidates) > 1) {
+                // 2) Спроба уточнити за ініціалом після прізвища (наприклад, "Василишин С.І" vs "Василишин Т.О")
+                if (preg_match('/' . preg_quote($entityToken, '/') . '\s+([\p{L}])(?:[\.\s,]|$)/ui', $fopName, $im)) {
+                    $initial = mb_strtolower($im[1]);
+                    $filteredInitial = array_filter(
+                        $candidates,
+                        fn($cfg, $key) => (bool)preg_match('/' . preg_quote($entityToken, '/') . '\s+' . preg_quote($initial, '/') . '(?:[\.\s,]|$)/ui', $key),
+                        ARRAY_FILTER_USE_BOTH
+                    );
+                    if (count($filteredInitial) === 1) {
+                        $candidates = $filteredInitial;
+                    }
+                }
+            }
+
+            // Повертаємо результат лише при однозначному збігу, щоб не відправити платіж з чужого рахунку
+            if (count($candidates) === 1) {
+                $matchedKey = array_key_first($candidates);
+                return [$matchedKey, $candidates[$matchedKey]];
             }
         }
 

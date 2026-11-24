@@ -48,16 +48,85 @@ function resolveFopConfigLocal($fopName, $config) {
         if ($cleanName === $cleanKey) return [$key, $cfg];
     }
     
-    if (preg_match('/(?:фоп\s+)?([\p{L}]+)/ui', $fopName, $m)) {
-        $surname = mb_strtolower($m[1]);
+    $stopWords = [
+        'приват', 'приватбанк', 'моно', 'монобанк', 'mono', 'liqpay', 'payparts',
+        'фоп', 'тов', 'передоплата', 'передоплпата', 'еквайринг', 'оплата',
+        'частинами', 'розстрочка', 'миттєва', 'платежі', 'платіж', 'банк'
+    ];
+
+    $isTov = (bool)preg_match('/(?:^|[^\p{L}])тов(?:[^\p{L}]|$)/ui', $fopName);
+    $isFop = (bool)preg_match('/(?:^|[^\p{L}])фоп(?:[^\p{L}]|$)/ui', $fopName);
+    $isPrepay = (mb_stripos($fopName, 'передоплат') !== false || mb_stripos($fopName, 'передоплпат') !== false);
+
+    $entityToken = null;
+    if (preg_match('/(?:^|[^\p{L}])фоп\s+([\p{L}]{3,})/ui', $fopName, $m)) {
+        $candidate = mb_strtolower($m[1]);
+        if (!in_array($candidate, $stopWords, true)) {
+            $entityToken = $candidate;
+        }
+    } elseif (preg_match('/(?:^|[^\p{L}])тов\s+["«\']?([\p{L}\p{N}]{2,})/ui', $fopName, $m)) {
+        $candidate = mb_strtolower($m[1]);
+        if (!in_array($candidate, $stopWords, true)) {
+            $entityToken = $candidate;
+        }
+    }
+
+    if ($entityToken === null && preg_match_all('/[\p{L}]{3,}/u', $fopName, $words)) {
+        foreach ($words[0] as $w) {
+            $lw = mb_strtolower($w);
+            if (!in_array($lw, $stopWords, true)) {
+                $entityToken = $lw;
+                break;
+            }
+        }
+    }
+
+    if ($entityToken !== null) {
         $isPrivat = (mb_stripos($fopName, 'приват') !== false);
         $isLiqpay = (mb_stripos($fopName, 'liqpay') !== false);
-        
+
+        $candidates = [];
         foreach ($config as $key => $cfg) {
-            if (mb_stripos(mb_strtolower($key), $surname) !== false) {
-                if ($isPrivat && ($cfg['type'] ?? '') === 'privatbank') return [$key, $cfg];
-                if ($isLiqpay && ($cfg['type'] ?? '') === 'liqpay') return [$key, $cfg];
+            $keyIsTov = (bool)preg_match('/(?:^|[^\p{L}])тов(?:[^\p{L}]|$)/ui', $key);
+            if ($isTov && !$keyIsTov) continue;
+            if ($isFop && $keyIsTov) continue;
+
+            if (mb_stripos(mb_strtolower($key), $entityToken) !== false) {
+                $type = $cfg['type'] ?? '';
+                if (($isPrivat && $type === 'privatbank') || ($isLiqpay && $type === 'liqpay')) {
+                    $candidates[$key] = $cfg;
+                }
             }
+        }
+
+        if (count($candidates) > 1) {
+            $filteredPrepay = array_filter(
+                $candidates,
+                fn($cfg, $key) => (mb_stripos($key, 'передоплат') !== false) === $isPrepay,
+                ARRAY_FILTER_USE_BOTH
+            );
+            if (count($filteredPrepay) === 1) {
+                $candidates = $filteredPrepay;
+            }
+        }
+
+        if (count($candidates) > 1) {
+            if (preg_match('/' . preg_quote($entityToken, '/') . '\s+([\p{L}])(?:[\.\s,]|$)/ui', $fopName, $im)) {
+                $initial = mb_strtolower($im[1]);
+                $filteredInitial = array_filter(
+                    $candidates,
+                    fn($cfg, $key) => (bool)preg_match('/' . preg_quote($entityToken, '/') . '\s+' . preg_quote($initial, '/') . '(?:[\.\s,]|$)/ui', $key),
+                    ARRAY_FILTER_USE_BOTH
+                );
+                if (count($filteredInitial) === 1) {
+                    $candidates = $filteredInitial;
+                }
+            }
+        }
+
+        if (count($candidates) === 1) {
+            $matchedKey = array_key_first($candidates);
+            return [$matchedKey, $candidates[$matchedKey]];
         }
     }
     return [null, null];
